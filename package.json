@@ -1,0 +1,9 @@
+{
+  "name": "node-starter",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-java": "node compile.js",
+    "run-java": "java -cp classes main.java.Main"
+  }
+}

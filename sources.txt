@@ -1,0 +1,14 @@
+D:\college_erp_fixed\src\main\java\main\java\Main.java
+D:\college_erp_fixed\src\main\java\main\java\gui\LoginFrame.java
+D:\college_erp_fixed\src\main\java\main\java\gui\MainFrame.java
+D:\college_erp_fixed\src\main\java\main\java\gui\dialogs\StudentDialog.java
+D:\college_erp_fixed\src\main\java\main\java\gui\panels\CoursePanel.java
+D:\college_erp_fixed\src\main\java\main\java\gui\panels\DashboardPanel.java
+D:\college_erp_fixed\src\main\java\main\java\gui\panels\FacultyPanel.java
+D:\college_erp_fixed\src\main\java\main\java\gui\panels\FeesPanel.java
+D:\college_erp_fixed\src\main\java\main\java\gui\panels\StudentPanel.java
+D:\college_erp_fixed\src\main\java\main\java\models\Course.java
+D:\college_erp_fixed\src\main\java\main\java\models\Faculty.java
+D:\college_erp_fixed\src\main\java\main\java\models\Student.java
+D:\college_erp_fixed\src\main\java\main\java\models\User.java
+D:\college_erp_fixed\src\main\java\main\java\utils\DatabaseUtil.java
