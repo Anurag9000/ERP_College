@@ -5,7 +5,9 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -30,10 +32,12 @@ public class Section implements Serializable {
 
     private final List<String> enrolledStudentIds;
     private final List<String> waitlistedStudentIds;
+    private final Map<String, Double> assessmentWeights;
 
     public Section() {
         this.enrolledStudentIds = new ArrayList<>();
         this.waitlistedStudentIds = new ArrayList<>();
+        this.assessmentWeights = new LinkedHashMap<>();
     }
 
     public Section(String sectionId, String courseId, String title, String facultyId,
@@ -54,6 +58,7 @@ public class Section implements Serializable {
         this.year = LocalDate.now().getYear();
         this.enrolledStudentIds = new ArrayList<>();
         this.waitlistedStudentIds = new ArrayList<>();
+        this.assessmentWeights = new LinkedHashMap<>();
     }
 
     public String getSectionId() {
@@ -168,6 +173,22 @@ public class Section implements Serializable {
         return waitlistedStudentIds;
     }
 
+    public Map<String, Double> getAssessmentWeights() {
+        return assessmentWeights;
+    }
+
+    public void setAssessmentWeight(String component, double weight) {
+        assessmentWeights.put(component, weight);
+    }
+
+    public void removeAssessment(String component) {
+        assessmentWeights.remove(component);
+    }
+
+    public void clearAssessmentWeights() {
+        assessmentWeights.clear();
+    }
+
     public int getAvailableSeats() {
         return Math.max(0, capacity - enrolledStudentIds.size());
     }
@@ -204,6 +225,20 @@ public class Section implements Serializable {
         String nextStudent = waitlistedStudentIds.remove(0);
         enrollStudent(nextStudent);
         return nextStudent;
+    }
+
+    public double computeFinalScore(Map<String, Double> scores) {
+        if (assessmentWeights.isEmpty() || scores == null || scores.isEmpty()) {
+            return scores != null && scores.containsKey("Final") ? scores.get("Final") : 0.0;
+        }
+        double totalWeight = assessmentWeights.values().stream().mapToDouble(Double::doubleValue).sum();
+        double total = 0.0;
+        for (Map.Entry<String, Double> entry : assessmentWeights.entrySet()) {
+            double weight = entry.getValue();
+            double score = scores.getOrDefault(entry.getKey(), 0.0);
+            total += (score * weight) / Math.max(totalWeight, 1.0);
+        }
+        return total;
     }
 
     @Override

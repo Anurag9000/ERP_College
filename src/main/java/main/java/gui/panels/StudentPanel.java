@@ -25,7 +25,7 @@ public class StudentPanel extends JPanel {
     private JButton addButton, editButton, deleteButton, refreshButton, scheduleButton;
     
     private final String[] columnNames = {
-        "Student ID", "Name", "Email", "Phone", "Course",
+        "Student ID", "Username", "Name", "Email", "Phone", "Course",
         "Semester", "Status", "CGPA", "Progress", "Fees Paid", "Outstanding", "Next Due"
     };
     
@@ -175,6 +175,7 @@ public class StudentPanel extends JPanel {
         for (Student student : students) {
             Object[] row = {
                 student.getStudentId(),
+                student.getUsername(),
                 student.getFullName(),
                 student.getEmail(),
                 student.getPhone(),
@@ -284,7 +285,7 @@ public class StudentPanel extends JPanel {
         
         selectedRow = studentTable.convertRowIndexToModel(selectedRow);
         String studentId = (String) tableModel.getValueAt(selectedRow, 0);
-        String studentName = (String) tableModel.getValueAt(selectedRow, 1);
+        String studentName = (String) tableModel.getValueAt(selectedRow, 2);
         
         int option = JOptionPane.showConfirmDialog(
             this,

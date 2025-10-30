@@ -19,7 +19,7 @@ public class FacultyPanel extends JPanel {
     private JButton addButton, editButton, deleteButton, refreshButton;
     
     private final String[] columnNames = {
-        "Faculty ID", "Name", "Department", "Designation", 
+        "Faculty ID", "Username", "Name", "Department", "Designation",
         "Email", "Phone", "Qualification", "Salary", "Status"
     };
     
@@ -148,6 +148,7 @@ public class FacultyPanel extends JPanel {
         for (Faculty faculty : faculties) {
             Object[] row = {
                 faculty.getFacultyId(),
+                faculty.getUsername(),
                 faculty.getFullName(),
                 faculty.getDepartment(),
                 faculty.getDesignation(),
@@ -187,7 +188,7 @@ public class FacultyPanel extends JPanel {
         
         selectedRow = facultyTable.convertRowIndexToModel(selectedRow);
         String facultyId = (String) tableModel.getValueAt(selectedRow, 0);
-        String facultyName = (String) tableModel.getValueAt(selectedRow, 1);
+        String facultyName = (String) tableModel.getValueAt(selectedRow, 2);
         
         int option = JOptionPane.showConfirmDialog(
             this,

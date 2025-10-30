@@ -22,6 +22,9 @@ public class MainFrame extends JFrame {
     private EnrollmentPanel enrollmentPanel;
     private AttendancePanel attendancePanel;
     private NotificationsPanel notificationsPanel;
+    private JPanel studentSelfServicePanel;
+    private JPanel instructorWorkspacePanel;
+    private JLabel maintenanceLabel;
     
     public MainFrame(User user) {
         this.currentUser = user;
@@ -40,16 +43,7 @@ public class MainFrame extends JFrame {
         tabbedPane = new JTabbedPane();
         tabbedPane.setFont(new Font("Arial", Font.PLAIN, 12));
         
-        // Initialize panels
-        dashboardPanel = new DashboardPanel();
-        studentPanel = new StudentPanel();
-        facultyPanel = new FacultyPanel();
-        coursePanel = new CoursePanel();
-        feesPanel = new FeesPanel();
-        sectionPanel = new SectionPanel();
-        enrollmentPanel = new EnrollmentPanel();
-        attendancePanel = new AttendancePanel();
-        notificationsPanel = new NotificationsPanel();
+        initializePanelsForRole();
     }
     
     private void setupLayout() {
@@ -67,11 +61,16 @@ public class MainFrame extends JFrame {
         
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         userPanel.setOpaque(false);
-        
+
         JLabel userLabel = new JLabel("Welcome, " + currentUser.getFullName());
         userLabel.setForeground(Color.WHITE);
         userLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        
+
+        maintenanceLabel = new JLabel();
+        maintenanceLabel.setForeground(Color.YELLOW);
+        maintenanceLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        updateMaintenanceBadge();
+
         JButton logoutButton = new JButton("Logout");
         logoutButton.setBackground(new Color(220, 38, 38));
         logoutButton.setForeground(Color.WHITE);
@@ -79,8 +78,10 @@ public class MainFrame extends JFrame {
         logoutButton.setBorderPainted(false);
         logoutButton.setPreferredSize(new Dimension(80, 30));
         logoutButton.addActionListener(e -> logout());
-        
+
         userPanel.add(userLabel);
+        userPanel.add(Box.createHorizontalStrut(10));
+        userPanel.add(maintenanceLabel);
         userPanel.add(Box.createHorizontalStrut(20));
         userPanel.add(logoutButton);
         
@@ -88,15 +89,7 @@ public class MainFrame extends JFrame {
         headerPanel.add(userPanel, BorderLayout.EAST);
         
         // Add tabs
-        tabbedPane.addTab("Dashboard", createTabIcon("📊"), dashboardPanel);
-        tabbedPane.addTab("Students", createTabIcon("👥"), studentPanel);
-        tabbedPane.addTab("Faculty", createTabIcon("👨‍🏫"), facultyPanel);
-        tabbedPane.addTab("Courses", createTabIcon("📚"), coursePanel);
-        tabbedPane.addTab("Fees", createTabIcon("💰"), feesPanel);
-        tabbedPane.addTab("Sections", createTabIcon("🗓️"), sectionPanel);
-        tabbedPane.addTab("Enrollment", createTabIcon("✅"), enrollmentPanel);
-        tabbedPane.addTab("Attendance", createTabIcon("📝"), attendancePanel);
-        tabbedPane.addTab("Notifications", createTabIcon("🔔"), notificationsPanel);
+        addRoleSpecificTabs();
         
         // Add components to frame
         add(headerPanel, BorderLayout.NORTH);
@@ -114,8 +107,56 @@ public class MainFrame extends JFrame {
         JLabel timeLabel = new JLabel(java.time.LocalDateTime.now().toString());
         timeLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         statusBar.add(timeLabel, BorderLayout.EAST);
-        
+
         add(statusBar, BorderLayout.SOUTH);
+    }
+
+    private void initializePanelsForRole() {
+        String role = currentUser.getRole();
+        tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("Arial", Font.PLAIN, 12));
+
+        if ("Student".equalsIgnoreCase(role)) {
+            studentSelfServicePanel = new StudentSelfServicePanel(currentUser);
+        } else if ("Instructor".equalsIgnoreCase(role)) {
+            instructorWorkspacePanel = new InstructorWorkspacePanel(currentUser);
+        } else {
+            dashboardPanel = new DashboardPanel();
+            studentPanel = new StudentPanel();
+            facultyPanel = new FacultyPanel();
+            coursePanel = new CoursePanel();
+            feesPanel = new FeesPanel();
+            sectionPanel = new SectionPanel();
+            enrollmentPanel = new EnrollmentPanel();
+            attendancePanel = new AttendancePanel();
+            notificationsPanel = new NotificationsPanel();
+        }
+    }
+
+    private void addRoleSpecificTabs() {
+        String role = currentUser.getRole();
+        if ("Student".equalsIgnoreCase(role)) {
+            tabbedPane.addTab("Self Service", createTabIcon("🎓"), studentSelfServicePanel);
+        } else if ("Instructor".equalsIgnoreCase(role)) {
+            tabbedPane.addTab("Workspace", createTabIcon("📘"), instructorWorkspacePanel);
+            tabbedPane.addTab("Attendance", createTabIcon("📝"), new InstructorAttendancePanel(currentUser));
+        } else {
+            tabbedPane.addTab("Dashboard", createTabIcon("📊"), dashboardPanel);
+            tabbedPane.addTab("Students", createTabIcon("👥"), studentPanel);
+            tabbedPane.addTab("Faculty", createTabIcon("👨‍🏫"), facultyPanel);
+            tabbedPane.addTab("Courses", createTabIcon("📚"), coursePanel);
+            tabbedPane.addTab("Sections", createTabIcon("🗓️"), sectionPanel);
+            tabbedPane.addTab("Enrollment", createTabIcon("✅"), enrollmentPanel);
+            tabbedPane.addTab("Attendance", createTabIcon("📝"), attendancePanel);
+            tabbedPane.addTab("Fees", createTabIcon("💰"), feesPanel);
+            tabbedPane.addTab("Notifications", createTabIcon("🔔"), notificationsPanel);
+            tabbedPane.addTab("Maintenance", createTabIcon("🛠"), new MaintenancePanel(currentUser, this::updateMaintenanceBadge));
+        }
+    }
+
+    private void updateMaintenanceBadge() {
+        boolean maintenance = main.java.utils.DatabaseUtil.isMaintenanceMode();
+        maintenanceLabel.setText(maintenance ? "Maintenance ON" : "");
     }
     
     private ImageIcon createTabIcon(String emoji) {

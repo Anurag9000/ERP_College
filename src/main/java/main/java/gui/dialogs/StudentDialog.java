@@ -20,6 +20,7 @@ public class StudentDialog extends JDialog {
     private boolean confirmed = false;
     
     private JTextField studentIdField;
+    private JTextField usernameField;
     private JTextField firstNameField;
     private JTextField lastNameField;
     private JTextField emailField;
@@ -61,6 +62,7 @@ public class StudentDialog extends JDialog {
     
     private void initializeComponents() {
         studentIdField = new JTextField(15);
+        usernameField = new JTextField(15);
         firstNameField = new JTextField(15);
         lastNameField = new JTextField(15);
         emailField = new JTextField(15);
@@ -138,6 +140,13 @@ public class StudentDialog extends JDialog {
         mainPanel.add(new JLabel("Student ID:"), gbc);
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(studentIdField, gbc);
+        row++;
+
+        // Username
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(new JLabel("Username:"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(usernameField, gbc);
         row++;
         
         // First Name
@@ -279,6 +288,10 @@ public class StudentDialog extends JDialog {
         if (student != null) {
             studentIdField.setText(student.getStudentId());
             studentIdField.setEditable(false);
+
+            if (student.getUsername() != null) {
+                usernameField.setText(student.getUsername());
+            }
             
             firstNameField.setText(student.getFirstName());
             lastNameField.setText(student.getLastName());
@@ -386,6 +399,7 @@ public class StudentDialog extends JDialog {
             student.setNextFeeDueDate(nextDueDate);
             student.setAdvisorId(advisorField.getText().trim().isEmpty() ? null : advisorField.getText().trim());
             student.setAcademicStanding((String) standingCombo.getSelectedItem());
+            student.setUsername(usernameField.getText().trim());
             
             confirmed = true;
             dispose();
@@ -401,6 +415,12 @@ public class StudentDialog extends JDialog {
         if (firstNameField.getText().trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "First name is required");
             firstNameField.requestFocus();
+            return false;
+        }
+
+        if (usernameField.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Username is required");
+            usernameField.requestFocus();
             return false;
         }
         
