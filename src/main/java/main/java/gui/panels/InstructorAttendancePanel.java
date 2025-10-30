@@ -112,6 +112,10 @@ public class InstructorAttendancePanel extends JPanel {
             Boolean present = (Boolean) tableModel.getValueAt(i, 1);
             map.put(studentId, present != null && present);
         }
+        if (DatabaseUtil.isMaintenanceMode()) {
+            JOptionPane.showMessageDialog(this, "Cannot save during maintenance mode.", "Maintenance", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         DatabaseUtil.recordAttendance(section.getSectionId(), date, map);
         JOptionPane.showMessageDialog(this, "Attendance saved.");
     }

@@ -67,6 +67,18 @@ public class DatabaseUtil {
         }
 
         settings.putIfAbsent("maintenance", "false");
+
+        // Upgrade legacy plaintext passwords if encountered
+        boolean upgraded = false;
+        for (User user : users.values()) {
+            if (user.getSalt() == null || user.getPasswordHash() == null) {
+                upgradePassword(user, "ChangeMe123!".toCharArray(), false);
+                upgraded = true;
+            }
+        }
+        if (upgraded) {
+            saveData();
+        }
     }
     
     private static void createSampleData() {
@@ -368,6 +380,10 @@ public class DatabaseUtil {
         return new ArrayList<>(users.values());
     }
 
+    public static User getUser(String username) {
+        return users.get(username);
+    }
+
     public static synchronized User addUser(String username, String role, String fullName, String email, String rawPassword) {
         if (users.containsKey(username)) {
             throw new IllegalArgumentException("Username already exists");
@@ -400,11 +416,17 @@ public class DatabaseUtil {
     }
 
     private static void upgradePassword(User user, char[] newPassword) {
+        upgradePassword(user, newPassword, true);
+    }
+
+    private static void upgradePassword(User user, char[] newPassword, boolean persist) {
         String newSalt = PasswordUtil.generateSalt();
         String newHash = PasswordUtil.hashPassword(newPassword, newSalt);
         user.setSalt(newSalt);
         user.setPasswordHash(newHash);
-        saveData();
+        if (persist) {
+            saveData();
+        }
     }
     
     // Student operations

@@ -139,11 +139,15 @@ public class StudentSelfServicePanel extends JPanel {
     }
 
     private void refreshProfile() {
-        this.studentProfile = StudentService.getProfile(currentUser);
-        updateMaintenanceState();
-        populateCatalog();
-        populateSchedule();
-        populateGrades();
+        try {
+            this.studentProfile = StudentService.getProfile(currentUser);
+            updateMaintenanceState();
+            populateCatalog();
+            populateSchedule();
+            populateGrades();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Profile not found", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void updateMaintenanceState() {
@@ -151,6 +155,10 @@ public class StudentSelfServicePanel extends JPanel {
         maintenanceBanner.setText(maintenance ? "System is in maintenance mode. Changes disabled." : "");
         registerButton.setEnabled(!maintenance);
         dropButton.setEnabled(!maintenance);
+    }
+
+    public void refreshForMaintenance() {
+        updateMaintenanceState();
     }
 
     private void populateCatalog() {

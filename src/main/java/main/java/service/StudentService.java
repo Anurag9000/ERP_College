@@ -17,7 +17,11 @@ public final class StudentService {
 
     public static Student getProfile(User actor) {
         requireStudent(actor);
-        return DatabaseUtil.findStudentByUsername(actor.getUsername());
+        Student student = DatabaseUtil.findStudentByUsername(actor.getUsername());
+        if (student == null) {
+            throw new IllegalStateException("No student profile linked to username " + actor.getUsername());
+        }
+        return student;
     }
 
     public static List<Section> getSchedule(User actor) {

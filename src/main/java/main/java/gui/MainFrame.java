@@ -142,6 +142,7 @@ public class MainFrame extends JFrame {
             tabbedPane.addTab("Attendance", createTabIcon("📝"), new InstructorAttendancePanel(currentUser));
         } else {
             tabbedPane.addTab("Dashboard", createTabIcon("📊"), dashboardPanel);
+            tabbedPane.addTab("Users", createTabIcon("👤"), new UserManagementPanel(currentUser));
             tabbedPane.addTab("Students", createTabIcon("👥"), studentPanel);
             tabbedPane.addTab("Faculty", createTabIcon("👨‍🏫"), facultyPanel);
             tabbedPane.addTab("Courses", createTabIcon("📚"), coursePanel);
@@ -157,6 +158,12 @@ public class MainFrame extends JFrame {
     private void updateMaintenanceBadge() {
         boolean maintenance = main.java.utils.DatabaseUtil.isMaintenanceMode();
         maintenanceLabel.setText(maintenance ? "Maintenance ON" : "");
+        if (studentSelfServicePanel instanceof StudentSelfServicePanel) {
+            ((StudentSelfServicePanel) studentSelfServicePanel).refreshForMaintenance();
+        }
+        if (instructorWorkspacePanel instanceof InstructorWorkspacePanel) {
+            ((InstructorWorkspacePanel) instructorWorkspacePanel).updateMaintenanceState();
+        }
     }
     
     private ImageIcon createTabIcon(String emoji) {

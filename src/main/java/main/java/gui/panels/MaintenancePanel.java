@@ -6,18 +6,16 @@ import main.java.utils.DatabaseUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.function.Consumer;
-
 /**
  * Admin control surface for maintenance toggle and quick status.
  */
 public class MaintenancePanel extends JPanel {
     private final User adminUser;
-    private final Consumer<Void> onToggleCallback;
+    private final Runnable onToggleCallback;
     private final JToggleButton toggleButton;
     private final JLabel statusLabel;
 
-    public MaintenancePanel(User adminUser, Consumer<Void> onToggleCallback) {
+    public MaintenancePanel(User adminUser, Runnable onToggleCallback) {
         this.adminUser = adminUser;
         this.onToggleCallback = onToggleCallback;
         setLayout(new BorderLayout());
@@ -71,9 +69,9 @@ public class MaintenancePanel extends JPanel {
         try {
             AdminService.toggleMaintenance(adminUser, desired);
             refreshState();
-            if (onToggleCallback != null) {
-                onToggleCallback.accept(null);
-            }
+        if (onToggleCallback != null) {
+            onToggleCallback.run();
+        }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to toggle", JOptionPane.ERROR_MESSAGE);
         }

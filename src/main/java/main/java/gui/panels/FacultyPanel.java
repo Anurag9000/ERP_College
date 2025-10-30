@@ -1,6 +1,8 @@
 package main.java.gui.panels;
 
+import main.java.gui.dialogs.FacultyDialog;
 import main.java.models.Faculty;
+import main.java.models.User;
 import main.java.utils.DatabaseUtil;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -175,11 +177,50 @@ public class FacultyPanel extends JPanel {
     }
     
     private void addFaculty() {
-        JOptionPane.showMessageDialog(this, "Add Faculty functionality would be implemented here");
+        FacultyDialog dialog = new FacultyDialog((JFrame) SwingUtilities.getWindowAncestor(this), "Add Faculty", null);
+        dialog.setVisible(true);
+        if (dialog.isConfirmed()) {
+            Faculty faculty = dialog.getFaculty();
+            User linkedUser = DatabaseUtil.getUser(faculty.getUsername());
+            if (linkedUser == null || !"Instructor".equalsIgnoreCase(linkedUser.getRole())) {
+                JOptionPane.showMessageDialog(this,
+                        "Create an instructor user before adding faculty profile.",
+                        "Missing user",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            DatabaseUtil.addFaculty(faculty);
+            loadFacultyData();
+        }
     }
     
     private void editFaculty() {
-        JOptionPane.showMessageDialog(this, "Edit Faculty functionality would be implemented here");
+        int selectedRow = facultyTable.getSelectedRow();
+        if (selectedRow == -1) {
+            return;
+        }
+        selectedRow = facultyTable.convertRowIndexToModel(selectedRow);
+        String facultyId = (String) tableModel.getValueAt(selectedRow, 0);
+        Faculty faculty = DatabaseUtil.getFaculty(facultyId);
+        if (faculty == null) {
+            JOptionPane.showMessageDialog(this, "Unable to load faculty profile.");
+            return;
+        }
+        FacultyDialog dialog = new FacultyDialog((JFrame) SwingUtilities.getWindowAncestor(this), "Edit Faculty", faculty);
+        dialog.setVisible(true);
+        if (dialog.isConfirmed()) {
+            Faculty updated = dialog.getFaculty();
+            User linkedUser = DatabaseUtil.getUser(updated.getUsername());
+            if (linkedUser == null || !"Instructor".equalsIgnoreCase(linkedUser.getRole())) {
+                JOptionPane.showMessageDialog(this,
+                        "Username must correspond to an instructor user.",
+                        "Invalid username",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            DatabaseUtil.updateFaculty(updated);
+            loadFacultyData();
+        }
     }
     
     private void deleteFaculty() {

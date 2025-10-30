@@ -180,8 +180,9 @@ public class AttendancePanel extends JPanel {
         }
 
         List<AttendanceRecord> history = DatabaseUtil.getAttendanceForSection(sectionId);
+        final LocalDate targetDate = date;
         Optional<AttendanceRecord> record = history.stream()
-                .filter(r -> r.getDate().equals(date))
+                .filter(r -> r.getDate().equals(targetDate))
                 .findFirst();
 
         return record.map(AttendanceRecord::getAttendanceByStudent).orElseGet(HashMap::new);

@@ -62,6 +62,7 @@ public class InstructorWorkspacePanel extends JPanel {
 
         hookListeners();
         refreshSections();
+        updateMaintenanceState();
     }
 
     private void hookListeners() {
@@ -70,6 +71,13 @@ public class InstructorWorkspacePanel extends JPanel {
         recordScoreButton.addActionListener(e -> recordScore());
         computeFinalButton.addActionListener(e -> computeFinal());
         statsButton.addActionListener(e -> showStats());
+    }
+
+    public void updateMaintenanceState() {
+        boolean maintenance = DatabaseUtil.isMaintenanceMode();
+        defineAssessmentsButton.setEnabled(!maintenance);
+        recordScoreButton.setEnabled(!maintenance);
+        computeFinalButton.setEnabled(!maintenance);
     }
 
     private void refreshSections() {

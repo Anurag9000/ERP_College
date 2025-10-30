@@ -1,6 +1,7 @@
 package main.java.gui.panels;
 
 import main.java.models.Student;
+import main.java.models.User;
 import main.java.utils.DatabaseUtil;
 import main.java.gui.dialogs.StudentDialog;
 import javax.swing.*;
@@ -247,6 +248,14 @@ public class StudentPanel extends JPanel {
         
         if (dialog.isConfirmed()) {
             Student student = dialog.getStudent();
+            User linkedUser = DatabaseUtil.getUser(student.getUsername());
+            if (linkedUser == null || !"Student".equalsIgnoreCase(linkedUser.getRole())) {
+                JOptionPane.showMessageDialog(this,
+                        "Create a student user account before adding the profile.",
+                        "Missing user",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             DatabaseUtil.addStudent(student);
             loadStudentData();
             JOptionPane.showMessageDialog(this, "Student added successfully!");
@@ -272,6 +281,14 @@ public class StudentPanel extends JPanel {
             
             if (dialog.isConfirmed()) {
                 Student updatedStudent = dialog.getStudent();
+                User linkedUser = DatabaseUtil.getUser(updatedStudent.getUsername());
+                if (linkedUser == null || !"Student".equalsIgnoreCase(linkedUser.getRole())) {
+                    JOptionPane.showMessageDialog(this,
+                            "Username must correspond to an existing student user.",
+                            "Invalid username",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
                 DatabaseUtil.updateStudent(updatedStudent);
                 loadStudentData();
                 JOptionPane.showMessageDialog(this, "Student updated successfully!");
