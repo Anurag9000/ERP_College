@@ -18,6 +18,10 @@ public class MainFrame extends JFrame {
     private FacultyPanel facultyPanel;
     private CoursePanel coursePanel;
     private FeesPanel feesPanel;
+    private SectionPanel sectionPanel;
+    private EnrollmentPanel enrollmentPanel;
+    private AttendancePanel attendancePanel;
+    private NotificationsPanel notificationsPanel;
     
     public MainFrame(User user) {
         this.currentUser = user;
@@ -42,6 +46,10 @@ public class MainFrame extends JFrame {
         facultyPanel = new FacultyPanel();
         coursePanel = new CoursePanel();
         feesPanel = new FeesPanel();
+        sectionPanel = new SectionPanel();
+        enrollmentPanel = new EnrollmentPanel();
+        attendancePanel = new AttendancePanel();
+        notificationsPanel = new NotificationsPanel();
     }
     
     private void setupLayout() {
@@ -85,6 +93,10 @@ public class MainFrame extends JFrame {
         tabbedPane.addTab("Faculty", createTabIcon("👨‍🏫"), facultyPanel);
         tabbedPane.addTab("Courses", createTabIcon("📚"), coursePanel);
         tabbedPane.addTab("Fees", createTabIcon("💰"), feesPanel);
+        tabbedPane.addTab("Sections", createTabIcon("🗓️"), sectionPanel);
+        tabbedPane.addTab("Enrollment", createTabIcon("✅"), enrollmentPanel);
+        tabbedPane.addTab("Attendance", createTabIcon("📝"), attendancePanel);
+        tabbedPane.addTab("Notifications", createTabIcon("🔔"), notificationsPanel);
         
         // Add components to frame
         add(headerPanel, BorderLayout.NORTH);

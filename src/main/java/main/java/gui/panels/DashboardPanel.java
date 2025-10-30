@@ -14,6 +14,8 @@ public class DashboardPanel extends JPanel {
     private JLabel totalFacultyLabel;
     private JLabel totalCoursesLabel;
     private JLabel pendingFeesLabel;
+    private JLabel waitlistLabel;
+    private JLabel attendanceLabel;
     
     public DashboardPanel() {
         initializeComponents();
@@ -26,6 +28,8 @@ public class DashboardPanel extends JPanel {
         totalFacultyLabel = new JLabel("0");
         totalCoursesLabel = new JLabel("0");
         pendingFeesLabel = new JLabel("₹0");
+        waitlistLabel = new JLabel("0");
+        attendanceLabel = new JLabel("100%");
         
         // Style the numbers
         Font numberFont = new Font("Arial", Font.BOLD, 24);
@@ -33,6 +37,8 @@ public class DashboardPanel extends JPanel {
         totalFacultyLabel.setFont(numberFont);
         totalCoursesLabel.setFont(numberFont);
         pendingFeesLabel.setFont(numberFont);
+        waitlistLabel.setFont(numberFont);
+        attendanceLabel.setFont(numberFont);
     }
     
     private void setupLayout() {
@@ -45,7 +51,7 @@ public class DashboardPanel extends JPanel {
         headerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
         
         // Statistics cards
-        JPanel cardsPanel = new JPanel(new GridLayout(2, 2, 20, 20));
+        JPanel cardsPanel = new JPanel(new GridLayout(2, 3, 20, 20));
         
         // Student card
         JPanel studentCard = createStatCard("Total Students", totalStudentsLabel, 
@@ -62,11 +68,17 @@ public class DashboardPanel extends JPanel {
         // Fees card
         JPanel feesCard = createStatCard("Pending Fees", pendingFeesLabel, 
                                        new Color(245, 101, 101), "💰");
+        JPanel waitlistCard = createStatCard("Waitlisted Students", waitlistLabel,
+                                            new Color(249, 115, 22), "⏳");
+        JPanel attendanceCard = createStatCard("Avg Attendance", attendanceLabel,
+                                              new Color(16, 185, 129), "✅");
         
         cardsPanel.add(studentCard);
         cardsPanel.add(facultyCard);
         cardsPanel.add(coursesCard);
         cardsPanel.add(feesCard);
+        cardsPanel.add(waitlistCard);
+        cardsPanel.add(attendanceCard);
         
         // Quick actions panel
         JPanel actionsPanel = new JPanel();
@@ -151,6 +163,17 @@ public class DashboardPanel extends JPanel {
                 .mapToDouble(Student::getOutstandingFees)
                 .sum();
         pendingFeesLabel.setText("₹" + String.format("%.0f", pendingFees));
+
+        int waitlistedTotal = DatabaseUtil.getAllSections().stream()
+                .mapToInt(section -> section.getWaitlistedStudentIds().size())
+                .sum();
+        waitlistLabel.setText(String.valueOf(waitlistedTotal));
+
+        double avgAttendance = DatabaseUtil.getAllSections().stream()
+                .mapToDouble(section -> DatabaseUtil.getAverageAttendanceForSection(section.getSectionId()))
+                .average()
+                .orElse(100.0);
+        attendanceLabel.setText(String.format("%.0f%%", avgAttendance));
     }
     
     public void refreshData() {

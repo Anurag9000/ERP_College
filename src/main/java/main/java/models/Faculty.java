@@ -21,6 +21,7 @@ public class Faculty implements java.io.Serializable {
     private String qualification;
     private List<String> subjects;
     private String status;
+    private String username;
     
     public Faculty() {
         this.subjects = new ArrayList<>();
@@ -41,6 +42,7 @@ public class Faculty implements java.io.Serializable {
         this.joiningDate = LocalDate.now();
         this.status = "Active";
         this.subjects = new ArrayList<>();
+        this.username = null;
     }
     
     // Getters and Setters
@@ -81,4 +83,12 @@ public class Faculty implements java.io.Serializable {
     
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 }

@@ -6,17 +6,20 @@ package main.java.models;
 public class User implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
     private String username;
-    private String password;
+    private String passwordHash;
+    private String salt;
     private String role;
     private String fullName;
     private String email;
     private boolean isActive;
+    private java.time.LocalDateTime lastLogin;
     
     public User() {}
     
-    public User(String username, String password, String role, String fullName, String email) {
+    public User(String username, String passwordHash, String salt, String role, String fullName, String email) {
         this.username = username;
-        this.password = password;
+        this.passwordHash = passwordHash;
+        this.salt = salt;
         this.role = role;
         this.fullName = fullName;
         this.email = email;
@@ -27,8 +30,11 @@ public class User implements java.io.Serializable {
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
     
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public String getSalt() { return salt; }
+    public void setSalt(String salt) { this.salt = salt; }
     
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
@@ -41,4 +47,12 @@ public class User implements java.io.Serializable {
     
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
+
+    public java.time.LocalDateTime getLastLogin() {
+        return lastLogin;
+    }
+
+    public void setLastLogin(java.time.LocalDateTime lastLogin) {
+        this.lastLogin = lastLogin;
+    }
 }

@@ -31,6 +31,12 @@ public class StudentDialog extends JDialog {
     private JComboBox<String> statusCombo;
     private JTextField totalFeesField;
     private JTextField feesPaidField;
+    private JTextField cgpaField;
+    private JTextField creditsCompletedField;
+    private JTextField creditsInProgressField;
+    private JTextField nextFeeDueField;
+    private JTextField advisorField;
+    private JComboBox<String> standingCombo;
     
     private JButton saveButton;
     private JButton cancelButton;
@@ -78,6 +84,13 @@ public class StudentDialog extends JDialog {
         
         totalFeesField = new JTextField(15);
         feesPaidField = new JTextField(15);
+        cgpaField = new JTextField(5);
+        creditsCompletedField = new JTextField(5);
+        creditsInProgressField = new JTextField(5);
+        nextFeeDueField = new JTextField(10);
+        nextFeeDueField.setToolTipText("Format: yyyy-MM-dd");
+        advisorField = new JTextField(15);
+        standingCombo = new JComboBox<>(new String[]{"Good", "Warning", "Probation"});
         
         saveButton = new JButton("Save");
         cancelButton = new JButton("Cancel");
@@ -202,6 +215,48 @@ public class StudentDialog extends JDialog {
         mainPanel.add(new JLabel("Fees Paid:"), gbc);
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(feesPaidField, gbc);
+        row++;
+
+        // CGPA
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(new JLabel("CGPA:"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(cgpaField, gbc);
+        row++;
+
+        // Credits Completed
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(new JLabel("Credits Completed:"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(creditsCompletedField, gbc);
+        row++;
+
+        // Credits In Progress
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(new JLabel("Credits In Progress:"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(creditsInProgressField, gbc);
+        row++;
+
+        // Next Fee Due
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(new JLabel("Next Fee Due (yyyy-MM-dd):"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(nextFeeDueField, gbc);
+        row++;
+
+        // Advisor
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(new JLabel("Advisor ID (optional):"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(advisorField, gbc);
+        row++;
+
+        // Standing
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(new JLabel("Academic Standing:"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(standingCombo, gbc);
         
         // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -248,6 +303,16 @@ public class StudentDialog extends JDialog {
             statusCombo.setSelectedItem(student.getStatus());
             totalFeesField.setText(String.valueOf(student.getTotalFees()));
             feesPaidField.setText(String.valueOf(student.getFeesPaid()));
+            cgpaField.setText(String.format("%.2f", student.getCgpa()));
+            creditsCompletedField.setText(String.valueOf(student.getCreditsCompleted()));
+            creditsInProgressField.setText(String.valueOf(student.getCreditsInProgress()));
+            if (student.getNextFeeDueDate() != null) {
+                nextFeeDueField.setText(student.getNextFeeDueDate().toString());
+            }
+            if (student.getAdvisorId() != null) {
+                advisorField.setText(student.getAdvisorId());
+            }
+            standingCombo.setSelectedItem(student.getAcademicStanding());
         }
     }
     
@@ -293,9 +358,34 @@ public class StudentDialog extends JDialog {
                 student.setSemester(semester);
             }
             
+            double cgpa = Double.parseDouble(cgpaField.getText().trim().isEmpty() ? "0" : cgpaField.getText().trim());
+            if (cgpa < 0 || cgpa > 10) {
+                JOptionPane.showMessageDialog(this, "CGPA must be between 0 and 10.");
+                return;
+            }
+
+            int creditsCompleted = Integer.parseInt(creditsCompletedField.getText().trim().isEmpty() ? "0" : creditsCompletedField.getText().trim());
+            int creditsInProgress = Integer.parseInt(creditsInProgressField.getText().trim().isEmpty() ? "0" : creditsInProgressField.getText().trim());
+
+            LocalDate nextDueDate = null;
+            if (!nextFeeDueField.getText().trim().isEmpty()) {
+                try {
+                    nextDueDate = LocalDate.parse(nextFeeDueField.getText().trim());
+                } catch (DateTimeParseException ex) {
+                    JOptionPane.showMessageDialog(this, "Invalid next fee due date. Use yyyy-MM-dd.");
+                    return;
+                }
+            }
+
             student.setStatus(status);
             student.setTotalFees(totalFees);
             student.setFeesPaid(feesPaid);
+            student.setCgpa(cgpa);
+            student.setCreditsCompleted(creditsCompleted);
+            student.setCreditsInProgress(creditsInProgress);
+            student.setNextFeeDueDate(nextDueDate);
+            student.setAdvisorId(advisorField.getText().trim().isEmpty() ? null : advisorField.getText().trim());
+            student.setAcademicStanding((String) standingCombo.getSelectedItem());
             
             confirmed = true;
             dispose();

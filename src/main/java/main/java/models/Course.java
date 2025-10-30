@@ -60,7 +60,12 @@ public class Course implements java.io.Serializable {
     public void setSubjects(List<String> subjects) { this.subjects = subjects; }
     
     public int getTotalSeats() { return totalSeats; }
-    public void setTotalSeats(int totalSeats) { this.totalSeats = totalSeats; }
+    public void setTotalSeats(int totalSeats) {
+        this.totalSeats = totalSeats;
+        if (this.availableSeats > totalSeats) {
+            this.availableSeats = totalSeats;
+        }
+    }
     
     public int getAvailableSeats() { return availableSeats; }
     public void setAvailableSeats(int availableSeats) { this.availableSeats = availableSeats; }

@@ -20,8 +20,8 @@ public class FeesPanel extends JPanel {
     private JLabel totalOutstandingLabel;
     
     private final String[] columnNames = {
-        "Student ID", "Name", "Course", "Total Fees", 
-        "Fees Paid", "Outstanding", "Status"
+        "Student ID", "Name", "Course", "Total Fees",
+        "Fees Paid", "Outstanding", "Status", "Next Due"
     };
     
     public FeesPanel() {
@@ -165,7 +165,10 @@ public class FeesPanel extends JPanel {
                 "₹" + String.format("%.0f", student.getTotalFees()),
                 "₹" + String.format("%.0f", student.getFeesPaid()),
                 "₹" + String.format("%.0f", outstanding),
-                status
+                status,
+                student.getNextFeeDueDate() != null
+                    ? student.getNextFeeDueDate().format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"))
+                    : "-"
             };
             tableModel.addRow(row);
         }

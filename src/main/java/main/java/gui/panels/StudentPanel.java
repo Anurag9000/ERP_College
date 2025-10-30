@@ -22,11 +22,11 @@ public class StudentPanel extends JPanel {
     private JTable studentTable;
     private DefaultTableModel tableModel;
     private JTextField searchField;
-    private JButton addButton, editButton, deleteButton, refreshButton;
+    private JButton addButton, editButton, deleteButton, refreshButton, scheduleButton;
     
     private final String[] columnNames = {
-        "Student ID", "Name", "Email", "Phone", "Course", 
-        "Semester", "Status", "Fees Paid", "Outstanding"
+        "Student ID", "Name", "Email", "Phone", "Course",
+        "Semester", "Status", "CGPA", "Progress", "Fees Paid", "Outstanding", "Next Due"
     };
     
     public StudentPanel() {
@@ -61,6 +61,7 @@ public class StudentPanel extends JPanel {
         addButton = new JButton("Add Student");
         editButton = new JButton("Edit Student");
         deleteButton = new JButton("Delete Student");
+        scheduleButton = new JButton("View Schedule");
         refreshButton = new JButton("Refresh");
         
         // Style buttons
@@ -80,6 +81,10 @@ public class StudentPanel extends JPanel {
         deleteButton.setForeground(Color.WHITE);
         deleteButton.setFocusPainted(false);
         
+        scheduleButton.setBackground(new Color(8, 145, 178));
+        scheduleButton.setForeground(Color.WHITE);
+        scheduleButton.setFocusPainted(false);
+
         refreshButton.setBackground(new Color(107, 114, 128));
         refreshButton.setForeground(Color.WHITE);
         refreshButton.setFocusPainted(false);
@@ -87,6 +92,7 @@ public class StudentPanel extends JPanel {
         // Initially disable edit and delete buttons
         editButton.setEnabled(false);
         deleteButton.setEnabled(false);
+        scheduleButton.setEnabled(false);
     }
     
     private void setupLayout() {
@@ -111,6 +117,7 @@ public class StudentPanel extends JPanel {
         buttonPanel.add(addButton);
         buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
+        buttonPanel.add(scheduleButton);
         buttonPanel.add(Box.createHorizontalStrut(20));
         buttonPanel.add(refreshButton);
         
@@ -134,6 +141,7 @@ public class StudentPanel extends JPanel {
                 boolean hasSelection = studentTable.getSelectedRow() != -1;
                 editButton.setEnabled(hasSelection);
                 deleteButton.setEnabled(hasSelection);
+                scheduleButton.setEnabled(hasSelection);
             }
         });
         
@@ -154,6 +162,7 @@ public class StudentPanel extends JPanel {
         addButton.addActionListener(e -> addStudent());
         editButton.addActionListener(e -> editStudent());
         deleteButton.addActionListener(e -> deleteStudent());
+        scheduleButton.addActionListener(e -> viewSchedule());
         refreshButton.addActionListener(e -> loadStudentData());
     }
     
@@ -172,8 +181,11 @@ public class StudentPanel extends JPanel {
                 student.getCourse(),
                 student.getSemester(),
                 student.getStatus(),
+                String.format("%.2f", student.getCgpa()),
+                String.format("%.0f%%", student.getProgressPercent()),
                 "₹" + String.format("%.0f", student.getFeesPaid()),
-                "₹" + String.format("%.0f", student.getOutstandingFees())
+                "₹" + String.format("%.0f", student.getOutstandingFees()),
+                student.getNextFeeDueDate() != null ? student.getNextFeeDueDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy")) : "-"
             };
             tableModel.addRow(row);
         }
@@ -189,6 +201,39 @@ public class StudentPanel extends JPanel {
         } else {
             sorter.setRowFilter(RowFilter.regexFilter("(?i)" + searchText));
         }
+    }
+
+    private void viewSchedule() {
+        int selectedRow = studentTable.getSelectedRow();
+        if (selectedRow == -1) {
+            return;
+        }
+
+        selectedRow = studentTable.convertRowIndexToModel(selectedRow);
+        String studentId = (String) tableModel.getValueAt(selectedRow, 0);
+        Student student = DatabaseUtil.getStudent(studentId);
+
+        java.util.List<main.java.models.Section> schedule = DatabaseUtil.getScheduleForStudent(studentId);
+        if (schedule.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No active sections for " + student.getFullName() + ".");
+            return;
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("Schedule for ").append(student.getFullName()).append(":\n\n");
+        for (main.java.models.Section section : schedule) {
+            builder.append(section.getSectionId())
+                    .append(" • ")
+                    .append(section.getTitle())
+                    .append(" • ")
+                    .append(section.getDayOfWeek().toString().substring(0,3)).append(" ")
+                    .append(section.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")))
+                    .append("-").append(section.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")))
+                    .append(" • ").append(section.getLocation())
+                    .append("\n");
+        }
+
+        JOptionPane.showMessageDialog(this, builder.toString(), "Student Schedule", JOptionPane.INFORMATION_MESSAGE);
     }
     
     private void addStudent() {

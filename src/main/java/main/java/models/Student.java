@@ -20,6 +20,13 @@ public class Student implements java.io.Serializable {
     private String status;
     private double feesPaid;
     private double totalFees;
+    private double cgpa;
+    private int creditsCompleted;
+    private int creditsInProgress;
+    private LocalDate nextFeeDueDate;
+    private String advisorId;
+    private String academicStanding;
+    private String username;
     
     public Student() {}
     
@@ -39,6 +46,12 @@ public class Student implements java.io.Serializable {
         this.status = "Active";
         this.feesPaid = 0.0;
         this.totalFees = 50000.0; // Default fees
+        this.cgpa = 0.0;
+        this.creditsCompleted = 0;
+        this.creditsInProgress = 0;
+        this.nextFeeDueDate = LocalDate.now().plusMonths(1);
+        this.academicStanding = "Good";
+        this.username = null;
     }
     
     // Getters and Setters
@@ -84,4 +97,68 @@ public class Student implements java.io.Serializable {
     public void setTotalFees(double totalFees) { this.totalFees = totalFees; }
     
     public double getOutstandingFees() { return totalFees - feesPaid; }
+
+    public double getCgpa() {
+        return cgpa;
+    }
+
+    public void setCgpa(double cgpa) {
+        this.cgpa = cgpa;
+    }
+
+    public int getCreditsCompleted() {
+        return creditsCompleted;
+    }
+
+    public void setCreditsCompleted(int creditsCompleted) {
+        this.creditsCompleted = creditsCompleted;
+    }
+
+    public int getCreditsInProgress() {
+        return creditsInProgress;
+    }
+
+    public void setCreditsInProgress(int creditsInProgress) {
+        this.creditsInProgress = creditsInProgress;
+    }
+
+    public LocalDate getNextFeeDueDate() {
+        return nextFeeDueDate;
+    }
+
+    public void setNextFeeDueDate(LocalDate nextFeeDueDate) {
+        this.nextFeeDueDate = nextFeeDueDate;
+    }
+
+    public String getAdvisorId() {
+        return advisorId;
+    }
+
+    public void setAdvisorId(String advisorId) {
+        this.advisorId = advisorId;
+    }
+
+    public String getAcademicStanding() {
+        return academicStanding;
+    }
+
+    public void setAcademicStanding(String academicStanding) {
+        this.academicStanding = academicStanding;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public double getProgressPercent() {
+        int total = creditsCompleted + creditsInProgress;
+        if (total <= 0) {
+            return 0.0;
+        }
+        return Math.min(100.0, (creditsCompleted * 100.0) / Math.max(total, 1));
+    }
 }
