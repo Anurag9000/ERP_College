@@ -22,6 +22,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.time.Instant;
@@ -46,6 +48,7 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 public class StudentSelfServicePanel extends JPanel {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm");
 
     private final User currentUser;
     private Student studentProfile;
@@ -87,6 +90,15 @@ public class StudentSelfServicePanel extends JPanel {
     private final JButton exportSchedulePdfButton;
     private final DefaultTableModel paymentHistoryModel;
     private final DefaultTableModel installmentModel;
+    private final DefaultTableModel notificationsModel;
+    private final JTable notificationsTable;
+    private final JComboBox<String> notificationCategoryFilter;
+    private final JCheckBox unreadOnlyCheck;
+    private final JButton markReadButton;
+    private final JButton markUnreadButton;
+    private final JButton refreshNotificationsButton;
+    private List<NotificationMessage> notificationsCache = new ArrayList<>();
+    private final List<NotificationMessage> filteredNotifications = new ArrayList<>();
     private FeeInstallment nextDueInstallment;
 
     public StudentSelfServicePanel(User currentUser) {
@@ -131,6 +143,14 @@ public class StudentSelfServicePanel extends JPanel {
                 return false;
             }
         };
+        this.notificationsModel = new DefaultTableModel(new Object[]{
+                "Received", "Category", "Status", "Message"
+        }, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
 
         catalogTable = new JTable(catalogModel);
         catalogTable.setRowHeight(22);
@@ -144,6 +164,17 @@ public class StudentSelfServicePanel extends JPanel {
         paymentHistoryTable.setRowHeight(22);
         installmentTable = new JTable(installmentModel);
         installmentTable.setRowHeight(22);
+        notificationsTable = new JTable(notificationsModel);
+        notificationsTable.setRowHeight(22);
+
+        notificationCategoryFilter = new JComboBox<>();
+        unreadOnlyCheck = new JCheckBox("Unread only");
+        unreadOnlyCheck.setOpaque(false);
+        markReadButton = new JButton("Mark as Read");
+        markUnreadButton = new JButton("Mark as Unread");
+        refreshNotificationsButton = new JButton("Refresh");
+        markReadButton.setEnabled(false);
+        markUnreadButton.setEnabled(false);
 
         registerButton = new JButton("Register");
         dropButton = new JButton("Drop");
@@ -167,6 +198,17 @@ public class StudentSelfServicePanel extends JPanel {
         exportScheduleButton.setBackground(primary);
         exportScheduleButton.setForeground(Color.WHITE);
         exportScheduleButton.setFocusPainted(false);
+        Color success = new Color(34, 197, 94);
+        Color slate = new Color(100, 116, 139);
+        markReadButton.setBackground(success.darker());
+        markReadButton.setForeground(Color.WHITE);
+        markReadButton.setFocusPainted(false);
+        markUnreadButton.setBackground(new Color(249, 115, 22));
+        markUnreadButton.setForeground(Color.WHITE);
+        markUnreadButton.setFocusPainted(false);
+        refreshNotificationsButton.setBackground(slate);
+        refreshNotificationsButton.setForeground(Color.WHITE);
+        refreshNotificationsButton.setFocusPainted(false);
 
         catalogSearchField = new JTextField(18);
         catalogSearchField.setToolTipText("Search by section, course, or instructor");
@@ -226,6 +268,7 @@ public class StudentSelfServicePanel extends JPanel {
         tabs.addTab("Timetable", buildScheduleTab());
         tabs.addTab("Grades", new JScrollPane(gradesTable));
         tabs.addTab("Finance", buildFinanceTab());
+        tabs.addTab("Notifications", buildNotificationsTab());
         tabs.addTab("Transcript", buildTranscriptTab());
         return tabs;
     }
@@ -339,6 +382,21 @@ public class StudentSelfServicePanel extends JPanel {
         return panel;
     }
 
+    private JPanel buildNotificationsTab() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        controls.add(new JLabel("Category:"));
+        notificationCategoryFilter.setPrototypeDisplayValue("Maintenance Alerts    ");
+        controls.add(notificationCategoryFilter);
+        controls.add(unreadOnlyCheck);
+        controls.add(markReadButton);
+        controls.add(markUnreadButton);
+        controls.add(refreshNotificationsButton);
+        panel.add(controls, BorderLayout.NORTH);
+        panel.add(new JScrollPane(notificationsTable), BorderLayout.CENTER);
+        return panel;
+    }
+
     private JPanel buildMetricPanel(String labelText, JLabel valueLabel) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
@@ -400,6 +458,11 @@ public class StudentSelfServicePanel extends JPanel {
                 updateActionButtons();
             }
         });
+        notificationsTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updateNotificationActions();
+            }
+        });
 
         DocumentListener filterListener = new DocumentListener() {
             @Override
@@ -421,6 +484,11 @@ public class StudentSelfServicePanel extends JPanel {
         catalogSearchField.getDocument().addDocumentListener(filterListener);
         dayFilter.addActionListener(e -> applyCatalogFilters());
         openOnlyCheck.addActionListener(e -> applyCatalogFilters());
+        notificationCategoryFilter.addActionListener(e -> applyNotificationFilters());
+        unreadOnlyCheck.addActionListener(e -> applyNotificationFilters());
+        markReadButton.addActionListener(e -> markSelectedNotification(true));
+        markUnreadButton.addActionListener(e -> markSelectedNotification(false));
+        refreshNotificationsButton.addActionListener(e -> populateNotifications());
     }
 
     private void refreshProfile() {
@@ -434,6 +502,7 @@ public class StudentSelfServicePanel extends JPanel {
             updateSummary();
             updateFinanceSummary();
             populateFinanceTables();
+            populateNotifications();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Profile not found", JOptionPane.ERROR_MESSAGE);
             this.studentProfile = null;
@@ -442,8 +511,13 @@ public class StudentSelfServicePanel extends JPanel {
             gradesModel.setRowCount(0);
             paymentHistoryModel.setRowCount(0);
             installmentModel.setRowCount(0);
+            notificationsModel.setRowCount(0);
             updateSummary();
             updateFinanceSummary();
+            notificationsCache = new ArrayList<>();
+            notificationCategoryFilter.setModel(new DefaultComboBoxModel<>(new String[]{"All"}));
+            unreadOnlyCheck.setSelected(false);
+            updateNotificationActions();
             updateActionButtons();
         }
     }
@@ -456,6 +530,7 @@ public class StudentSelfServicePanel extends JPanel {
         updateSummary();
         updateFinanceSummary();
         populateFinanceTables();
+        populateNotifications();
     }
 
     public void refreshForMaintenance() {
@@ -650,6 +725,123 @@ public class StudentSelfServicePanel extends JPanel {
                     installment.getLastReminderSent() != null ? DATE_FORMATTER.format(installment.getLastReminderSent()) : "-"
             });
         }
+    }
+
+    private void populateNotifications() {
+        notificationsModel.setRowCount(0);
+        filteredNotifications.clear();
+        if (studentProfile == null) {
+            notificationCategoryFilter.setModel(new DefaultComboBoxModel<>(new String[]{"All"}));
+            unreadOnlyCheck.setSelected(false);
+            updateNotificationActions();
+            return;
+        }
+        String previousSelection = (String) notificationCategoryFilter.getSelectedItem();
+        notificationsCache = DatabaseUtil.getNotificationsForStudent(studentProfile.getStudentId());
+        LinkedHashSet<String> categories = new LinkedHashSet<>();
+        categories.add("All");
+        for (NotificationMessage message : notificationsCache) {
+            categories.add(normalizeCategory(message.getCategory()));
+        }
+        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>(categories.toArray(new String[0]));
+        notificationCategoryFilter.setModel(model);
+        if (previousSelection != null && categories.stream().anyMatch(cat -> cat.equalsIgnoreCase(previousSelection))) {
+            notificationCategoryFilter.setSelectedItem(previousSelection);
+        } else {
+            notificationCategoryFilter.setSelectedIndex(0);
+        }
+        applyNotificationFilters();
+    }
+
+    private void applyNotificationFilters() {
+        notificationsModel.setRowCount(0);
+        filteredNotifications.clear();
+        notificationsTable.clearSelection();
+        if (notificationsCache.isEmpty()) {
+            updateNotificationActions();
+            return;
+        }
+        String selectedCategory = (String) notificationCategoryFilter.getSelectedItem();
+        if (selectedCategory == null) {
+            selectedCategory = "All";
+        }
+        boolean unreadOnly = unreadOnlyCheck.isSelected();
+        for (NotificationMessage message : notificationsCache) {
+            String category = normalizeCategory(message.getCategory());
+            if (!"All".equalsIgnoreCase(selectedCategory) && !category.equalsIgnoreCase(selectedCategory)) {
+                continue;
+            }
+            if (unreadOnly && message.isRead()) {
+                continue;
+            }
+            filteredNotifications.add(message);
+            notificationsModel.addRow(new Object[]{
+                    message.getCreatedAt() != null ? DATE_TIME_FORMATTER.format(message.getCreatedAt()) : "-",
+                    category,
+                    message.isRead() ? "Read" : "Unread",
+                    message.getMessage()
+            });
+        }
+        updateNotificationActions();
+    }
+
+    private void updateNotificationActions() {
+        NotificationMessage selected = getSelectedNotification();
+        boolean hasSelection = selected != null;
+        markReadButton.setEnabled(hasSelection && !selected.isRead());
+        markUnreadButton.setEnabled(hasSelection && selected.isRead());
+    }
+
+    private void markSelectedNotification(boolean read) {
+        NotificationMessage selected = getSelectedNotification();
+        if (selected == null || selected.isRead() == read) {
+            return;
+        }
+        if (selected.getId() == null) {
+            return;
+        }
+        long notificationId = selected.getId();
+        DatabaseUtil.markNotificationRead(notificationId, read);
+        selected.setRead(read);
+        selected.setReadAt(read ? LocalDateTime.now() : null);
+        applyNotificationFilters();
+        for (int i = 0; i < filteredNotifications.size(); i++) {
+            NotificationMessage message = filteredNotifications.get(i);
+            if (notificationId == (message.getId() != null ? message.getId() : -1L)) {
+                int viewRow = notificationsTable.convertRowIndexToView(i);
+                if (viewRow >= 0) {
+                    notificationsTable.setRowSelectionInterval(viewRow, viewRow);
+                }
+                break;
+            }
+        }
+    }
+
+    private NotificationMessage getSelectedNotification() {
+        int viewRow = notificationsTable.getSelectedRow();
+        if (viewRow < 0) {
+            return null;
+        }
+        int modelRow = notificationsTable.convertRowIndexToModel(viewRow);
+        if (modelRow < 0 || modelRow >= filteredNotifications.size()) {
+            return null;
+        }
+        return filteredNotifications.get(modelRow);
+    }
+
+    private String normalizeCategory(String category) {
+        if (category == null || category.isBlank()) {
+            return "General";
+        }
+        String[] parts = category.trim().split("\\s+");
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) {
+                builder.append(' ');
+            }
+            builder.append(capitalize(parts[i]));
+        }
+        return builder.toString();
     }
 
     private Map<String, EnrollmentRecord.Status> buildStatusMap() {

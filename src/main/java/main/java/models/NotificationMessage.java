@@ -23,20 +23,30 @@ public class NotificationMessage implements Serializable {
     private String message;
     private String category;
     private LocalDateTime createdAt;
+    private boolean read;
+    private LocalDateTime readAt;
 
     public NotificationMessage(Audience audience, String targetId,
                                String message, String category) {
-        this(null, audience, targetId, message, category, LocalDateTime.now());
+        this(null, audience, targetId, message, category, LocalDateTime.now(), false, null);
     }
 
     public NotificationMessage(Long id, Audience audience, String targetId,
                                String message, String category, LocalDateTime createdAt) {
+        this(id, audience, targetId, message, category, createdAt, false, null);
+    }
+
+    public NotificationMessage(Long id, Audience audience, String targetId,
+                               String message, String category, LocalDateTime createdAt,
+                               boolean read, LocalDateTime readAt) {
         this.id = id;
         this.audience = audience;
         this.targetId = targetId;
         this.message = message;
         this.category = category;
         this.createdAt = createdAt;
+        this.read = read;
+        this.readAt = readAt;
     }
 
     public NotificationMessage() {
@@ -88,5 +98,21 @@ public class NotificationMessage implements Serializable {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isRead() {
+        return read;
+    }
+
+    public void setRead(boolean read) {
+        this.read = read;
+    }
+
+    public LocalDateTime getReadAt() {
+        return readAt;
+    }
+
+    public void setReadAt(LocalDateTime readAt) {
+        this.readAt = readAt;
     }
 }

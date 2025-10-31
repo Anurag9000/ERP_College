@@ -17,16 +17,18 @@ import java.util.List;
  * DAO for persisting system notifications.
  */
 public class NotificationDao extends BaseDao {
-    private static final String INSERT_SQL = "INSERT INTO notifications (audience, target_id, message, category) VALUES (?, ?, ?, ?)";
+    private static final String INSERT_SQL = "INSERT INTO notifications (audience, target_id, message, category, is_read, read_at) VALUES (?, ?, ?, ?, ?, ?)";
     private static final String SELECT_ALL_SQL =
-            "SELECT id, audience, target_id, message, category, created_at FROM notifications ORDER BY created_at DESC";
+            "SELECT id, audience, target_id, message, category, created_at, is_read, read_at FROM notifications ORDER BY created_at DESC";
     private static final String SELECT_VISIBLE_SQL =
-            "SELECT id, audience, target_id, message, category, created_at " +
+            "SELECT id, audience, target_id, message, category, created_at, is_read, read_at " +
             "FROM notifications " +
             "WHERE audience = 'ALL' OR audience = ? OR (audience = 'USER' AND target_id = ?) " +
             "ORDER BY created_at DESC";
     private static final String SELECT_BY_ID_SQL =
-            "SELECT id, audience, target_id, message, category, created_at FROM notifications WHERE id = ?";
+            "SELECT id, audience, target_id, message, category, created_at, is_read, read_at FROM notifications WHERE id = ?";
+    private static final String UPDATE_READ_SQL =
+            "UPDATE notifications SET is_read = ?, read_at = ? WHERE id = ?";
 
     public NotificationDao() {
         super(DataSourceRegistry.erpDataSource()
@@ -44,6 +46,12 @@ public class NotificationDao extends BaseDao {
             }
             ps.setString(3, notification.getMessage());
             ps.setString(4, notification.getCategory());
+            ps.setBoolean(5, notification.isRead());
+            if (notification.getReadAt() != null) {
+                ps.setTimestamp(6, Timestamp.valueOf(notification.getReadAt()));
+            } else {
+                ps.setNull(6, java.sql.Types.TIMESTAMP);
+            }
             ps.executeUpdate();
 
             Long generatedId = null;
@@ -61,6 +69,8 @@ public class NotificationDao extends BaseDao {
                     notification.setTargetId(persisted.getTargetId());
                     notification.setMessage(persisted.getMessage());
                     notification.setCategory(persisted.getCategory());
+                    notification.setRead(persisted.isRead());
+                    notification.setReadAt(persisted.getReadAt());
                 } else if (notification.getCreatedAt() == null) {
                     notification.setCreatedAt(LocalDateTime.now());
                 }
@@ -109,6 +119,23 @@ public class NotificationDao extends BaseDao {
         return list;
     }
 
+    public void markRead(long id, boolean read) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(UPDATE_READ_SQL)) {
+            ps.setBoolean(1, read);
+            if (read) {
+                ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+            } else {
+                ps.setNull(2, java.sql.Types.TIMESTAMP);
+            }
+            ps.setLong(3, id);
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            logger.error("Error updating read state for notification {}: {}", id, ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to update notification state", ex);
+        }
+    }
+
     private NotificationMessage fetchById(Connection conn, long id) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(SELECT_BY_ID_SQL)) {
             ps.setLong(1, id);
@@ -127,6 +154,8 @@ public class NotificationDao extends BaseDao {
         String message = rs.getString("message");
         String category = rs.getString("category");
         Timestamp createdTs = rs.getTimestamp("created_at");
+        boolean isRead = rs.getBoolean("is_read");
+        Timestamp readTs = rs.getTimestamp("read_at");
         LocalDateTime createdAt = createdTs != null ? createdTs.toLocalDateTime() : LocalDateTime.now();
         NotificationMessage notification = new NotificationMessage(
                 rs.getLong("id"),
@@ -134,7 +163,9 @@ public class NotificationDao extends BaseDao {
                 targetId,
                 message,
                 category,
-                createdAt
+                createdAt,
+                isRead,
+                readTs != null ? readTs.toLocalDateTime() : null
         );
         return notification;
     }

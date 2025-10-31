@@ -920,8 +920,16 @@ public class DatabaseUtil {
         return notificationDao.findVisible(resolvedAudience, targetId);
     }
 
+    public static List<NotificationMessage> getNotificationsForStudent(String studentId) {
+        return getNotifications(NotificationMessage.Audience.STUDENT, studentId);
+    }
+
     public static void addNotification(NotificationMessage notification) {
         notificationDao.insert(notification);
+    }
+
+    public static void markNotificationRead(long notificationId, boolean read) {
+        notificationDao.markRead(notificationId, read);
     }
 
     public static Map<String, Long> getWaitlistCountsByCourse() {
