@@ -54,6 +54,10 @@ public class StudentSelfServicePanel extends JPanel {
 
     private List<Section> catalogSections = new ArrayList<>();
     private Map<String, EnrollmentRecord.Status> enrollmentStatusBySection = new HashMap<>();
+    private final JLabel gpaLabel;
+    private final JLabel creditsLabel;
+    private final JLabel standingLabel;
+    private final JLabel standingAlertLabel;
 
     public StudentSelfServicePanel(User currentUser) {
         this.currentUser = currentUser;
@@ -105,6 +109,13 @@ public class StudentSelfServicePanel extends JPanel {
         maintenanceBanner.setForeground(Color.RED.darker());
         maintenanceBanner.setFont(new Font("Arial", Font.BOLD, 12));
 
+        gpaLabel = createSummaryValueLabel();
+        creditsLabel = createSummaryValueLabel();
+        standingLabel = createSummaryValueLabel();
+        standingAlertLabel = createSummaryValueLabel();
+        standingAlertLabel.setForeground(new Color(220, 38, 38));
+        standingAlertLabel.setVisible(false);
+
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
@@ -115,13 +126,20 @@ public class StudentSelfServicePanel extends JPanel {
         refreshProfile();
     }
 
-    private JPanel createHeader() {
-        JPanel panel = new JPanel(new BorderLayout());
+    private JComponent createHeader() {
+        JPanel container = new JPanel(new BorderLayout());
+        container.setOpaque(false);
+
+        JPanel topRow = new JPanel(new BorderLayout());
+        topRow.setOpaque(false);
         JLabel title = new JLabel("Student Self Service");
         title.setFont(new Font("Arial", Font.BOLD, 24));
-        panel.add(title, BorderLayout.WEST);
-        panel.add(maintenanceBanner, BorderLayout.EAST);
-        return panel;
+        topRow.add(title, BorderLayout.WEST);
+        topRow.add(maintenanceBanner, BorderLayout.EAST);
+
+        container.add(topRow, BorderLayout.NORTH);
+        container.add(buildSummaryPanel(), BorderLayout.SOUTH);
+        return container;
     }
 
     private JComponent createBody() {
@@ -166,6 +184,52 @@ public class StudentSelfServicePanel extends JPanel {
         info.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(info);
         return panel;
+    }
+
+    private JPanel buildSummaryPanel() {
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
+
+        JPanel metricsRow = new JPanel(new GridLayout(1, 3, 16, 0));
+        metricsRow.setOpaque(false);
+        metricsRow.add(buildMetricPanel("Cumulative GPA", gpaLabel));
+        metricsRow.add(buildMetricPanel("Credits", creditsLabel));
+        metricsRow.add(buildMetricPanel("Standing", standingLabel));
+
+        wrapper.add(metricsRow, BorderLayout.NORTH);
+
+        standingAlertLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel alertRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 4));
+        alertRow.setOpaque(false);
+        alertRow.add(standingAlertLabel);
+        wrapper.add(alertRow, BorderLayout.SOUTH);
+
+        return wrapper;
+    }
+
+    private JPanel buildMetricPanel(String labelText, JLabel valueLabel) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        JLabel label = new JLabel(labelText.toUpperCase(Locale.ENGLISH));
+        label.setFont(new Font("Arial", Font.BOLD, 11));
+        label.setForeground(new Color(100, 116, 139));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        valueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(4));
+        panel.add(valueLabel);
+        return panel;
+    }
+
+    private JLabel createSummaryValueLabel() {
+        JLabel label = new JLabel("-");
+        label.setFont(new Font("Arial", Font.BOLD, 16));
+        label.setForeground(new Color(31, 41, 55));
+        return label;
     }
 
     private String[] buildDayFilterModel() {
@@ -227,8 +291,15 @@ public class StudentSelfServicePanel extends JPanel {
             populateCatalog();
             populateSchedule();
             populateGrades();
+            updateSummary();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Profile not found", JOptionPane.ERROR_MESSAGE);
+            this.studentProfile = null;
+            catalogModel.setRowCount(0);
+            scheduleModel.setRowCount(0);
+            gradesModel.setRowCount(0);
+            updateSummary();
+            updateActionButtons();
         }
     }
 
@@ -237,6 +308,7 @@ public class StudentSelfServicePanel extends JPanel {
                 ? "System is in maintenance mode. Changes disabled."
                 : "");
         updateActionButtons();
+        updateSummary();
     }
 
     public void refreshForMaintenance() {
@@ -322,6 +394,7 @@ public class StudentSelfServicePanel extends JPanel {
         }
 
         updateActionButtons();
+        updateSummary();
     }
 
     private DayOfWeek resolveSelectedDay() {
@@ -391,6 +464,39 @@ public class StudentSelfServicePanel extends JPanel {
             statusMap.put(record.getSectionId(), record.getStatus());
         }
         return statusMap;
+    }
+
+    private void updateSummary() {
+        if (studentProfile == null) {
+            gpaLabel.setText("-");
+            creditsLabel.setText("-");
+            standingLabel.setText("-");
+            standingAlertLabel.setText("");
+            standingAlertLabel.setVisible(false);
+            return;
+        }
+
+        gpaLabel.setText(String.format(Locale.ENGLISH, "%.2f", studentProfile.getCgpa()));
+        creditsLabel.setText(String.format(Locale.ENGLISH, "%d completed / %d in progress",
+                studentProfile.getCreditsCompleted(),
+                studentProfile.getCreditsInProgress()));
+
+        String standing = studentProfile.getAcademicStanding() != null
+                ? studentProfile.getAcademicStanding()
+                : studentProfile.getStatus();
+        if (standing == null || standing.isBlank()) {
+            standing = "Unknown";
+        }
+        standingLabel.setText(standing);
+
+        if (standing.toLowerCase(Locale.ENGLISH).contains("probation")
+                || standing.toLowerCase(Locale.ENGLISH).contains("warning")) {
+            standingAlertLabel.setText("Advisory: connect with your advisor to restore good standing.");
+            standingAlertLabel.setVisible(true);
+        } else {
+            standingAlertLabel.setText("");
+            standingAlertLabel.setVisible(false);
+        }
     }
 
     private void performRegistration() {
