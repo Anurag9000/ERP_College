@@ -31,6 +31,11 @@ import java.util.Map;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
 
 /**
  * Student-facing self-service workspace for catalog, schedule, and grades.
@@ -61,6 +66,7 @@ public class StudentSelfServicePanel extends JPanel {
 
     private List<Section> catalogSections = new ArrayList<>();
     private Map<String, EnrollmentRecord.Status> enrollmentStatusBySection = new HashMap<>();
+    private final List<String> currentGradeRiskCourses;
     private final JLabel gpaLabel;
     private final JLabel creditsLabel;
     private final JLabel standingLabel;
@@ -70,11 +76,14 @@ public class StudentSelfServicePanel extends JPanel {
     private final JLabel financeOutstandingLabel;
     private final JLabel financeNextDueLabel;
     private final JLabel catalogAdvisoryLabel;
+    private final JLabel gradeAnalyticsLabel;
+    private final JButton transcriptPdfButton;
+    private final JButton exportSchedulePdfButton;
 
     public StudentSelfServicePanel(User currentUser) {
         this.currentUser = currentUser;
         this.catalogModel = new DefaultTableModel(new Object[]{
-                "Section", "Course", "Day", "Time", "Location", "Seats", "Status", "Prerequisites"
+                "Section", "Course", "Day", "Time", "Location", "Seats", "Status", "Window", "Prerequisites"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -111,7 +120,24 @@ public class StudentSelfServicePanel extends JPanel {
         dropButton = new JButton("Drop");
         transcriptButton = new JButton("Download Transcript (CSV)");
         exportScheduleButton = new JButton("Export Timetable (.ics)");
+        exportSchedulePdfButton = new JButton("Print Timetable (PDF)");
+        transcriptPdfButton = new JButton("Download Transcript (PDF)");
         reminderButton = new JButton("Send Payment Reminder");
+        reminderButton.setEnabled(false);
+
+        Color primary = new Color(37, 99, 235);
+        exportSchedulePdfButton.setBackground(primary.darker());
+        exportSchedulePdfButton.setForeground(Color.WHITE);
+        exportSchedulePdfButton.setFocusPainted(false);
+        transcriptPdfButton.setBackground(primary.darker());
+        transcriptPdfButton.setForeground(Color.WHITE);
+        transcriptPdfButton.setFocusPainted(false);
+        transcriptButton.setBackground(primary);
+        transcriptButton.setForeground(Color.WHITE);
+        transcriptButton.setFocusPainted(false);
+        exportScheduleButton.setBackground(primary);
+        exportScheduleButton.setForeground(Color.WHITE);
+        exportScheduleButton.setFocusPainted(false);
 
         catalogSearchField = new JTextField(18);
         catalogSearchField.setToolTipText("Search by section, course, or instructor");
@@ -135,6 +161,9 @@ public class StudentSelfServicePanel extends JPanel {
         financeNextDueLabel = createSummaryValueLabel();
         catalogAdvisoryLabel = new JLabel(" ");
         catalogAdvisoryLabel.setForeground(new Color(220, 38, 38));
+        gradeAnalyticsLabel = new JLabel(" ");
+        gradeAnalyticsLabel.setForeground(new Color(71, 85, 105));
+        currentGradeRiskCourses = new ArrayList<>();
 
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -193,6 +222,7 @@ public class StudentSelfServicePanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         controls.add(exportScheduleButton);
+        controls.add(exportSchedulePdfButton);
         panel.add(controls, BorderLayout.NORTH);
         panel.add(new JScrollPane(scheduleTable), BorderLayout.CENTER);
         return panel;
@@ -204,8 +234,11 @@ public class StudentSelfServicePanel extends JPanel {
         transcriptButton.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(transcriptButton);
         panel.add(Box.createVerticalStrut(10));
+        transcriptPdfButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(transcriptPdfButton);
+        panel.add(Box.createVerticalStrut(10));
         JTextArea info = new JTextArea("""
-                Downloads a CSV copy of your course grades for personal reference.
+                Download a CSV or PDF copy of your course grades for personal reference.
                 For official transcripts, contact the registrar's office.
                 """);
         info.setEditable(false);
@@ -237,6 +270,15 @@ public class StudentSelfServicePanel extends JPanel {
         wrapper.add(alertRow, BorderLayout.SOUTH);
 
         return wrapper;
+    }
+
+    private JPanel buildGradesTab() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.add(new JScrollPane(gradesTable), BorderLayout.CENTER);
+        JPanel summary = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        summary.add(gradeAnalyticsLabel);
+        panel.add(summary, BorderLayout.SOUTH);
+        return panel;
     }
 
     private JPanel buildFinanceTab() {
@@ -306,7 +348,9 @@ public class StudentSelfServicePanel extends JPanel {
         registerButton.addActionListener(e -> performRegistration());
         dropButton.addActionListener(e -> performDrop());
         transcriptButton.addActionListener(e -> exportTranscript());
-        exportScheduleButton.addActionListener(e -> exportSchedule());
+        transcriptPdfButton.addActionListener(e -> exportTranscriptPdf());
+        exportScheduleButton.addActionListener(e -> exportScheduleIcs());
+        exportSchedulePdfButton.addActionListener(e -> exportSchedulePdf());
 
         catalogTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -516,6 +560,7 @@ public class StudentSelfServicePanel extends JPanel {
                 }
             }
         }
+        updateGradeAnalytics(enrollments);
     }
 
     private Map<String, EnrollmentRecord.Status> buildStatusMap() {
@@ -529,6 +574,105 @@ public class StudentSelfServicePanel extends JPanel {
         return statusMap;
     }
 
+    private void updateGradeAnalytics(List<EnrollmentRecord> enrollments) {
+        if (studentProfile == null) {
+            currentGradeRiskCourses.clear();
+            gradeAnalyticsLabel.setText(" ");
+            return;
+        }
+        if (enrollments == null || enrollments.isEmpty()) {
+            currentGradeRiskCourses.clear();
+            gradeAnalyticsLabel.setText("<html><b>Grade analytics:</b> No graded coursework yet.</html>");
+            return;
+        }
+
+        double gradedCredits = 0.0;
+        double weightedScores = 0.0;
+        List<String> riskCourses = new ArrayList<>();
+        List<String> pendingCourses = new ArrayList<>();
+
+        for (EnrollmentRecord record : enrollments) {
+            if (record.getStatus() != EnrollmentRecord.Status.ENROLLED) {
+                continue;
+            }
+
+            Section section = DatabaseUtil.getSection(record.getSectionId());
+            Course course = null;
+            if (section != null && section.getCourseId() != null) {
+                course = DatabaseUtil.getCourse(section.getCourseId());
+            }
+            int credits = course != null ? Math.max(1, course.getCreditHours()) : 3;
+
+            boolean hasFinalGrade = !record.getWeighting().isEmpty() || record.getFinalGrade() > 0.0;
+            if (hasFinalGrade) {
+                gradedCredits += credits;
+                weightedScores += record.getFinalGrade() * credits;
+                if (record.getFinalGrade() < 60.0) {
+                    riskCourses.add(section != null && section.getCourseId() != null
+                            ? section.getCourseId()
+                            : record.getSectionId());
+                }
+            } else {
+                pendingCourses.add(section != null && section.getCourseId() != null
+                        ? section.getCourseId()
+                        : record.getSectionId());
+            }
+        }
+
+        if (gradedCredits == 0.0 && pendingCourses.isEmpty()) {
+            currentGradeRiskCourses.clear();
+            gradeAnalyticsLabel.setText("<html><b>Grade analytics:</b> No enrolled coursework yet.</html>");
+            return;
+        }
+
+        currentGradeRiskCourses.clear();
+        currentGradeRiskCourses.addAll(riskCourses);
+
+        StringBuilder builder = new StringBuilder("<html><b>CGPA:</b> ")
+                .append(String.format(Locale.ENGLISH, "%.2f", studentProfile.getCgpa()));
+
+        if (gradedCredits > 0.0) {
+            double weightedAverage = weightedScores / gradedCredits;
+            double termGpa = Math.min(4.0, Math.max(0.0, (weightedAverage / 100.0) * 4.0));
+            builder.append(String.format(Locale.ENGLISH, " | <b>Term avg:</b> %.1f%% (~%.2f GPA)",
+                    weightedAverage,
+                    termGpa));
+
+            double delta = termGpa - studentProfile.getCgpa();
+            if (Math.abs(delta) >= 0.05) {
+                builder.append(String.format(Locale.ENGLISH,
+                        " | <span style='color:%s;'>trend %s %.2f</span>",
+                        delta > 0 ? "#16a34a" : "#dc2626",
+                        delta > 0 ? "up" : "down",
+                        Math.abs(delta)));
+            } else {
+                builder.append(" | trend steady");
+            }
+        } else {
+            builder.append(" | Term avg pending");
+        }
+
+        if (!riskCourses.isEmpty()) {
+            builder.append(String.format(Locale.ENGLISH,
+                    " | <span style='color:#dc2626;'>At risk: %s</span>",
+                    String.join(", ", riskCourses)));
+        }
+
+        if (!pendingCourses.isEmpty()) {
+            builder.append(String.format(Locale.ENGLISH,
+                    " | Pending grades: %s",
+                    String.join(", ", pendingCourses)));
+        }
+
+        builder.append(" | Standing: ")
+                .append(studentProfile.getAcademicStanding() != null
+                        ? studentProfile.getAcademicStanding()
+                        : "Not set");
+        builder.append("</html>");
+
+        gradeAnalyticsLabel.setText(builder.toString());
+    }
+
     private void updateSummary() {
         if (studentProfile == null) {
             gpaLabel.setText("-");
@@ -536,6 +680,7 @@ public class StudentSelfServicePanel extends JPanel {
             standingLabel.setText("-");
             standingAlertLabel.setText("");
             standingAlertLabel.setVisible(false);
+            gradeAnalyticsLabel.setText("<html><b>Grade analytics:</b> Not available.</html>");
             return;
         }
 
@@ -552,7 +697,11 @@ public class StudentSelfServicePanel extends JPanel {
         }
         standingLabel.setText(standing);
 
-        if (standing.toLowerCase(Locale.ENGLISH).contains("probation")
+        if (!currentGradeRiskCourses.isEmpty()) {
+            standingAlertLabel.setText("Advisory: focus on " + String.join(", ", currentGradeRiskCourses)
+                    + " to stay in good standing.");
+            standingAlertLabel.setVisible(true);
+        } else if (standing.toLowerCase(Locale.ENGLISH).contains("probation")
                 || standing.toLowerCase(Locale.ENGLISH).contains("warning")) {
             standingAlertLabel.setText("Advisory: connect with your advisor to restore good standing.");
             standingAlertLabel.setVisible(true);
@@ -669,7 +818,134 @@ public class StudentSelfServicePanel extends JPanel {
         return currentCredits;
     }
 
-    private void exportSchedule() {
+    private void exportSchedulePdf() {
+        if (studentProfile == null) {
+            JOptionPane.showMessageDialog(this, "Student profile unavailable.");
+            return;
+        }
+        List<Section> schedule = DatabaseUtil.getScheduleForStudent(studentProfile.getStudentId());
+        if (schedule.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No timetable entries to export.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new java.io.File("timetable_" + studentProfile.getStudentId() + ".pdf"));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        java.io.File file = chooser.getSelectedFile();
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.LETTER);
+            document.addPage(page);
+
+            float margin = 48f;
+            float lineHeight = 16f;
+            float yPosition = page.getMediaBox().getHeight() - margin;
+
+            PDPageContentStream content = null;
+            try {
+                content = new PDPageContentStream(document, page);
+                content.setLeading(lineHeight);
+                content.beginText();
+                content.newLineAtOffset(margin, yPosition);
+                content.setFont(PDType1Font.HELVETICA_BOLD, 18);
+                content.showText("Weekly Timetable");
+                content.newLine();
+                yPosition -= lineHeight;
+                content.setFont(PDType1Font.HELVETICA, 12);
+                String studentLine = "Student: " + studentProfile.getFullName() + " (" + studentProfile.getStudentId() + ")";
+                content.showText(studentLine);
+                content.newLine();
+                yPosition -= lineHeight;
+                content.showText("Generated: " + java.time.LocalDateTime.now()
+                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                content.newLine();
+                yPosition -= lineHeight;
+                content.newLine();
+                yPosition -= lineHeight;
+                content.showText("Section | Course | Day & Time | Location");
+                content.newLine();
+                yPosition -= lineHeight;
+                content.showText("--------------------------------------------------------------");
+                content.newLine();
+                yPosition -= lineHeight;
+
+                for (Section section : schedule) {
+                    if (yPosition <= margin) {
+                        content.endText();
+                        content.close();
+                        page = new PDPage(PDRectangle.LETTER);
+                        document.addPage(page);
+                        yPosition = page.getMediaBox().getHeight() - margin;
+                        content = new PDPageContentStream(document, page);
+                        content.setLeading(lineHeight);
+                        content.beginText();
+                        content.newLineAtOffset(margin, yPosition);
+                        content.setFont(PDType1Font.HELVETICA_BOLD, 18);
+                        content.showText("Weekly Timetable (cont.)");
+                        content.newLine();
+                        yPosition -= lineHeight;
+                        content.setFont(PDType1Font.HELVETICA, 12);
+                        content.showText(studentLine);
+                        content.newLine();
+                        yPosition -= lineHeight;
+                        content.showText("Section | Course | Day & Time | Location");
+                        content.newLine();
+                        yPosition -= lineHeight;
+                        content.showText("--------------------------------------------------------------");
+                        content.newLine();
+                        yPosition -= lineHeight;
+                    }
+
+                    String day = section.getDayOfWeek() != null ? capitalize(section.getDayOfWeek().name()) : "TBA";
+                    String timeRange;
+                    if (section.getStartTime() != null && section.getEndTime() != null) {
+                        timeRange = section.getStartTime().format(TIME_FORMATTER) + "-"
+                                + section.getEndTime().format(TIME_FORMATTER);
+                    } else {
+                        timeRange = "TBA";
+                    }
+                    String location = section.getLocation() != null ? section.getLocation() : "TBA";
+                    String courseTitle = section.getTitle() != null ? section.getTitle() : "";
+                    Course course = DatabaseUtil.getCourse(section.getCourseId());
+                    if (course != null && (courseTitle == null || courseTitle.isBlank())) {
+                        courseTitle = course.getCourseName();
+                    }
+                    String courseId = section.getCourseId() != null ? section.getCourseId() : "";
+                    String courseDisplay = (courseId + " " + (courseTitle != null ? courseTitle : "")).trim();
+                    if (courseDisplay.isEmpty()) {
+                        courseDisplay = "Course TBD";
+                    }
+                    String sectionId = section.getSectionId() != null ? section.getSectionId() : "-";
+                    String line = String.format(Locale.ENGLISH, "%s | %s | %s %s | %s",
+                            sectionId,
+                            courseDisplay,
+                            day,
+                            timeRange,
+                            location);
+                    content.showText(line);
+                    content.newLine();
+                    yPosition -= lineHeight;
+                }
+
+                content.endText();
+            } finally {
+                if (content != null) {
+                    content.close();
+                }
+            }
+
+            document.save(file);
+            JOptionPane.showMessageDialog(this, "Timetable PDF exported to " + file.getAbsolutePath());
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Unable to export timetable PDF: " + ex.getMessage(),
+                    "Export Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void exportScheduleIcs() {
         if (studentProfile == null) {
             JOptionPane.showMessageDialog(this, "Student profile unavailable.");
             return;
@@ -744,6 +1020,151 @@ public class StudentSelfServicePanel extends JPanel {
         }
     }
 
+    private void exportTranscriptPdf() {
+        if (studentProfile == null) {
+            JOptionPane.showMessageDialog(this, "Student profile unavailable.");
+            return;
+        }
+        List<EnrollmentRecord> records = new ArrayList<>(DatabaseUtil.getEnrollmentsForStudent(studentProfile.getStudentId()));
+        if (records.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No transcript data available yet.");
+            return;
+        }
+        records.sort(Comparator.comparing(EnrollmentRecord::getSectionId));
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new java.io.File("transcript_" + studentProfile.getStudentId() + ".pdf"));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        java.io.File file = chooser.getSelectedFile();
+
+        double totalCredits = 0.0;
+        double gradedCredits = 0.0;
+        double weightedScores = 0.0;
+        List<String> lines = new ArrayList<>();
+        lines.add("Section | Course | Credits | Status | Final Score");
+        lines.add("---------------------------------------------------------------------");
+
+        for (EnrollmentRecord record : records) {
+            Section section = DatabaseUtil.getSection(record.getSectionId());
+            Course course = null;
+            if (section != null && section.getCourseId() != null) {
+                course = DatabaseUtil.getCourse(section.getCourseId());
+            }
+            int credits = course != null ? Math.max(1, course.getCreditHours()) : 3;
+            totalCredits += credits;
+
+            String sectionId = record.getSectionId() != null ? record.getSectionId() : "-";
+            String courseName;
+            if (course != null && course.getCourseName() != null) {
+                courseName = (course.getCourseId() != null ? course.getCourseId() + " " : "") + course.getCourseName();
+            } else if (section != null && section.getTitle() != null) {
+                courseName = (section.getCourseId() != null ? section.getCourseId() + " " : "") + section.getTitle();
+            } else {
+                courseName = "Course TBD";
+            }
+            String statusDisplay = capitalize(record.getStatus().name());
+            boolean hasFinalGrade = !record.getWeighting().isEmpty() || record.getFinalGrade() > 0.0;
+            String finalScore = hasFinalGrade
+                    ? String.format(Locale.ENGLISH, "%.2f", record.getFinalGrade())
+                    : "Pending";
+            if (hasFinalGrade) {
+                gradedCredits += credits;
+                weightedScores += record.getFinalGrade() * credits;
+            }
+            String line = String.format(Locale.ENGLISH, "%s | %s | %d | %s | %s",
+                    sectionId,
+                    courseName,
+                    credits,
+                    statusDisplay,
+                    finalScore);
+            lines.add(line);
+        }
+
+        lines.add("");
+        lines.add(String.format(Locale.ENGLISH, "Total credits in plan: %.0f", totalCredits));
+        if (gradedCredits > 0.0) {
+            double weightedAverage = weightedScores / gradedCredits;
+            lines.add(String.format(Locale.ENGLISH, "Weighted average score (0-100): %.2f", weightedAverage));
+        } else {
+            lines.add("Weighted average score (0-100): Pending");
+        }
+        lines.add(String.format(Locale.ENGLISH, "Reported CGPA: %.2f", studentProfile.getCgpa()));
+        lines.add("Academic standing: " + (studentProfile.getAcademicStanding() != null
+                ? studentProfile.getAcademicStanding()
+                : "Not set"));
+
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.LETTER);
+            document.addPage(page);
+
+            float margin = 48f;
+            float lineHeight = 16f;
+            float yPosition = page.getMediaBox().getHeight() - margin;
+
+            PDPageContentStream content = null;
+            try {
+                content = new PDPageContentStream(document, page);
+                content.setLeading(lineHeight);
+                content.beginText();
+                content.newLineAtOffset(margin, yPosition);
+                content.setFont(PDType1Font.HELVETICA_BOLD, 18);
+                content.showText("Unofficial Transcript");
+                content.newLine();
+                yPosition -= lineHeight;
+                content.setFont(PDType1Font.HELVETICA, 12);
+                content.showText("Student: " + studentProfile.getFullName() + " (" + studentProfile.getStudentId() + ")");
+                content.newLine();
+                yPosition -= lineHeight;
+                content.showText("Program: " + (studentProfile.getCourse() != null ? studentProfile.getCourse() : "Not assigned"));
+                content.newLine();
+                yPosition -= lineHeight;
+                content.showText("Generated: " + java.time.LocalDateTime.now()
+                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                content.newLine();
+                yPosition -= lineHeight;
+                content.newLine();
+                yPosition -= lineHeight;
+
+                for (String line : lines) {
+                    if (yPosition <= margin) {
+                        content.endText();
+                        content.close();
+                        page = new PDPage(PDRectangle.LETTER);
+                        document.addPage(page);
+                        yPosition = page.getMediaBox().getHeight() - margin;
+                        content = new PDPageContentStream(document, page);
+                        content.setLeading(lineHeight);
+                        content.beginText();
+                        content.newLineAtOffset(margin, yPosition);
+                        content.setFont(PDType1Font.HELVETICA_BOLD, 18);
+                        content.showText("Unofficial Transcript (cont.)");
+                        content.newLine();
+                        yPosition -= lineHeight;
+                        content.setFont(PDType1Font.HELVETICA, 12);
+                    }
+                    content.showText(line);
+                    content.newLine();
+                    yPosition -= lineHeight;
+                }
+
+                content.endText();
+            } finally {
+                if (content != null) {
+                    content.close();
+                }
+            }
+
+            document.save(file);
+            JOptionPane.showMessageDialog(this, "Transcript PDF exported to " + file.getAbsolutePath());
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Unable to export transcript PDF: " + ex.getMessage(),
+                    "Export Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void updateFinanceSummary() {
         if (studentProfile == null) {
             financeTotalLabel.setText("-");
@@ -797,6 +1218,9 @@ public class StudentSelfServicePanel extends JPanel {
                 .replace("\n", "\\n");
     }
 }
+
+
+
 
 
 
