@@ -26,6 +26,11 @@ public final class EnrollmentService {
             throw new IllegalStateException("Enrollment deadline has passed for this section.");
         }
 
+        List<String> missingPrereqs = DatabaseUtil.getMissingPrerequisites(studentId, section.getCourseId());
+        if (!missingPrereqs.isEmpty()) {
+            throw new IllegalStateException("Missing prerequisite(s): " + String.join(", ", missingPrereqs));
+        }
+
         if (isStudent(actor)) {
             enforceStudentOwnsRecord(actor, student);
         }
@@ -85,3 +90,4 @@ public final class EnrollmentService {
         return student;
     }
 }
+

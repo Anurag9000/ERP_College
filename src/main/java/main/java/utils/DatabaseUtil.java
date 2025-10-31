@@ -10,6 +10,7 @@ import main.java.data.dao.WaitlistDao;
 import main.java.data.dao.AttendanceDao;
 import main.java.data.dao.NotificationDao;
 import main.java.data.dao.SettingsDao;
+import main.java.data.dao.CoursePrerequisiteDao;
 import main.java.data.migration.LegacyDataMigrator;
 import main.java.utils.PasswordPolicy;
 import main.java.utils.AuditLogService;
@@ -57,6 +58,10 @@ public class DatabaseUtil {
     private static final AttendanceDao attendanceDao = new AttendanceDao();
     private static final NotificationDao notificationDao = new NotificationDao();
     private static final SettingsDao settingsDao = new SettingsDao();
+    private static final CoursePrerequisiteDao coursePrerequisiteDao = new CoursePrerequisiteDao();
+
+    private static final Map<String, List<String>> coursePrerequisiteCache = new ConcurrentHashMap<>();
+    private static final double PASSING_GRADE_THRESHOLD = 40.0;
 
     private static int parseIntConfig(String key, int defaultValue) {
         String value = ConfigLoader.get(key);
@@ -105,6 +110,7 @@ public class DatabaseUtil {
         refreshStudentCache();
         refreshInstructorCache();
         refreshSectionCache();
+        coursePrerequisiteCache.clear();
 
     }
 
@@ -425,16 +431,19 @@ public class DatabaseUtil {
     public static void addCourse(Course course) {
         courseDao.insert(course);
         courses.put(course.getCourseId(), course);
+        coursePrerequisiteCache.remove(course.getCourseId());
     }
 
     public static void updateCourse(Course course) {
         courseDao.update(course);
         courses.put(course.getCourseId(), course);
+        coursePrerequisiteCache.remove(course.getCourseId());
     }
 
     public static void deleteCourse(String courseId) {
         courseDao.delete(courseId);
         courses.remove(courseId);
+        coursePrerequisiteCache.remove(courseId);
     }
 
     public static Course getCourse(String courseId) {
@@ -534,6 +543,11 @@ public class DatabaseUtil {
         Student student = getStudent(studentId);
         if (student == null) {
             throw new IllegalArgumentException("Student not found");
+        }
+
+        List<String> missingPrereqs = getMissingPrerequisites(studentId, section.getCourseId());
+        if (!missingPrereqs.isEmpty()) {
+            throw new IllegalStateException("Missing prerequisite(s): " + String.join(", ", missingPrereqs));
         }
 
         List<EnrollmentRecord> existing = enrollmentDao.findBySection(sectionId);
@@ -703,6 +717,63 @@ public class DatabaseUtil {
                         Section::getCourseId,
                         Collectors.summingLong(sec -> sec.getWaitlistedStudentIds().size())
                 ));
+    }
+
+    public static List<String> getCoursePrerequisites(String courseId) {
+        if (courseId == null) {
+            return Collections.emptyList();
+        }
+        return coursePrerequisiteCache.computeIfAbsent(courseId, coursePrerequisiteDao::findPrerequisites);
+    }
+
+    public static Set<String> getCompletedCourseIds(String studentId) {
+        if (studentId == null) {
+            return Collections.emptySet();
+        }
+        Set<String> completed = new HashSet<>();
+        for (EnrollmentRecord record : getEnrollmentsForStudent(studentId)) {
+            Section section = getSection(record.getSectionId());
+            if (section == null) {
+                continue;
+            }
+            if (record.getFinalGrade() >= PASSING_GRADE_THRESHOLD) {
+                completed.add(section.getCourseId());
+            }
+        }
+        return completed;
+    }
+
+    public static Set<String> getActiveCourseIds(String studentId) {
+        if (studentId == null) {
+            return Collections.emptySet();
+        }
+        Set<String> active = new HashSet<>();
+        for (EnrollmentRecord record : getEnrollmentsForStudent(studentId)) {
+            if (record.getStatus() == EnrollmentRecord.Status.ENROLLED
+                    || record.getStatus() == EnrollmentRecord.Status.WAITLISTED) {
+                Section section = getSection(record.getSectionId());
+                if (section != null) {
+                    active.add(section.getCourseId());
+                }
+            }
+        }
+        return active;
+    }
+
+    public static List<String> getMissingPrerequisites(String studentId, String courseId) {
+        List<String> prereqs = getCoursePrerequisites(courseId);
+        if (prereqs.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<String> completed = getCompletedCourseIds(studentId);
+        Set<String> active = getActiveCourseIds(studentId);
+        List<String> missing = new ArrayList<>();
+        for (String prereq : prereqs) {
+            if (!completed.contains(prereq) && !active.contains(prereq)) {
+                missing.add(prereq);
+            }
+        }
+        return missing;
     }
 
     public static double getAverageAttendanceForSection(String sectionId) {
