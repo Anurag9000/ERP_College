@@ -44,6 +44,8 @@ public class DatabaseUtil {
     private static Map<String, Course> courses = new ConcurrentHashMap<>();
     private static Map<String, Section> sections = new ConcurrentHashMap<>();
     private static Map<String, String> settings = new ConcurrentHashMap<>();
+    private static Map<String, List<PaymentTransaction>> paymentHistory = new ConcurrentHashMap<>();
+    private static Map<String, List<FeeInstallment>> installmentSchedules = new ConcurrentHashMap<>();
 
     private static final int MAX_FAILED_ATTEMPTS = parseIntConfig("security.maxFailedAttempts", 5);
     private static final int LOCKOUT_MINUTES = parseIntConfig("security.lockoutMinutes", 15);
@@ -75,6 +77,62 @@ public class DatabaseUtil {
             return defaultValue;
         }
     }
+
+    private static void seedFinanceData(Student... sampleStudents) {
+        LocalDate today = LocalDate.now();
+        for (Student student : sampleStudents) {
+            List<PaymentTransaction> transactions = new ArrayList<>();
+            List<FeeInstallment> installments = new ArrayList<>();
+
+            double paid = student.getFeesPaid();
+            if (paid > 0) {
+                double split = Math.max(1, Math.round(paid / 2.0 / 1000) * 1000);
+                PaymentTransaction t1 = new PaymentTransaction(
+                        student.getStudentId(),
+                        Math.min(split, paid),
+                        today.minusMonths(4),
+                        "UPI",
+                        "TXN-" + student.getStudentId() + "-A",
+                        "Initial tuition payment");
+                PaymentTransaction t2 = new PaymentTransaction(
+                        student.getStudentId(),
+                        Math.max(0, paid - t1.getAmount()),
+                        today.minusMonths(2),
+                        "Bank Transfer",
+                        "TXN-" + student.getStudentId() + "-B",
+                        "Mid-term installment");
+                transactions.add(t1);
+                if (t2.getAmount() > 0) {
+                    transactions.add(t2);
+                }
+            }
+
+            double remaining = Math.max(0.0, student.getTotalFees() - paid);
+            if (remaining > 0) {
+                double installmentAmount = Math.max(1, Math.round(remaining / 3.0 / 1000) * 1000);
+                for (int i = 1; i <= 3; i++) {
+                    FeeInstallment installment = new FeeInstallment(
+                            student.getStudentId(),
+                            today.plusMonths(i).withDayOfMonth(5),
+                            Math.min(remaining, installmentAmount),
+                            "Installment " + i + " for AY " + today.getYear());
+                    if (installment.getDueDate().isBefore(today)) {
+                        installment.setStatus(FeeInstallment.Status.OVERDUE);
+                    } else {
+                        installment.setStatus(FeeInstallment.Status.DUE);
+                    }
+                    installments.add(installment);
+                    remaining -= installment.getAmount();
+                    if (remaining <= 0) {
+                        break;
+                    }
+                }
+            }
+
+            paymentHistory.put(student.getStudentId(), transactions);
+            installmentSchedules.put(student.getStudentId(), installments);
+        }
+    }
     
     public static void initializeDatabase() {
         // Create data directory if it doesn't exist
@@ -101,6 +159,12 @@ public class DatabaseUtil {
         }
         if (settings == null) {
             settings = new ConcurrentHashMap<>();
+        }
+        if (paymentHistory == null) {
+            paymentHistory = new ConcurrentHashMap<>();
+        }
+        if (installmentSchedules == null) {
+            installmentSchedules = new ConcurrentHashMap<>();
         }
 
         if (settings.putIfAbsent("maintenance", "false") == null) {
@@ -168,6 +232,8 @@ public class DatabaseUtil {
         s2.setNextFeeDueDate(LocalDate.now().plusDays(20));
         s2.setUsername("stu2");
         addStudent(s2);
+
+        seedFinanceData(s1, s2);
         
         Course course1 = getCourse("CSE101");
         course1.setAvailableSeats(course1.getAvailableSeats() - 1);
@@ -247,7 +313,8 @@ public class DatabaseUtil {
             NotificationMessage.Audience.STUDENT,
             s2.getStudentId(),
             "You are waitlisted for Algorithms - A. We'll auto-enrol if a seat frees up.",
-            "Registration"));}
+            "Registration"));
+    }
     
     @SuppressWarnings("unchecked")
     private static void loadData() {
@@ -256,6 +323,8 @@ public class DatabaseUtil {
         courses = new ConcurrentHashMap<>();
         sections = new ConcurrentHashMap<>();
         settings = new ConcurrentHashMap<>(settingsDao.findAll());
+        paymentHistory = new ConcurrentHashMap<>();
+        installmentSchedules = new ConcurrentHashMap<>();
     }
     
     public static void saveData() {
@@ -393,6 +462,112 @@ public class DatabaseUtil {
 
     public static Student findStudentByUsername(String username) {
         return studentDao.findByUsername(username).orElse(null);
+    }
+
+    // Finance operations
+    public static List<PaymentTransaction> getPaymentHistoryForStudent(String studentId) {
+        return paymentHistory.getOrDefault(studentId, Collections.emptyList())
+                .stream()
+                .sorted(Comparator.comparing(PaymentTransaction::getPaidOn).reversed())
+                .collect(Collectors.toList());
+    }
+
+    public static List<FeeInstallment> getInstallmentsForStudent(String studentId) {
+        List<FeeInstallment> source = installmentSchedules.getOrDefault(studentId, Collections.emptyList());
+        return source.stream()
+                .sorted(Comparator.comparing(FeeInstallment::getDueDate))
+                .map(DatabaseUtil::cloneInstallment)
+                .collect(Collectors.toList());
+    }
+
+    public static synchronized PaymentTransaction recordPayment(String actorUsername,
+                                                                String studentId,
+                                                                double amount,
+                                                                String method,
+                                                                String reference,
+                                                                String notes) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Payment amount must be positive.");
+        }
+        Student student = getStudent(studentId);
+        if (student == null) {
+            throw new IllegalArgumentException("Student not found: " + studentId);
+        }
+
+        PaymentTransaction transaction = new PaymentTransaction(studentId, amount, LocalDate.now(), method, reference, notes);
+        paymentHistory.computeIfAbsent(studentId, key -> new ArrayList<>()).add(transaction);
+
+        double updatedPaid = Math.min(student.getTotalFees(), student.getFeesPaid() + amount);
+        student.setFeesPaid(updatedPaid);
+        updateStudent(student);
+
+        List<FeeInstallment> schedule = installmentSchedules.computeIfAbsent(studentId, key -> new ArrayList<>());
+        schedule.sort(Comparator.comparing(FeeInstallment::getDueDate));
+        double remaining = amount;
+        for (FeeInstallment installment : schedule) {
+            if (installment.getStatus() == FeeInstallment.Status.PAID) {
+                continue;
+            }
+            double installmentAmount = installment.getAmount();
+            if (remaining + 1e-3 >= installmentAmount) {
+                installment.setStatus(FeeInstallment.Status.PAID);
+                installment.setPaidOn(LocalDate.now());
+                remaining -= installmentAmount;
+            } else {
+                break;
+            }
+        }
+
+        AuditLogService.log(AuditLogService.EventType.FINANCE_PAYMENT,
+                actorUsername != null ? actorUsername : "system",
+                String.format(Locale.ENGLISH, "Recorded payment %.2f for %s", amount, studentId));
+        return transaction;
+    }
+
+    public static void upsertInstallment(String studentId, FeeInstallment installment) {
+        installmentSchedules.computeIfAbsent(studentId, key -> new ArrayList<>());
+        List<FeeInstallment> schedule = installmentSchedules.get(studentId);
+        Optional<FeeInstallment> existing = schedule.stream()
+                .filter(inst -> inst.getInstallmentId().equals(installment.getInstallmentId()))
+                .findFirst();
+        if (existing.isPresent()) {
+            FeeInstallment target = existing.get();
+            target.setAmount(installment.getAmount());
+            target.setDescription(installment.getDescription());
+            target.setDueDate(installment.getDueDate());
+            target.setStatus(installment.getStatus());
+            target.setPaidOn(installment.getPaidOn());
+            target.setLastReminderSent(installment.getLastReminderSent());
+        } else {
+            schedule.add(installment);
+        }
+    }
+
+    public static void markInstallmentReminderSent(String studentId, String installmentId) {
+        List<FeeInstallment> schedule = installmentSchedules.get(studentId);
+        if (schedule == null) {
+            return;
+        }
+        LocalDate today = LocalDate.now();
+        for (FeeInstallment installment : schedule) {
+            if (installment.getInstallmentId().equals(installmentId)) {
+                installment.setLastReminderSent(today);
+                break;
+            }
+        }
+    }
+
+    public static FeeInstallment nextDueInstallment(String studentId) {
+        return installmentSchedules.getOrDefault(studentId, Collections.emptyList()).stream()
+                .filter(inst -> inst.getStatus() != FeeInstallment.Status.PAID)
+                .sorted(Comparator.comparing(FeeInstallment::getDueDate))
+                .findFirst()
+                .map(DatabaseUtil::cloneInstallment)
+                .orElse(null);
+    }
+
+    private static FeeInstallment cloneInstallment(FeeInstallment source) {
+        return FeeInstallment.copyOf(source);
     }
     
     // Faculty operations

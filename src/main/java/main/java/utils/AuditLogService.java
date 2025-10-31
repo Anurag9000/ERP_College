@@ -28,7 +28,8 @@ public final class AuditLogService {
         PASSWORD_RESET,
         MAINTENANCE_TOGGLE,
         ENROLLMENT_CHANGE,
-        GRADE_EDIT
+        GRADE_EDIT,
+        FINANCE_PAYMENT
     }
 
     public static final class AuditEvent {

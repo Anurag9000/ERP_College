@@ -5,6 +5,8 @@ import main.java.models.EnrollmentRecord;
 import main.java.models.Faculty;
 import main.java.models.Section;
 import main.java.models.Student;
+import main.java.models.FeeInstallment;
+import main.java.models.PaymentTransaction;
 import main.java.models.User;
 import main.java.models.NotificationMessage;
 import main.java.service.EnrollmentService;
@@ -19,6 +21,7 @@ import java.awt.*;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
@@ -42,6 +45,7 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
  */
 public class StudentSelfServicePanel extends JPanel {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy");
 
     private final User currentUser;
     private Student studentProfile;
@@ -63,6 +67,8 @@ public class StudentSelfServicePanel extends JPanel {
     private final JTable catalogTable;
     private final JTable scheduleTable;
     private final JTable gradesTable;
+    private final JTable paymentHistoryTable;
+    private final JTable installmentTable;
 
     private List<Section> catalogSections = new ArrayList<>();
     private Map<String, EnrollmentRecord.Status> enrollmentStatusBySection = new HashMap<>();
@@ -79,6 +85,9 @@ public class StudentSelfServicePanel extends JPanel {
     private final JLabel gradeAnalyticsLabel;
     private final JButton transcriptPdfButton;
     private final JButton exportSchedulePdfButton;
+    private final DefaultTableModel paymentHistoryModel;
+    private final DefaultTableModel installmentModel;
+    private FeeInstallment nextDueInstallment;
 
     public StudentSelfServicePanel(User currentUser) {
         this.currentUser = currentUser;
@@ -106,6 +115,22 @@ public class StudentSelfServicePanel extends JPanel {
                 return false;
             }
         };
+        this.paymentHistoryModel = new DefaultTableModel(new Object[]{
+                "Date", "Amount", "Method", "Reference", "Notes"
+        }, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        this.installmentModel = new DefaultTableModel(new Object[]{
+                "Due Date", "Amount", "Status", "Description", "Last Reminder"
+        }, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
 
         catalogTable = new JTable(catalogModel);
         catalogTable.setRowHeight(22);
@@ -115,6 +140,10 @@ public class StudentSelfServicePanel extends JPanel {
         scheduleTable.setRowHeight(22);
         gradesTable = new JTable(gradesModel);
         gradesTable.setRowHeight(22);
+        paymentHistoryTable = new JTable(paymentHistoryModel);
+        paymentHistoryTable.setRowHeight(22);
+        installmentTable = new JTable(installmentModel);
+        installmentTable.setRowHeight(22);
 
         registerButton = new JButton("Register");
         dropButton = new JButton("Drop");
@@ -297,7 +326,15 @@ public class StudentSelfServicePanel extends JPanel {
         reminderButton.setFocusPainted(false);
         actions.add(reminderButton);
 
-        panel.add(grid, BorderLayout.CENTER);
+        JPanel tables = new JPanel(new GridLayout(1, 2, 12, 12));
+        tables.add(wrapWithTitledScroll(paymentHistoryTable, "Payment History"));
+        tables.add(wrapWithTitledScroll(installmentTable, "Installment Plan"));
+
+        JPanel content = new JPanel(new BorderLayout(10, 10));
+        content.add(grid, BorderLayout.NORTH);
+        content.add(tables, BorderLayout.CENTER);
+
+        panel.add(content, BorderLayout.CENTER);
         panel.add(actions, BorderLayout.SOUTH);
         return panel;
     }
@@ -317,6 +354,12 @@ public class StudentSelfServicePanel extends JPanel {
         panel.add(Box.createVerticalStrut(4));
         panel.add(valueLabel);
         return panel;
+    }
+
+    private JComponent wrapWithTitledScroll(JTable table, String title) {
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createTitledBorder(title));
+        return scrollPane;
     }
 
     private JLabel createSummaryValueLabel() {
@@ -389,13 +432,18 @@ public class StudentSelfServicePanel extends JPanel {
             populateSchedule();
             populateGrades();
             updateSummary();
+            updateFinanceSummary();
+            populateFinanceTables();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Profile not found", JOptionPane.ERROR_MESSAGE);
             this.studentProfile = null;
             catalogModel.setRowCount(0);
             scheduleModel.setRowCount(0);
             gradesModel.setRowCount(0);
+            paymentHistoryModel.setRowCount(0);
+            installmentModel.setRowCount(0);
             updateSummary();
+            updateFinanceSummary();
             updateActionButtons();
         }
     }
@@ -406,6 +454,8 @@ public class StudentSelfServicePanel extends JPanel {
                 : "");
         updateActionButtons();
         updateSummary();
+        updateFinanceSummary();
+        populateFinanceTables();
     }
 
     public void refreshForMaintenance() {
@@ -561,6 +611,45 @@ public class StudentSelfServicePanel extends JPanel {
             }
         }
         updateGradeAnalytics(enrollments);
+    }
+
+    private void populateFinanceTables() {
+        paymentHistoryModel.setRowCount(0);
+        installmentModel.setRowCount(0);
+        if (studentProfile == null) {
+            return;
+        }
+
+        List<PaymentTransaction> history = DatabaseUtil.getPaymentHistoryForStudent(studentProfile.getStudentId());
+        for (PaymentTransaction tx : history) {
+            paymentHistoryModel.addRow(new Object[]{
+                    tx.getPaidOn() != null ? DATE_FORMATTER.format(tx.getPaidOn()) : "-",
+                    formatCurrency(tx.getAmount()),
+                    tx.getMethod() != null ? tx.getMethod() : "-",
+                    tx.getReference() != null ? tx.getReference() : "-",
+                    tx.getNotes() != null ? tx.getNotes() : "-"
+            });
+        }
+
+        List<FeeInstallment> installments = DatabaseUtil.getInstallmentsForStudent(studentProfile.getStudentId());
+        LocalDate today = LocalDate.now();
+        for (FeeInstallment installment : installments) {
+            String statusText;
+            if (installment.getStatus() == FeeInstallment.Status.PAID) {
+                statusText = "Paid";
+            } else if (installment.isOverdue(today)) {
+                statusText = "Overdue";
+            } else {
+                statusText = "Due";
+            }
+            installmentModel.addRow(new Object[]{
+                    installment.getDueDate() != null ? DATE_FORMATTER.format(installment.getDueDate()) : "-",
+                    formatCurrency(installment.getAmount()),
+                    statusText,
+                    installment.getDescription() != null ? installment.getDescription() : "-",
+                    installment.getLastReminderSent() != null ? DATE_FORMATTER.format(installment.getLastReminderSent()) : "-"
+            });
+        }
     }
 
     private Map<String, EnrollmentRecord.Status> buildStatusMap() {
@@ -1172,18 +1261,37 @@ public class StudentSelfServicePanel extends JPanel {
             financeOutstandingLabel.setText("-");
             financeNextDueLabel.setText("-");
             reminderButton.setEnabled(false);
+            reminderButton.setToolTipText("No student selected.");
+            nextDueInstallment = null;
             return;
         }
-        financeTotalLabel.setText(String.format("\u20B9%,.0f", studentProfile.getTotalFees()));
-        financePaidLabel.setText(String.format("\u20B9%,.0f", studentProfile.getFeesPaid()));
-        double outstanding = Math.max(0.0, studentProfile.getTotalFees() - studentProfile.getFeesPaid());
-        financeOutstandingLabel.setText(String.format("\u20B9%,.0f", outstanding));
-        if (studentProfile.getNextFeeDueDate() != null) {
+
+        double totalFees = Math.max(0.0, studentProfile.getTotalFees());
+        double feesPaid = Math.max(0.0, studentProfile.getFeesPaid());
+        double outstanding = Math.max(0.0, totalFees - feesPaid);
+
+        financeTotalLabel.setText(formatCurrency(totalFees));
+        financePaidLabel.setText(formatCurrency(feesPaid));
+        financeOutstandingLabel.setText(formatCurrency(outstanding));
+
+        nextDueInstallment = DatabaseUtil.nextDueInstallment(studentProfile.getStudentId());
+        if (nextDueInstallment != null && nextDueInstallment.getDueDate() != null) {
+            boolean overdue = nextDueInstallment.isOverdue(LocalDate.now());
+            String statusSuffix = overdue ? " (Overdue)" : "";
+            financeNextDueLabel.setText(DATE_FORMATTER.format(nextDueInstallment.getDueDate()) + statusSuffix);
+        } else if (outstanding <= 0.0) {
+            financeNextDueLabel.setText("Paid in full");
+        } else if (studentProfile.getNextFeeDueDate() != null) {
             financeNextDueLabel.setText(studentProfile.getNextFeeDueDate().toString());
         } else {
             financeNextDueLabel.setText("Not scheduled");
         }
-        reminderButton.setEnabled(outstanding > 0.0);
+
+        boolean canRemind = outstanding > 0.0 && nextDueInstallment != null;
+        reminderButton.setEnabled(canRemind);
+        reminderButton.setToolTipText(canRemind
+                ? "Send yourself a notification about the next installment."
+                : "No pending installment to remind.");
     }
 
     private void sendPaymentReminder() {
@@ -1196,16 +1304,30 @@ public class StudentSelfServicePanel extends JPanel {
             return;
         }
 
+        if (nextDueInstallment == null) {
+            JOptionPane.showMessageDialog(this, "No upcoming installment to remind.");
+            return;
+        }
+
+        String dueLabel = nextDueInstallment.getDueDate() != null
+                ? DATE_FORMATTER.format(nextDueInstallment.getDueDate())
+                : "the upcoming due date";
+        String installmentAmount = formatCurrency(nextDueInstallment.getAmount());
+
         DatabaseUtil.addNotification(new NotificationMessage(
                 NotificationMessage.Audience.STUDENT,
                 studentProfile.getStudentId(),
-                "Payment reminder: outstanding balance \u20B9" + String.format("%,.0f", outstanding)
-                        + ". Please settle before " + (studentProfile.getNextFeeDueDate() != null
-                        ? studentProfile.getNextFeeDueDate()
-                        : "the due date"),
+                "Payment reminder: " + installmentAmount + " due by " + dueLabel
+                        + ". Outstanding balance " + formatCurrency(outstanding) + ".",
                 "Finance"));
+        DatabaseUtil.markInstallmentReminderSent(studentProfile.getStudentId(), nextDueInstallment.getInstallmentId());
+        populateFinanceTables();
         updateFinanceSummary();
         JOptionPane.showMessageDialog(this, "Reminder sent to your notifications inbox.");
+    }
+
+    private String formatCurrency(double amount) {
+        return String.format("\u20B9%,.0f", amount);
     }
 
     private String escapeForIcs(String value) {
