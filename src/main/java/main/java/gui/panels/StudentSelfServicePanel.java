@@ -19,6 +19,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -26,6 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.UUID;
 
 /**
  * Student-facing self-service workspace for catalog, schedule, and grades.
@@ -44,6 +48,7 @@ public class StudentSelfServicePanel extends JPanel {
     private final JButton registerButton;
     private final JButton dropButton;
     private final JButton transcriptButton;
+    private final JButton exportScheduleButton;
     private final JTextField catalogSearchField;
     private final JComboBox<String> dayFilter;
     private final JCheckBox openOnlyCheck;
@@ -98,6 +103,7 @@ public class StudentSelfServicePanel extends JPanel {
         registerButton = new JButton("Register");
         dropButton = new JButton("Drop");
         transcriptButton = new JButton("Download Transcript (CSV)");
+        exportScheduleButton = new JButton("Export Timetable (.ics)");
 
         catalogSearchField = new JTextField(18);
         catalogSearchField.setToolTipText("Search by section, course, or instructor");
@@ -145,7 +151,7 @@ public class StudentSelfServicePanel extends JPanel {
     private JComponent createBody() {
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Catalog & Registration", buildCatalogTab());
-        tabs.addTab("Timetable", new JScrollPane(scheduleTable));
+        tabs.addTab("Timetable", buildScheduleTab());
         tabs.addTab("Grades", new JScrollPane(gradesTable));
         tabs.addTab("Transcript", buildTranscriptTab());
         return tabs;
@@ -164,6 +170,15 @@ public class StudentSelfServicePanel extends JPanel {
 
         panel.add(controls, BorderLayout.NORTH);
         panel.add(new JScrollPane(catalogTable), BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildScheduleTab() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        controls.add(exportScheduleButton);
+        panel.add(controls, BorderLayout.NORTH);
+        panel.add(new JScrollPane(scheduleTable), BorderLayout.CENTER);
         return panel;
     }
 
@@ -254,6 +269,7 @@ public class StudentSelfServicePanel extends JPanel {
         registerButton.addActionListener(e -> performRegistration());
         dropButton.addActionListener(e -> performDrop());
         transcriptButton.addActionListener(e -> exportTranscript());
+        exportScheduleButton.addActionListener(e -> exportSchedule());
 
         catalogTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -563,6 +579,62 @@ public class StudentSelfServicePanel extends JPanel {
         }
     }
 
+    private void exportSchedule() {
+        if (studentProfile == null) {
+            JOptionPane.showMessageDialog(this, "Student profile unavailable.");
+            return;
+        }
+        List<Section> schedule = DatabaseUtil.getScheduleForStudent(studentProfile.getStudentId());
+        if (schedule.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No timetable entries to export.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new java.io.File("timetable_" + studentProfile.getStudentId() + ".ics"));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        java.io.File file = chooser.getSelectedFile();
+        DateTimeFormatter localFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss");
+        String dtStamp = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
+                .format(Instant.now().atOffset(ZoneOffset.UTC));
+        String lineSep = System.lineSeparator();
+
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write("BEGIN:VCALENDAR" + lineSep);
+            writer.write("VERSION:2.0" + lineSep);
+            writer.write("PRODID:-//College ERP//Student Timetable//EN" + lineSep);
+
+            for (Section section : schedule) {
+                java.time.LocalDate startDate = java.time.LocalDate.now()
+                        .with(TemporalAdjusters.nextOrSame(section.getDayOfWeek()));
+                java.time.LocalDateTime startDateTime = java.time.LocalDateTime.of(startDate, section.getStartTime());
+                java.time.LocalDateTime endDateTime = java.time.LocalDateTime.of(startDate, section.getEndTime());
+
+                writer.write("BEGIN:VEVENT" + lineSep);
+                writer.write("UID:" + UUID.randomUUID() + "@college-erp" + lineSep);
+                writer.write("DTSTAMP:" + dtStamp + lineSep);
+                writer.write("SUMMARY:" + escapeForIcs(section.getTitle()) + lineSep);
+                writer.write("DTSTART:" + startDateTime.format(localFormatter) + lineSep);
+                writer.write("DTEND:" + endDateTime.format(localFormatter) + lineSep);
+                writer.write("RRULE:FREQ=WEEKLY" + lineSep);
+                if (section.getLocation() != null) {
+                    writer.write("LOCATION:" + escapeForIcs(section.getLocation()) + lineSep);
+                }
+                writer.write("DESCRIPTION:" + escapeForIcs(section.getCourseId()) + lineSep);
+                writer.write("END:VEVENT" + lineSep);
+            }
+
+            writer.write("END:VCALENDAR" + lineSep);
+            JOptionPane.showMessageDialog(this, "Timetable exported to " + file.getAbsolutePath());
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Unable to export timetable: " + ex.getMessage(),
+                    "Export Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void exportTranscript() {
         JFileChooser chooser = new JFileChooser();
         chooser.setSelectedFile(new java.io.File("transcript_" + studentProfile.getStudentId() + ".csv"));
@@ -580,6 +652,16 @@ public class StudentSelfServicePanel extends JPanel {
                 JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to export", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    private String escapeForIcs(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\")
+                .replace(",", "\\,")
+                .replace(";", "\\;")
+                .replace("\n", "\\n");
     }
 }
 
