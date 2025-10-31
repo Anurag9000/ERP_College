@@ -134,7 +134,16 @@ public class LoginFrame extends JFrame {
                 new MainFrame(user).setVisible(true);
             });
         } else {
-            statusLabel.setText("Invalid username or password");
+            if (DatabaseUtil.isUserLocked(username)) {
+                User existing = DatabaseUtil.getUser(username);
+                String until = existing != null && existing.getLockedUntil() != null
+                        ? existing.getLockedUntil().toString()
+                        : "later";
+                statusLabel.setText("Account locked until " + until);
+            } else {
+                int remaining = DatabaseUtil.remainingAttempts(username);
+                statusLabel.setText("Invalid credentials. Attempts left: " + remaining);
+            }
             passwordField.setText("");
         }
     }

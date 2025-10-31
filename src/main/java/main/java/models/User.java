@@ -13,6 +13,10 @@ public class User implements java.io.Serializable {
     private String email;
     private boolean isActive;
     private java.time.LocalDateTime lastLogin;
+    private java.time.LocalDateTime lockedUntil;
+    private int failedAttempts;
+    private boolean mustChangePassword;
+    private java.util.Deque<String> passwordHistory; // Entries stored as salt:hash
     
     public User() {}
     
@@ -24,6 +28,9 @@ public class User implements java.io.Serializable {
         this.fullName = fullName;
         this.email = email;
         this.isActive = true;
+        this.failedAttempts = 0;
+        this.mustChangePassword = false;
+        this.passwordHistory = new java.util.ArrayDeque<>();
     }
     
     // Getters and Setters
@@ -54,5 +61,52 @@ public class User implements java.io.Serializable {
 
     public void setLastLogin(java.time.LocalDateTime lastLogin) {
         this.lastLogin = lastLogin;
+    }
+
+    public java.time.LocalDateTime getLockedUntil() {
+        return lockedUntil;
+    }
+
+    public void setLockedUntil(java.time.LocalDateTime lockedUntil) {
+        this.lockedUntil = lockedUntil;
+    }
+
+    public int getFailedAttempts() {
+        return failedAttempts;
+    }
+
+    public void setFailedAttempts(int failedAttempts) {
+        this.failedAttempts = failedAttempts;
+    }
+
+    public void incrementFailedAttempts() {
+        this.failedAttempts++;
+    }
+
+    public void resetFailedAttempts() {
+        this.failedAttempts = 0;
+    }
+
+    public boolean isMustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public void setMustChangePassword(boolean mustChangePassword) {
+        this.mustChangePassword = mustChangePassword;
+    }
+
+    public java.util.Deque<String> getPasswordHistory() {
+        if (passwordHistory == null) {
+            passwordHistory = new java.util.ArrayDeque<>();
+        }
+        return passwordHistory;
+    }
+
+    public void addPasswordHistory(String salt, String hash, int maxHistory) {
+        String entry = salt + ":" + hash;
+        getPasswordHistory().addFirst(entry);
+        while (passwordHistory.size() > maxHistory) {
+            passwordHistory.removeLast();
+        }
     }
 }

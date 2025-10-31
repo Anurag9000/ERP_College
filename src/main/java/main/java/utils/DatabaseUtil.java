@@ -1,4 +1,7 @@
-package main.java.utils;
+
+import main.java.config.ConfigLoader;
+import main.java.utils.PasswordPolicy;
+import main.java.utils.AuditLogService;
 
 import main.java.models.*;
 import java.io.*;
@@ -35,6 +38,22 @@ public class DatabaseUtil {
     private static Map<String, AttendanceRecord> attendanceRecords = new ConcurrentHashMap<>();
     private static List<NotificationMessage> notifications = Collections.synchronizedList(new ArrayList<>());
     private static Map<String, String> settings = new ConcurrentHashMap<>();
+
+    private static final int MAX_FAILED_ATTEMPTS = parseIntConfig("security.maxFailedAttempts", 5);
+    private static final int LOCKOUT_MINUTES = parseIntConfig("security.lockoutMinutes", 15);
+    private static final int PASSWORD_HISTORY_SIZE = parseIntConfig("security.passwordHistorySize", PasswordPolicy.historySize());
+
+    private static int parseIntConfig(String key, int defaultValue) {
+        String value = ConfigLoader.get(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ex) {
+            return defaultValue;
+        }
+    }
     
     public static void initializeDatabase() {
         // Create data directory if it doesn't exist
@@ -353,27 +372,58 @@ public class DatabaseUtil {
     
     // User operations
     public static synchronized User authenticateUser(String username, String password) {
+        LocalDateTime now = LocalDateTime.now();
         User user = users.get(username);
         if (user == null || !user.isActive()) {
+            AuditLogService.log(AuditLogService.EventType.LOGIN_FAILURE, username, "Unknown or inactive user");
             return null;
         }
+
+        if (user.getLockedUntil() != null && now.isBefore(user.getLockedUntil())) {
+            AuditLogService.log(AuditLogService.EventType.ACCOUNT_LOCKED, username,
+                    "Account locked until " + user.getLockedUntil());
+            return null;
+        }
+
         String salt = user.getSalt();
         String hash = user.getPasswordHash();
+        boolean matched = false;
+
         if (salt == null || hash == null) {
             // Legacy record fallback: treat stored passwordHash as plaintext
             if (hash != null && hash.equals(password)) {
-                upgradePassword(user, password.toCharArray());
-                return user;
+                try {
+                    applyNewPassword(user, password, false, true);
+                    matched = true;
+                } catch (IllegalArgumentException ex) {
+                    matched = false;
+                }
             }
+        } else {
+            matched = PasswordUtil.verifyPassword(password.toCharArray(), salt, hash);
+        }
+
+        if (matched) {
+            user.resetFailedAttempts();
+            user.setLockedUntil(null);
+            user.setLastLogin(now);
+            saveData();
+            AuditLogService.log(AuditLogService.EventType.LOGIN_SUCCESS, username, "Login successful");
+            return user;
+        } else {
+            user.incrementFailedAttempts();
+            if (user.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
+                user.setLockedUntil(now.plusMinutes(LOCKOUT_MINUTES));
+                user.resetFailedAttempts();
+                AuditLogService.log(AuditLogService.EventType.ACCOUNT_LOCKED, username,
+                        "Exceeded failed login attempts");
+            } else {
+                AuditLogService.log(AuditLogService.EventType.LOGIN_FAILURE, username,
+                        "Invalid credentials (" + user.getFailedAttempts() + "/" + MAX_FAILED_ATTEMPTS + ")");
+            }
+            saveData();
             return null;
         }
-        boolean matched = PasswordUtil.verifyPassword(password.toCharArray(), salt, hash);
-        if (matched) {
-            user.setLastLogin(java.time.LocalDateTime.now());
-            saveData();
-            return user;
-        }
-        return null;
     }
     
     public static Collection<User> getAllUsers() {
@@ -388,9 +438,11 @@ public class DatabaseUtil {
         if (users.containsKey(username)) {
             throw new IllegalArgumentException("Username already exists");
         }
+        PasswordPolicy.validateComplexity(rawPassword);
         String salt = PasswordUtil.generateSalt();
         String hash = PasswordUtil.hashPassword(rawPassword.toCharArray(), salt);
         User user = new User(username, hash, salt, role, fullName, email);
+        user.addPasswordHistory(salt, hash, PASSWORD_HISTORY_SIZE);
         users.put(username, user);
         saveData();
         return user;
@@ -407,26 +459,19 @@ public class DatabaseUtil {
         saveData();
     }
 
-    public static synchronized void changePassword(String username, String newPassword) {
-        User user = users.get(username);
-        if (user == null) {
-            throw new IllegalArgumentException("User not found: " + username);
+    public static synchronized void changePasswordSelf(String username, String currentPassword, String newPassword) {
+        User user = requireUser(username);
+        if (!PasswordUtil.verifyPassword(currentPassword.toCharArray(), user.getSalt(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect.");
         }
-        upgradePassword(user, newPassword.toCharArray());
+        applyNewPassword(user, newPassword, false, false);
+        AuditLogService.log(AuditLogService.EventType.PASSWORD_CHANGED, username, "User-initiated change");
     }
 
-    private static void upgradePassword(User user, char[] newPassword) {
-        upgradePassword(user, newPassword, true);
-    }
-
-    private static void upgradePassword(User user, char[] newPassword, boolean persist) {
-        String newSalt = PasswordUtil.generateSalt();
-        String newHash = PasswordUtil.hashPassword(newPassword, newSalt);
-        user.setSalt(newSalt);
-        user.setPasswordHash(newHash);
-        if (persist) {
-            saveData();
-        }
+    public static synchronized void resetPasswordByAdmin(String username, String newPassword) {
+        User user = requireUser(username);
+        applyNewPassword(user, newPassword, true, false);
+        AuditLogService.log(AuditLogService.EventType.PASSWORD_RESET, username, "Admin reset password");
     }
     
     // Student operations
@@ -753,6 +798,46 @@ public class DatabaseUtil {
                 .orElse(100.0);
     }
 
+    private static User requireUser(String username) {
+        User user = users.get(username);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + username);
+        }
+        return user;
+    }
+
+    private static void applyNewPassword(User user, String newPassword, boolean mustChangeNext, boolean skipValidation) {
+        if (!skipValidation) {
+            PasswordPolicy.validateComplexity(newPassword);
+            ensureNotInHistory(user, newPassword);
+        }
+
+        String newSalt = PasswordUtil.generateSalt();
+        String newHash = PasswordUtil.hashPassword(newPassword.toCharArray(), newSalt);
+        user.addPasswordHistory(newSalt, newHash, PASSWORD_HISTORY_SIZE);
+        user.setSalt(newSalt);
+        user.setPasswordHash(newHash);
+        user.resetFailedAttempts();
+        user.setLockedUntil(null);
+        user.setMustChangePassword(mustChangeNext);
+        saveData();
+    }
+
+    private static void ensureNotInHistory(User user, String candidate) {
+        if (user.getPasswordHistory().isEmpty()) {
+            return;
+        }
+        for (String entry : user.getPasswordHistory()) {
+            String[] parts = entry.split(":", 2);
+            if (parts.length != 2) {
+                continue;
+            }
+            if (PasswordUtil.verifyPassword(candidate.toCharArray(), parts[0], parts[1])) {
+                throw new IllegalArgumentException("Password was used recently. Choose a different password.");
+            }
+        }
+    }
+
     // Settings and maintenance
     public static boolean isMaintenanceMode() {
         return Boolean.parseBoolean(settings.getOrDefault("maintenance", "false"));
@@ -765,6 +850,24 @@ public class DatabaseUtil {
                 null,
                 "Maintenance mode is now " + (maintenanceOn ? "ON" : "OFF") + ".",
                 "System"));
+        AuditLogService.log(AuditLogService.EventType.MAINTENANCE_TOGGLE,
+                "system",
+                "Maintenance mode set to " + maintenanceOn);
         saveData();
+    }
+
+    public static boolean isUserLocked(String username) {
+        User user = users.get(username);
+        return user != null
+                && user.getLockedUntil() != null
+                && LocalDateTime.now().isBefore(user.getLockedUntil());
+    }
+
+    public static int remainingAttempts(String username) {
+        User user = users.get(username);
+        if (user == null) {
+            return MAX_FAILED_ATTEMPTS;
+        }
+        return Math.max(0, MAX_FAILED_ATTEMPTS - user.getFailedAttempts());
     }
 }

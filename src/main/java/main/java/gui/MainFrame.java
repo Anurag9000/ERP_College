@@ -1,11 +1,17 @@
 package main.java.gui;
 
+import main.java.config.ConfigLoader;
+import main.java.gui.dialogs.ChangePasswordDialog;
 import main.java.models.User;
 import main.java.gui.panels.*;
+
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.AWTEventListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Main application frame with tabbed interface
@@ -25,12 +31,18 @@ public class MainFrame extends JFrame {
     private JPanel studentSelfServicePanel;
     private JPanel instructorWorkspacePanel;
     private JLabel maintenanceLabel;
+    private Timer sessionTimer;
+    private long sessionTimeoutMillis;
+    private long lastActivity;
+    private AWTEventListener activityListener;
     
     public MainFrame(User user) {
         this.currentUser = user;
         initializeComponents();
         setupLayout();
         setupEventHandlers();
+        initSessionTimeout();
+        forcePasswordChangeIfRequired();
         
         setTitle("College ERP System - " + user.getFullName() + " (" + user.getRole() + ")");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -66,6 +78,14 @@ public class MainFrame extends JFrame {
         userLabel.setForeground(Color.WHITE);
         userLabel.setFont(new Font("Arial", Font.PLAIN, 12));
 
+        JButton changePasswordButton = new JButton("Change Password");
+        changePasswordButton.setBackground(new Color(37, 99, 235).darker());
+        changePasswordButton.setForeground(Color.WHITE);
+        changePasswordButton.setFocusPainted(false);
+        changePasswordButton.setBorderPainted(false);
+        changePasswordButton.setPreferredSize(new Dimension(140, 30));
+        changePasswordButton.addActionListener(e -> showChangePasswordDialog());
+
         maintenanceLabel = new JLabel();
         maintenanceLabel.setForeground(Color.YELLOW);
         maintenanceLabel.setFont(new Font("Arial", Font.BOLD, 12));
@@ -80,6 +100,8 @@ public class MainFrame extends JFrame {
         logoutButton.addActionListener(e -> logout());
 
         userPanel.add(userLabel);
+        userPanel.add(Box.createHorizontalStrut(10));
+        userPanel.add(changePasswordButton);
         userPanel.add(Box.createHorizontalStrut(10));
         userPanel.add(maintenanceLabel);
         userPanel.add(Box.createHorizontalStrut(20));
@@ -165,6 +187,100 @@ public class MainFrame extends JFrame {
             ((InstructorWorkspacePanel) instructorWorkspacePanel).updateMaintenanceState();
         }
     }
+
+    private void initSessionTimeout() {
+        String minutesConfig = ConfigLoader.getOrDefault("app.session.timeout.minutes", "30");
+        long minutes;
+        try {
+            minutes = Long.parseLong(minutesConfig.trim());
+        } catch (NumberFormatException ex) {
+            minutes = 30L;
+        }
+        if (minutes <= 0) {
+            return;
+        }
+        sessionTimeoutMillis = minutes * 60_000L;
+        lastActivity = System.currentTimeMillis();
+        activityListener = event -> lastActivity = System.currentTimeMillis();
+        Toolkit.getDefaultToolkit().addAWTEventListener(activityListener,
+                AWTEvent.KEY_EVENT_MASK | AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_MOTION_EVENT_MASK);
+        sessionTimer = new Timer("SessionTimer", true);
+        long period = Math.max(10_000L, sessionTimeoutMillis / 2);
+        sessionTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                checkSessionTimeout();
+            }
+        }, period, period);
+    }
+
+    private void checkSessionTimeout() {
+        if (sessionTimeoutMillis <= 0) {
+            return;
+        }
+        if (System.currentTimeMillis() - lastActivity >= sessionTimeoutMillis) {
+            disposeSessionTimer();
+            SwingUtilities.invokeLater(this::logoutDueToTimeout);
+        }
+    }
+
+    private void logoutDueToTimeout() {
+        JOptionPane.showMessageDialog(this,
+                "Session timed out due to inactivity. Please log in again.",
+                "Session Timeout",
+                JOptionPane.INFORMATION_MESSAGE);
+        performLogout(false, null);
+    }
+
+    private void disposeSessionTimer() {
+        if (activityListener != null) {
+            Toolkit.getDefaultToolkit().removeAWTEventListener(activityListener);
+            activityListener = null;
+        }
+        if (sessionTimer != null) {
+            sessionTimer.cancel();
+            sessionTimer.purge();
+            sessionTimer = null;
+        }
+    }
+
+    private void showChangePasswordDialog() {
+        ChangePasswordDialog dialog = new ChangePasswordDialog(this, currentUser.getUsername());
+        dialog.setVisible(true);
+        if (dialog.isChanged()) {
+            JOptionPane.showMessageDialog(this, "Password updated successfully.");
+        }
+    }
+
+    private void forcePasswordChangeIfRequired() {
+        if (currentUser.isMustChangePassword()) {
+            SwingUtilities.invokeLater(this::enforceMandatoryPasswordChange);
+        }
+    }
+
+    private void enforceMandatoryPasswordChange() {
+        JOptionPane.showMessageDialog(this,
+                "You must change your password before continuing.",
+                "Change Password",
+                JOptionPane.WARNING_MESSAGE);
+        while (currentUser != null && currentUser.isMustChangePassword()) {
+            ChangePasswordDialog dialog = new ChangePasswordDialog(this, currentUser.getUsername());
+            dialog.setVisible(true);
+            if (dialog.isChanged()) {
+                JOptionPane.showMessageDialog(this, "Password updated successfully.");
+            } else {
+                int option = JOptionPane.showConfirmDialog(this,
+                        "Password change is required. Exit application?",
+                        "Change Password",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE);
+                if (option == JOptionPane.YES_OPTION) {
+                    performLogout(false, null);
+                    return;
+                }
+            }
+        }
+    }
     
     private ImageIcon createTabIcon(String emoji) {
         // Simple text-based icon
@@ -189,17 +305,27 @@ public class MainFrame extends JFrame {
     }
     
     private void logout() {
-        int option = JOptionPane.showConfirmDialog(
-            this,
-            "Are you sure you want to logout?",
-            "Logout",
-            JOptionPane.YES_NO_OPTION
-        );
-        if (option == JOptionPane.YES_OPTION) {
-            dispose();
-            SwingUtilities.invokeLater(() -> {
-                new LoginFrame().setVisible(true);
-            });
+        performLogout(true, null);
+    }
+
+    private void performLogout(boolean requireConfirm, String message) {
+        if (requireConfirm) {
+            int option = JOptionPane.showConfirmDialog(
+                    this,
+                    "Are you sure you want to logout?",
+                    "Logout",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (option != JOptionPane.YES_OPTION) {
+                return;
+            }
         }
+        disposeSessionTimer();
+        currentUser = null;
+        dispose();
+        if (message != null) {
+            JOptionPane.showMessageDialog(null, message, "Session", JOptionPane.INFORMATION_MESSAGE);
+        }
+        SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
     }
 }

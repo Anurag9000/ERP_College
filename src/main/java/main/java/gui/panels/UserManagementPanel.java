@@ -109,8 +109,8 @@ public class UserManagementPanel extends JPanel {
             return;
         }
         try {
-            DatabaseUtil.changePassword(username, newPassword.trim());
-            JOptionPane.showMessageDialog(this, "Password updated.");
+            DatabaseUtil.resetPasswordByAdmin(username, newPassword.trim());
+            JOptionPane.showMessageDialog(this, "Password updated. User must change on next login.");
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to reset password", JOptionPane.ERROR_MESSAGE);
         }

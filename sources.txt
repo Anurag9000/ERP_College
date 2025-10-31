@@ -1,6 +1,10 @@
 D:\college_erp_fixed\src\main\java\main\java\Main.java
 D:\college_erp_fixed\src\main\java\main\java\gui\LoginFrame.java
 D:\college_erp_fixed\src\main\java\main\java\gui\MainFrame.java
+D:\college_erp_fixed\src\main\java\main\java\gui\dialogs\ChangePasswordDialog.java
+D:\college_erp_fixed\src\main\java\main\java\config\ConfigLoader.java
+D:\college_erp_fixed\src\main\java\main\java\config\DatabaseProperties.java
+D:\college_erp_fixed\src\main\java\main\java\config\DataSourceRegistry.java
 D:\college_erp_fixed\src\main\java\main\java\gui\dialogs\FacultyDialog.java
 D:\college_erp_fixed\src\main\java\main\java\gui\dialogs\SectionDialog.java
 D:\college_erp_fixed\src\main\java\main\java\gui\dialogs\StudentDialog.java
@@ -28,4 +32,7 @@ D:\college_erp_fixed\src\main\java\main\java\service\GradebookService.java
 D:\college_erp_fixed\src\main\java\main\java\service\InstructorService.java
 D:\college_erp_fixed\src\main\java\main\java\service\StudentService.java
 D:\college_erp_fixed\src\main\java\main\java\utils\DatabaseUtil.java
+D:\college_erp_fixed\src\main\java\main\java\utils\PasswordPolicy.java
+D:\college_erp_fixed\src\main\java\main\java\utils\AuditLogService.java
 D:\college_erp_fixed\src\main\java\main\java\utils\PasswordUtil.java
+D:\college_erp_fixed\docs\implementation_scope.md
