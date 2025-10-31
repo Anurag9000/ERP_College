@@ -6,6 +6,7 @@ import main.java.models.Faculty;
 import main.java.models.Section;
 import main.java.models.Student;
 import main.java.models.User;
+import main.java.models.NotificationMessage;
 import main.java.service.EnrollmentService;
 import main.java.service.StudentService;
 import main.java.utils.DatabaseUtil;
@@ -49,6 +50,7 @@ public class StudentSelfServicePanel extends JPanel {
     private final JButton dropButton;
     private final JButton transcriptButton;
     private final JButton exportScheduleButton;
+    private final JButton reminderButton;
     private final JTextField catalogSearchField;
     private final JComboBox<String> dayFilter;
     private final JCheckBox openOnlyCheck;
@@ -63,6 +65,10 @@ public class StudentSelfServicePanel extends JPanel {
     private final JLabel creditsLabel;
     private final JLabel standingLabel;
     private final JLabel standingAlertLabel;
+    private final JLabel financeTotalLabel;
+    private final JLabel financePaidLabel;
+    private final JLabel financeOutstandingLabel;
+    private final JLabel financeNextDueLabel;
 
     public StudentSelfServicePanel(User currentUser) {
         this.currentUser = currentUser;
@@ -104,6 +110,7 @@ public class StudentSelfServicePanel extends JPanel {
         dropButton = new JButton("Drop");
         transcriptButton = new JButton("Download Transcript (CSV)");
         exportScheduleButton = new JButton("Export Timetable (.ics)");
+        reminderButton = new JButton("Send Payment Reminder");
 
         catalogSearchField = new JTextField(18);
         catalogSearchField.setToolTipText("Search by section, course, or instructor");
@@ -121,6 +128,10 @@ public class StudentSelfServicePanel extends JPanel {
         standingAlertLabel = createSummaryValueLabel();
         standingAlertLabel.setForeground(new Color(220, 38, 38));
         standingAlertLabel.setVisible(false);
+        financeTotalLabel = createSummaryValueLabel();
+        financePaidLabel = createSummaryValueLabel();
+        financeOutstandingLabel = createSummaryValueLabel();
+        financeNextDueLabel = createSummaryValueLabel();
 
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -153,6 +164,7 @@ public class StudentSelfServicePanel extends JPanel {
         tabs.addTab("Catalog & Registration", buildCatalogTab());
         tabs.addTab("Timetable", buildScheduleTab());
         tabs.addTab("Grades", new JScrollPane(gradesTable));
+        tabs.addTab("Finance", buildFinanceTab());
         tabs.addTab("Transcript", buildTranscriptTab());
         return tabs;
     }
@@ -221,6 +233,27 @@ public class StudentSelfServicePanel extends JPanel {
         wrapper.add(alertRow, BorderLayout.SOUTH);
 
         return wrapper;
+    }
+
+    private JPanel buildFinanceTab() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+
+        JPanel grid = new JPanel(new GridLayout(2, 2, 12, 12));
+        grid.setBorder(BorderFactory.createTitledBorder("Fee Summary"));
+        grid.add(buildMetricPanel("Total Fees", financeTotalLabel));
+        grid.add(buildMetricPanel("Fees Paid", financePaidLabel));
+        grid.add(buildMetricPanel("Outstanding", financeOutstandingLabel));
+        grid.add(buildMetricPanel("Next Due Date", financeNextDueLabel));
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        reminderButton.setBackground(new Color(59, 130, 246));
+        reminderButton.setForeground(Color.WHITE);
+        reminderButton.setFocusPainted(false);
+        actions.add(reminderButton);
+
+        panel.add(grid, BorderLayout.CENTER);
+        panel.add(actions, BorderLayout.SOUTH);
+        return panel;
     }
 
     private JPanel buildMetricPanel(String labelText, JLabel valueLabel) {
@@ -654,6 +687,48 @@ public class StudentSelfServicePanel extends JPanel {
         }
     }
 
+    private void updateFinanceSummary() {
+        if (studentProfile == null) {
+            financeTotalLabel.setText("-");
+            financePaidLabel.setText("-");
+            financeOutstandingLabel.setText("-");
+            financeNextDueLabel.setText("-");
+            reminderButton.setEnabled(false);
+            return;
+        }
+        financeTotalLabel.setText(String.format("\u20B9%,.0f", studentProfile.getTotalFees()));
+        financePaidLabel.setText(String.format("\u20B9%,.0f", studentProfile.getFeesPaid()));
+        double outstanding = Math.max(0.0, studentProfile.getTotalFees() - studentProfile.getFeesPaid());
+        financeOutstandingLabel.setText(String.format("\u20B9%,.0f", outstanding));
+        if (studentProfile.getNextFeeDueDate() != null) {
+            financeNextDueLabel.setText(studentProfile.getNextFeeDueDate().toString());
+        } else {
+            financeNextDueLabel.setText("Not scheduled");
+        }
+        reminderButton.setEnabled(outstanding > 0.0);
+    }
+
+    private void sendPaymentReminder() {
+        if (studentProfile == null) {
+            return;
+        }
+        double outstanding = Math.max(0.0, studentProfile.getTotalFees() - studentProfile.getFeesPaid());
+        if (outstanding <= 0.0) {
+            JOptionPane.showMessageDialog(this, "No outstanding balance.");
+            return;
+        }
+
+        DatabaseUtil.addNotification(new NotificationMessage(
+                NotificationMessage.Audience.STUDENT,
+                studentProfile.getStudentId(),
+                "Payment reminder: outstanding balance \u20B9" + String.format("%,.0f", outstanding)
+                        + ". Please settle before " + (studentProfile.getNextFeeDueDate() != null
+                        ? studentProfile.getNextFeeDueDate()
+                        : "the due date"),
+                "Finance"));
+        JOptionPane.showMessageDialog(this, "Reminder sent to your notifications inbox.");
+    }
+
     private String escapeForIcs(String value) {
         if (value == null) {
             return "";
@@ -664,4 +739,6 @@ public class StudentSelfServicePanel extends JPanel {
                 .replace("\n", "\\n");
     }
 }
+
+
 

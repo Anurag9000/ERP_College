@@ -151,7 +151,7 @@ public class DatabaseUtil {
         s1.setTotalFees(200000);
         s1.setFeesPaid(150000);
         s1.setCreditsCompleted(72);
-        s1.setCreditsInProgress(18);
+        s1.setCreditsInProgress(4);
         s1.setCgpa(7.8);
         s1.setNextFeeDueDate(LocalDate.now().plusDays(45));
         s1.setUsername("stu1");
@@ -163,7 +163,7 @@ public class DatabaseUtil {
         s2.setTotalFees(150000);
         s2.setFeesPaid(100000);
         s2.setCreditsCompleted(36);
-        s2.setCreditsInProgress(18);
+        s2.setCreditsInProgress(3);
         s2.setCgpa(8.4);
         s2.setNextFeeDueDate(LocalDate.now().plusDays(20));
         s2.setUsername("stu2");
