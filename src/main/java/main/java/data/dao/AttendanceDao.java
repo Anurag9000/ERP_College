@@ -16,6 +16,7 @@ public class AttendanceDao extends BaseDao {
     private static final String SELECT_BY_SECTION = "SELECT section_code, attendance_date, student_code, present FROM attendance_records WHERE section_code = ?";
     private static final String INSERT = "INSERT INTO attendance_records (section_code, attendance_date, student_code, present) VALUES (?, ?, ?, ?)";
     private static final String DELETE_SECTION = "DELETE FROM attendance_records WHERE section_code = ?";
+    private static final String DELETE_SECTION_DATE = "DELETE FROM attendance_records WHERE section_code = ? AND attendance_date = ?";
 
     public AttendanceDao() {
         super(DataSourceRegistry.erpDataSource()
@@ -28,13 +29,13 @@ public class AttendanceDao extends BaseDao {
              PreparedStatement ps = conn.prepareStatement(SELECT_BY_SECTION)) {
             ps.setString(1, sectionCode);
             try (ResultSet rs = ps.executeQuery()) {
+                java.util.LinkedHashMap<LocalDate, AttendanceRecord> map = new java.util.LinkedHashMap<>();
                 while (rs.next()) {
-                    String section = rs.getString("section_code");
                     LocalDate date = rs.getDate("attendance_date").toLocalDate();
-                    AttendanceRecord record = new AttendanceRecord(section, date);
+                    AttendanceRecord record = map.computeIfAbsent(date, d -> new AttendanceRecord(sectionCode, d));
                     record.getAttendanceByStudent().put(rs.getString("student_code"), rs.getBoolean("present"));
-                    list.add(record);
                 }
+                list.addAll(map.values());
             }
         } catch (SQLException ex) {
             logger.error("Error loading attendance for section {}: {}", sectionCode, ex.getMessage(), ex);
@@ -56,6 +57,17 @@ public class AttendanceDao extends BaseDao {
         } catch (SQLException ex) {
             logger.error("Error inserting attendance for section {}: {}", record.getSectionId(), ex.getMessage(), ex);
             throw new IllegalStateException("Unable to insert attendance", ex);
+        }
+    }
+
+    public void deleteBySectionAndDate(String sectionCode, LocalDate date) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(DELETE_SECTION_DATE)) {
+            ps.setString(1, sectionCode);
+            ps.setDate(2, Date.valueOf(date));
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            logger.error("Error deleting attendance for section {} on {}: {}", sectionCode, date, ex.getMessage(), ex);
         }
     }
 

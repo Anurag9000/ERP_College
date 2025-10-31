@@ -46,3 +46,6 @@ D:\college_erp_fixed\src\main\java\main\java\data\dao\CourseDao.java
 D:\college_erp_fixed\src\main\java\main\java\data\dao\StudentDao.java
 D:\college_erp_fixed\src\main\java\main\java\data\dao\InstructorDao.java
 D:\college_erp_fixed\src\main\java\main\java\data\dao\SectionDao.java
+D:\college_erp_fixed\src\main\java\main\java\data\dao\EnrollmentDao.java
+D:\college_erp_fixed\src\main\java\main\java\data\dao\WaitlistDao.java
+D:\college_erp_fixed\src\main\java\main\java\data\dao\AttendanceDao.java

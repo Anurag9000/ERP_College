@@ -73,7 +73,7 @@ public class SectionDao extends BaseDao {
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             bind(ps, section, false);
-            ps.setString(12, section.getSectionId());
+            ps.setString(13, section.getSectionId());
             ps.executeUpdate();
         } catch (SQLException ex) {
             logger.error("Error updating section {}: {}", section.getSectionId(), ex.getMessage(), ex);

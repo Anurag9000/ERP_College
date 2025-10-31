@@ -5,6 +5,12 @@ import main.java.data.dao.CourseDao;
 import main.java.data.dao.StudentDao;
 import main.java.data.dao.InstructorDao;
 import main.java.data.dao.SectionDao;
+import main.java.data.dao.EnrollmentDao;
+import main.java.data.dao.WaitlistDao;
+import main.java.data.dao.AttendanceDao;
+import main.java.data.dao.NotificationDao;
+import main.java.data.dao.SettingsDao;
+import main.java.data.migration.LegacyDataMigrator;
 import main.java.utils.PasswordPolicy;
 import main.java.utils.AuditLogService;
 
@@ -24,8 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Database utility class for managing data persistence
- * Uses file-based storage for simplicity
+ * Database utility facade exposing high-level operations backed by the DAO layer.
  */
 public class DatabaseUtil {
     private static final String DATA_DIR = "data/";
@@ -33,18 +38,10 @@ public class DatabaseUtil {
     private static final String FACULTY_FILE = DATA_DIR + "faculty.dat";
     private static final String COURSES_FILE = DATA_DIR + "courses.dat";
     private static final String SECTIONS_FILE = DATA_DIR + "sections.dat";
-    private static final String ENROLLMENTS_FILE = DATA_DIR + "enrollments.dat";
-    private static final String ATTENDANCE_FILE = DATA_DIR + "attendance.dat";
-    private static final String NOTIFICATIONS_FILE = DATA_DIR + "notifications.dat";
-    private static final String SETTINGS_FILE = DATA_DIR + "settings.dat";
-    
     private static Map<String, Student> students = new ConcurrentHashMap<>();
     private static Map<String, Faculty> faculty = new ConcurrentHashMap<>();
     private static Map<String, Course> courses = new ConcurrentHashMap<>();
     private static Map<String, Section> sections = new ConcurrentHashMap<>();
-    private static List<EnrollmentRecord> enrollments = Collections.synchronizedList(new ArrayList<>());
-    private static Map<String, AttendanceRecord> attendanceRecords = new ConcurrentHashMap<>();
-    private static List<NotificationMessage> notifications = Collections.synchronizedList(new ArrayList<>());
     private static Map<String, String> settings = new ConcurrentHashMap<>();
 
     private static final int MAX_FAILED_ATTEMPTS = parseIntConfig("security.maxFailedAttempts", 5);
@@ -55,6 +52,11 @@ public class DatabaseUtil {
     private static final CourseDao courseDao = new CourseDao();
     private static final InstructorDao instructorDao = new InstructorDao();
     private static final SectionDao sectionDao = new SectionDao();
+    private static final EnrollmentDao enrollmentDao = new EnrollmentDao();
+    private static final WaitlistDao waitlistDao = new WaitlistDao();
+    private static final AttendanceDao attendanceDao = new AttendanceDao();
+    private static final NotificationDao notificationDao = new NotificationDao();
+    private static final SettingsDao settingsDao = new SettingsDao();
 
     private static int parseIntConfig(String key, int defaultValue) {
         String value = ConfigLoader.get(key);
@@ -77,6 +79,11 @@ public class DatabaseUtil {
         
         // Load existing data or create sample data
         loadData();
+        try {
+            LegacyDataMigrator.defaultMigrator().migrateAll();
+        } catch (Exception ex) {
+            System.err.println("Legacy data migration failed: " + ex.getMessage());
+        }
         boolean hasUsers = !authUserDao.findAll().isEmpty();
         if (!hasUsers) {
             createSampleData();
@@ -86,20 +93,13 @@ public class DatabaseUtil {
         if (sections == null) {
             sections = new ConcurrentHashMap<>();
         }
-        if (enrollments == null) {
-            enrollments = Collections.synchronizedList(new ArrayList<>());
-        }
-        if (attendanceRecords == null) {
-            attendanceRecords = new ConcurrentHashMap<>();
-        }
-        if (notifications == null) {
-            notifications = Collections.synchronizedList(new ArrayList<>());
-        }
         if (settings == null) {
             settings = new ConcurrentHashMap<>();
         }
 
-        settings.putIfAbsent("maintenance", "false");
+        if (settings.putIfAbsent("maintenance", "false") == null) {
+            settingsDao.upsert("maintenance", "false");
+        }
 
         refreshCourseCache();
         refreshStudentCache();
@@ -121,29 +121,23 @@ public class DatabaseUtil {
         // Create sample faculty
         Faculty f1 = new Faculty("FAC001", "John", "Smith", "john.smith@college.edu", 
                                 "123-456-7890", "Computer Science", "Professor", "Ph.D", 75000);
-        f1.getSubjects().addAll(Arrays.asList("Data Structures", "Algorithms", "Java Programming"));
         f1.setUsername("inst1");
+        instructorDao.insert(f1);
         faculty.put(f1.getFacultyId(), f1);
         
         Faculty f2 = new Faculty("FAC002", "Jane", "Davis", "jane.davis@college.edu", 
                                 "123-456-7891", "Mathematics", "Associate Professor", "M.Sc", 65000);
-        f2.getSubjects().addAll(Arrays.asList("Calculus", "Linear Algebra", "Statistics"));
+        instructorDao.insert(f2);
         faculty.put(f2.getFacultyId(), f2);
         
-        // Create sample courses
         Course c1 = new Course("CSE101", "Computer Science Engineering", "Computer Science", 
                               8, 200000, "4-year undergraduate program in Computer Science", 60);
-        c1.getSubjects().addAll(Arrays.asList("Programming", "Data Structures", "Algorithms", 
-                                            "Database Systems", "Operating Systems"));
-        courses.put(c1.getCourseId(), c1);
+        addCourse(c1);
         
         Course c2 = new Course("MATH101", "Mathematics", "Mathematics", 
                               6, 150000, "3-year undergraduate program in Mathematics", 40);
-        c2.getSubjects().addAll(Arrays.asList("Calculus", "Linear Algebra", "Statistics", 
-                                            "Discrete Mathematics"));
-        courses.put(c2.getCourseId(), c2);
+        addCourse(c2);
         
-        // Create sample students
         Student s1 = new Student("STU001", "Alice", "Johnson", "alice.johnson@student.college.edu", 
                                "987-654-3210", LocalDate.of(2000, 5, 15), 
                                "123 Main St, City", "CSE101", 3);
@@ -154,7 +148,7 @@ public class DatabaseUtil {
         s1.setCgpa(7.8);
         s1.setNextFeeDueDate(LocalDate.now().plusDays(45));
         s1.setUsername("stu1");
-        students.put(s1.getStudentId(), s1);
+        addStudent(s1);
         
         Student s2 = new Student("STU002", "Bob", "Williams", "bob.williams@student.college.edu", 
                                "987-654-3211", LocalDate.of(1999, 8, 22), 
@@ -166,13 +160,15 @@ public class DatabaseUtil {
         s2.setCgpa(8.4);
         s2.setNextFeeDueDate(LocalDate.now().plusDays(20));
         s2.setUsername("stu2");
-        students.put(s2.getStudentId(), s2);
+        addStudent(s2);
         
-        // Update course seats
-        c1.setAvailableSeats(c1.getAvailableSeats() - 1);
-        c2.setAvailableSeats(c2.getAvailableSeats() - 1);
+        Course course1 = getCourse("CSE101");
+        course1.setAvailableSeats(course1.getAvailableSeats() - 1);
+        updateCourse(course1);
+        Course course2 = getCourse("MATH101");
+        course2.setAvailableSeats(course2.getAvailableSeats() - 1);
+        updateCourse(course2);
 
-        // Create sample sections
         Section sec1 = new Section(
             "SEC101A",
             c1.getCourseId(),
@@ -187,8 +183,7 @@ public class DatabaseUtil {
         sec1.setSemester("Fall");
         sec1.setYear(LocalDate.now().getYear());
         sec1.setDropDeadline(LocalDate.now().plusDays(25));
-        sec1.enrollStudent(s1.getStudentId());
-        sections.put(sec1.getSectionId(), sec1);
+        addSection(sec1);
 
         Section sec2 = new Section(
             "SEC101B",
@@ -204,8 +199,7 @@ public class DatabaseUtil {
         sec2.setSemester("Fall");
         sec2.setYear(LocalDate.now().getYear());
         sec2.setDropDeadline(LocalDate.now().plusDays(25));
-        sec2.getWaitlistedStudentIds().add("STU002");
-        sections.put(sec2.getSectionId(), sec2);
+        addSection(sec2);
 
         Section sec3 = new Section(
             "SEC201A",
@@ -221,150 +215,44 @@ public class DatabaseUtil {
         sec3.setSemester("Fall");
         sec3.setYear(LocalDate.now().getYear());
         sec3.setDropDeadline(LocalDate.now().plusDays(25));
-        sec3.enrollStudent(s2.getStudentId());
-        sections.put(sec3.getSectionId(), sec3);
+        addSection(sec3);
 
-        enrollments.add(new EnrollmentRecord(s1.getStudentId(), sec1.getSectionId(), EnrollmentRecord.Status.ENROLLED));
-        enrollments.add(new EnrollmentRecord(s2.getStudentId(), sec3.getSectionId(), EnrollmentRecord.Status.ENROLLED));
-        enrollments.add(new EnrollmentRecord(s2.getStudentId(), sec2.getSectionId(), EnrollmentRecord.Status.WAITLISTED));
+        EnrollmentRecord er1 = new EnrollmentRecord(s1.getStudentId(), sec1.getSectionId(), EnrollmentRecord.Status.ENROLLED);
+        enrollmentDao.insert(er1);
+        EnrollmentRecord er2 = new EnrollmentRecord(s2.getStudentId(), sec3.getSectionId(), EnrollmentRecord.Status.ENROLLED);
+        enrollmentDao.insert(er2);
+        EnrollmentRecord er3 = new EnrollmentRecord(s2.getStudentId(), sec2.getSectionId(), EnrollmentRecord.Status.WAITLISTED);
+        enrollmentDao.insert(er3);
+        waitlistDao.insert(sec2.getSectionId(), s2.getStudentId(), 1);
 
         // Seed welcome notifications
-        notifications.add(new NotificationMessage(
+        addNotification(new NotificationMessage(
             NotificationMessage.Audience.ALL,
             null,
-            "📅 Semester opens next Monday. Check your timetable for clashes.",
+            "Semester opens next Monday. Check your timetable for clashes.",
             "General"));
-        notifications.add(new NotificationMessage(
+        addNotification(new NotificationMessage(
             NotificationMessage.Audience.STUDENT,
             s1.getStudentId(),
-            "Fees due in 45 days. Outstanding balance ₹" + String.format("%.0f", s1.getOutstandingFees()),
+            "Fees due in 45 days. Outstanding balance Rs " + String.format("%.0f", s1.getOutstandingFees()),
             "Finance"));
-        notifications.add(new NotificationMessage(
+        addNotification(new NotificationMessage(
             NotificationMessage.Audience.STUDENT,
             s2.getStudentId(),
             "You are waitlisted for Algorithms - A. We'll auto-enrol if a seat frees up.",
-            "Registration"));
-    }
+            "Registration"));}
     
     @SuppressWarnings("unchecked")
     private static void loadData() {
-        try {
-            if (new File(STUDENTS_FILE).exists()) {
-                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(STUDENTS_FILE));
-                students = (Map<String, Student>) ois.readObject();
-                ois.close();
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading students: " + e.getMessage());
-        }
-        
-        try {
-            if (new File(FACULTY_FILE).exists()) {
-                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FACULTY_FILE));
-                faculty = (Map<String, Faculty>) ois.readObject();
-                ois.close();
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading faculty: " + e.getMessage());
-        }
-        
-        try {
-            if (new File(COURSES_FILE).exists()) {
-                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(COURSES_FILE));
-                courses = (Map<String, Course>) ois.readObject();
-                ois.close();
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading courses: " + e.getMessage());
-        }
-
-        try {
-            if (new File(SECTIONS_FILE).exists()) {
-                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(SECTIONS_FILE));
-                sections = (Map<String, Section>) ois.readObject();
-                ois.close();
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading sections: " + e.getMessage());
-        }
-
-        try {
-            if (new File(ENROLLMENTS_FILE).exists()) {
-                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(ENROLLMENTS_FILE));
-                enrollments = (List<EnrollmentRecord>) ois.readObject();
-                ois.close();
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading enrollments: " + e.getMessage());
-        }
-
-        try {
-            if (new File(ATTENDANCE_FILE).exists()) {
-                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(ATTENDANCE_FILE));
-                attendanceRecords = (Map<String, AttendanceRecord>) ois.readObject();
-                ois.close();
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading attendance: " + e.getMessage());
-        }
-
-        try {
-            if (new File(NOTIFICATIONS_FILE).exists()) {
-                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(NOTIFICATIONS_FILE));
-                notifications = (List<NotificationMessage>) ois.readObject();
-                ois.close();
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading notifications: " + e.getMessage());
-        }
-
-        try {
-            if (new File(SETTINGS_FILE).exists()) {
-                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(SETTINGS_FILE));
-                settings = (Map<String, String>) ois.readObject();
-                ois.close();
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading settings: " + e.getMessage());
-        }
+        students = new ConcurrentHashMap<>();
+        faculty = new ConcurrentHashMap<>();
+        courses = new ConcurrentHashMap<>();
+        sections = new ConcurrentHashMap<>();
+        settings = new ConcurrentHashMap<>(settingsDao.findAll());
     }
     
     public static void saveData() {
-        try {
-            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(STUDENTS_FILE));
-            oos.writeObject(students);
-            oos.close();
-            
-            oos = new ObjectOutputStream(new FileOutputStream(FACULTY_FILE));
-            oos.writeObject(faculty);
-            oos.close();
-            
-            oos = new ObjectOutputStream(new FileOutputStream(COURSES_FILE));
-            oos.writeObject(courses);
-            oos.close();
-
-            oos = new ObjectOutputStream(new FileOutputStream(SECTIONS_FILE));
-            oos.writeObject(sections);
-            oos.close();
-
-            oos = new ObjectOutputStream(new FileOutputStream(ENROLLMENTS_FILE));
-            oos.writeObject(enrollments);
-            oos.close();
-
-            oos = new ObjectOutputStream(new FileOutputStream(ATTENDANCE_FILE));
-            oos.writeObject(attendanceRecords);
-            oos.close();
-
-            oos = new ObjectOutputStream(new FileOutputStream(NOTIFICATIONS_FILE));
-            oos.writeObject(notifications);
-            oos.close();
-
-            oos = new ObjectOutputStream(new FileOutputStream(SETTINGS_FILE));
-            oos.writeObject(settings);
-            oos.close();
-        } catch (IOException e) {
-            System.err.println("Error saving data: " + e.getMessage());
-        }
+        // No-op retained for backward compatibility with legacy callers.
     }
     
     // User operations
@@ -620,36 +508,35 @@ public class DatabaseUtil {
     public static void deleteSection(String sectionId) {
         sectionDao.delete(sectionId);
         sections.remove(sectionId);
-        enrollments.removeIf(rec -> rec.getSectionId().equals(sectionId));
-        attendanceRecords.entrySet().removeIf(entry -> entry.getKey().startsWith(sectionId + "::"));
+        enrollmentDao.deleteBySection(sectionId);
+        waitlistDao.deleteAll(sectionId);
+        attendanceDao.deleteBySection(sectionId);
     }
 
     // Enrollment operations
     public static List<EnrollmentRecord> getEnrollmentsForStudent(String studentId) {
-        return enrollments.stream()
-                .filter(rec -> rec.getStudentId().equals(studentId))
-                .collect(Collectors.toList());
+        return enrollmentDao.findByStudent(studentId);
     }
 
     public static List<EnrollmentRecord> getEnrollmentsForSection(String sectionId) {
-        return enrollments.stream()
-                .filter(rec -> rec.getSectionId().equals(sectionId))
-                .collect(Collectors.toList());
+        return enrollmentDao.findBySection(sectionId);
     }
 
     public static synchronized EnrollmentRecord registerStudentToSection(String studentId, String sectionId) {
-        Section section = sections.get(sectionId);
+        Section section = getSection(sectionId);
         if (section == null) {
             throw new IllegalArgumentException("Section not found");
         }
-        Student student = students.get(studentId);
+        Student student = getStudent(studentId);
         if (student == null) {
             throw new IllegalArgumentException("Student not found");
         }
 
-        ensureEnrollmentCollections();
-
-        if (section.hasStudent(studentId)) {
+        List<EnrollmentRecord> existing = enrollmentDao.findBySection(sectionId);
+        boolean already = existing.stream()
+                .anyMatch(rec -> rec.getStudentId().equals(studentId)
+                        && rec.getStatus() != EnrollmentRecord.Status.DROPPED);
+        if (already) {
             throw new IllegalStateException("Student already enrolled or waitlisted in this section");
         }
 
@@ -657,36 +544,44 @@ public class DatabaseUtil {
             throw new IllegalStateException("Schedule conflict detected with another section");
         }
 
-        EnrollmentRecord record;
-        if (!section.isFull()) {
-            section.enrollStudent(studentId);
-            record = new EnrollmentRecord(studentId, sectionId, EnrollmentRecord.Status.ENROLLED);
+        long enrolledCount = existing.stream()
+                .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .count();
+        boolean hasSeat = enrolledCount < section.getCapacity();
+
+        EnrollmentRecord record = new EnrollmentRecord(studentId, sectionId,
+                hasSeat ? EnrollmentRecord.Status.ENROLLED : EnrollmentRecord.Status.WAITLISTED);
+        enrollmentDao.insert(record);
+
+        if (hasSeat) {
+            Course course = getCourse(section.getCourseId());
+            if (course != null) {
+                course.setAvailableSeats(Math.max(0, course.getAvailableSeats() - 1));
+                updateCourse(course);
+            }
             addNotification(new NotificationMessage(
                     NotificationMessage.Audience.STUDENT,
                     studentId,
                     "You are enrolled in " + section.getTitle() + " (" + section.getSectionId() + ").",
                     "Registration"));
         } else {
-            section.waitlistStudent(studentId);
-            record = new EnrollmentRecord(studentId, sectionId, EnrollmentRecord.Status.WAITLISTED);
+            int position = waitlistDao.findWaitlist(sectionId).size() + 1;
+            waitlistDao.insert(sectionId, studentId, position);
             addNotification(new NotificationMessage(
                     NotificationMessage.Audience.STUDENT,
                     studentId,
-                    "Section " + section.getTitle() + " is full. You are #"
-                        + section.getWaitlistedStudentIds().size() + " on the waitlist.",
+                    "Section " + section.getTitle() + " is full. You are #" + position + " on the waitlist.",
                     "Registration"));
         }
 
-        enrollments.add(record);
-        saveData();
+        refreshSectionCache();
         return record;
     }
 
     private static boolean hasScheduleConflict(String studentId, Section targetSection) {
-        return enrollments.stream()
-                .filter(rec -> rec.getStudentId().equals(studentId))
+        return enrollmentDao.findByStudent(studentId).stream()
                 .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
-                .map(rec -> sections.get(rec.getSectionId()))
+                .map(rec -> getSection(rec.getSectionId()))
                 .filter(Objects::nonNull)
                 .anyMatch(existing -> overlaps(existing, targetSection));
     }
@@ -699,36 +594,49 @@ public class DatabaseUtil {
     }
 
     public static synchronized void dropStudentFromSection(String studentId, String sectionId) {
-        Section section = sections.get(sectionId);
+        Section section = getSection(sectionId);
         if (section == null) {
             throw new IllegalArgumentException("Section not found");
         }
 
-        ensureEnrollmentCollections();
+        List<EnrollmentRecord> sectionEnrollments = enrollmentDao.findBySection(sectionId);
+        EnrollmentRecord record = sectionEnrollments.stream()
+                .filter(rec -> rec.getStudentId().equals(studentId)
+                        && rec.getStatus() != EnrollmentRecord.Status.DROPPED)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Student not enrolled in the section"));
 
-        Optional<EnrollmentRecord> recordOpt = enrollments.stream()
-                .filter(rec -> rec.getStudentId().equals(studentId) && rec.getSectionId().equals(sectionId))
-                .findFirst();
-
-        if (!recordOpt.isPresent()) {
-            throw new IllegalStateException("Student not enrolled in the section");
-        }
-
-        EnrollmentRecord record = recordOpt.get();
+        EnrollmentRecord.Status previousStatus = record.getStatus();
         record.setStatus(EnrollmentRecord.Status.DROPPED);
-        section.removeStudent(studentId);
+        enrollmentDao.updateStatus(record);
+        waitlistDao.delete(sectionId, studentId);
 
-        String promotedStudent = section.promoteNextWaitlisted();
-        if (promotedStudent != null) {
-            enrollments.stream()
-                    .filter(rec -> rec.getStudentId().equals(promotedStudent) && rec.getSectionId().equals(sectionId))
-                    .findFirst()
-                    .ifPresent(promoted -> promoted.setStatus(EnrollmentRecord.Status.ENROLLED));
-            addNotification(new NotificationMessage(
-                    NotificationMessage.Audience.STUDENT,
-                    promotedStudent,
-                    "Great news! A seat opened up in " + section.getTitle() + " and you are now enrolled.",
-                    "Registration"));
+        String promotedStudent = null;
+        if (previousStatus == EnrollmentRecord.Status.ENROLLED) {
+            List<String> waitlist = waitlistDao.findWaitlist(sectionId);
+            if (!waitlist.isEmpty()) {
+                promotedStudent = waitlist.get(0);
+                waitlistDao.delete(sectionId, promotedStudent);
+                EnrollmentRecord promotedRecord = sectionEnrollments.stream()
+                        .filter(rec -> rec.getStudentId().equals(promotedStudent))
+                        .findFirst()
+                        .orElse(null);
+                if (promotedRecord != null) {
+                    promotedRecord.setStatus(EnrollmentRecord.Status.ENROLLED);
+                    enrollmentDao.updateStatus(promotedRecord);
+                }
+                addNotification(new NotificationMessage(
+                        NotificationMessage.Audience.STUDENT,
+                        promotedStudent,
+                        "Great news! A seat opened up in " + section.getTitle() + " and you are now enrolled.",
+                        "Registration"));
+            } else {
+                Course course = getCourse(section.getCourseId());
+                if (course != null) {
+                    course.setAvailableSeats(Math.min(course.getTotalSeats(), course.getAvailableSeats() + 1));
+                    updateCourse(course);
+                }
+            }
         }
 
         addNotification(new NotificationMessage(
@@ -737,23 +645,13 @@ public class DatabaseUtil {
                 "You dropped " + section.getTitle() + " (" + section.getSectionId() + ").",
                 "Registration"));
 
-        saveData();
-    }
-
-    private static void ensureEnrollmentCollections() {
-        if (enrollments == null) {
-            enrollments = Collections.synchronizedList(new ArrayList<>());
-        }
-        if (sections == null) {
-            sections = new ConcurrentHashMap<>();
-        }
+        refreshSectionCache();
     }
 
     public static List<Section> getScheduleForStudent(String studentId) {
-        return enrollments.stream()
-                .filter(rec -> rec.getStudentId().equals(studentId))
+        return enrollmentDao.findByStudent(studentId).stream()
                 .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
-                .map(rec -> sections.get(rec.getSectionId()))
+                .map(rec -> getSection(rec.getSectionId()))
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(Section::getDayOfWeek).thenComparing(Section::getStartTime))
                 .collect(Collectors.toList());
@@ -761,34 +659,25 @@ public class DatabaseUtil {
 
     // Attendance operations
     public static void recordAttendance(String sectionId, LocalDate date, Map<String, Boolean> attendance) {
-        String key = sectionId + "::" + date.toString();
-        AttendanceRecord record = attendanceRecords.getOrDefault(key, new AttendanceRecord(sectionId, date));
-        record.getAttendanceByStudent().clear();
+        AttendanceRecord record = new AttendanceRecord(sectionId, date);
         record.getAttendanceByStudent().putAll(attendance);
-        attendanceRecords.put(key, record);
-        saveData();
+        attendanceDao.deleteBySectionAndDate(sectionId, date);
+        attendanceDao.insert(record);
     }
 
     public static List<AttendanceRecord> getAttendanceForSection(String sectionId) {
-        return attendanceRecords.values().stream()
-                .filter(rec -> rec.getSectionId().equals(sectionId))
-                .sorted(Comparator.comparing(AttendanceRecord::getDate))
-                .collect(Collectors.toList());
+        return attendanceDao.findBySection(sectionId);
     }
 
     // Notification operations
     public static List<NotificationMessage> getNotifications(NotificationMessage.Audience audience, String targetId) {
-        return notifications.stream()
-                .filter(msg -> msg.getAudience() == NotificationMessage.Audience.ALL
-                        || msg.getAudience() == audience
-                        || (msg.getAudience() == NotificationMessage.Audience.USER
-                            && Objects.equals(msg.getTargetId(), targetId)))
-                .collect(Collectors.toList());
+        NotificationMessage.Audience resolvedAudience =
+                audience == null ? NotificationMessage.Audience.ALL : audience;
+        return notificationDao.findVisible(resolvedAudience, targetId);
     }
 
     public static void addNotification(NotificationMessage notification) {
-        notifications.add(notification);
-        saveData();
+        notificationDao.insert(notification);
     }
 
     public static Map<String, Long> getWaitlistCountsByCourse() {
@@ -853,7 +742,9 @@ public class DatabaseUtil {
     }
 
     public static void setMaintenanceMode(boolean maintenanceOn) {
-        settings.put("maintenance", Boolean.toString(maintenanceOn));
+        String value = Boolean.toString(maintenanceOn);
+        settings.put("maintenance", value);
+        settingsDao.upsert("maintenance", value);
         addNotification(new NotificationMessage(
                 NotificationMessage.Audience.ALL,
                 null,
@@ -862,7 +753,6 @@ public class DatabaseUtil {
         AuditLogService.log(AuditLogService.EventType.MAINTENANCE_TOGGLE,
                 "system",
                 "Maintenance mode set to " + maintenanceOn);
-        saveData();
     }
 
     public static boolean isUserLocked(String username) {
@@ -909,44 +799,24 @@ public class DatabaseUtil {
     }
 
     private static void populateSectionEnrollmentState() {
-        DataSourceRegistry.erpDataSource().ifPresent(ds -> {
-            try (Connection conn = ds.getConnection();
-                 PreparedStatement ps = conn.prepareStatement("SELECT section_code, student_code, status FROM enrollments")) {
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        String sectionCode = rs.getString(1);
-                        String studentCode = rs.getString(2);
-                        String status = rs.getString(3);
-                        Section section = sections.get(sectionCode);
-                        if (section == null) {
-                            continue;
-                        }
-                        if ("WAITLISTED".equalsIgnoreCase(status)) {
-                            section.getWaitlistedStudentIds().add(studentCode);
-                        } else if ("ENROLLED".equalsIgnoreCase(status)) {
-                            section.getEnrolledStudentIds().add(studentCode);
-                        }
-                    }
+        for (Section section : sections.values()) {
+            section.getEnrolledStudentIds().clear();
+            section.getWaitlistedStudentIds().clear();
+            for (EnrollmentRecord record : enrollmentDao.findBySection(section.getSectionId())) {
+                if (record.getStatus() == EnrollmentRecord.Status.ENROLLED) {
+                    section.getEnrolledStudentIds().add(record.getStudentId());
+                } else if (record.getStatus() == EnrollmentRecord.Status.WAITLISTED) {
+                    section.getWaitlistedStudentIds().add(record.getStudentId());
                 }
-            } catch (SQLException ex) {
-                System.err.println("Error populating section enrollments: " + ex.getMessage());
             }
-
-            try (Connection conn = ds.getConnection();
-                 PreparedStatement ps = conn.prepareStatement("SELECT section_code, student_code FROM section_waitlist ORDER BY section_code, position")) {
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        String sectionCode = rs.getString(1);
-                        String studentCode = rs.getString(2);
-                        Section section = sections.get(sectionCode);
-                        if (section != null && !section.getWaitlistedStudentIds().contains(studentCode)) {
-                            section.getWaitlistedStudentIds().add(studentCode);
-                        }
-                    }
+            List<String> waitlist = waitlistDao.findWaitlist(section.getSectionId());
+            for (String studentCode : waitlist) {
+                if (!section.getWaitlistedStudentIds().contains(studentCode)) {
+                    section.getWaitlistedStudentIds().add(studentCode);
                 }
-            } catch (SQLException ex) {
-                System.err.println("Error populating section waitlists: " + ex.getMessage());
             }
-        });
+        }
     }
 }
+
+
