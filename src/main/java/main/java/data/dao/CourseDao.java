@@ -13,10 +13,10 @@ import java.util.List;
 import java.util.Optional;
 
 public class CourseDao extends BaseDao {
-    private static final String SELECT_ALL = "SELECT id, course_code, course_name, department, duration_semesters, fees, description, total_seats, available_seats FROM courses";
+    private static final String SELECT_ALL = "SELECT id, course_code, course_name, department, duration_semesters, fees, description, total_seats, available_seats, credit_hours FROM courses";
     private static final String SELECT_BY_CODE = SELECT_ALL + " WHERE course_code = ?";
-    private static final String INSERT = "INSERT INTO courses (course_code, course_name, department, duration_semesters, fees, description, total_seats, available_seats) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-    private static final String UPDATE = "UPDATE courses SET course_name = ?, department = ?, duration_semesters = ?, fees = ?, description = ?, total_seats = ?, available_seats = ? WHERE course_code = ?";
+    private static final String INSERT = "INSERT INTO courses (course_code, course_name, department, duration_semesters, fees, description, total_seats, available_seats, credit_hours) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String UPDATE = "UPDATE courses SET course_name = ?, department = ?, duration_semesters = ?, fees = ?, description = ?, total_seats = ?, available_seats = ?, credit_hours = ? WHERE course_code = ?";
     private static final String DELETE = "DELETE FROM courses WHERE course_code = ?";
 
     public CourseDao() {
@@ -64,6 +64,7 @@ public class CourseDao extends BaseDao {
             ps.setString(6, course.getDescription());
             ps.setInt(7, course.getTotalSeats());
             ps.setInt(8, course.getAvailableSeats());
+            ps.setInt(9, course.getCreditHours());
             ps.executeUpdate();
         } catch (SQLException ex) {
             logger.error("Error inserting course {}: {}", course.getCourseId(), ex.getMessage(), ex);
@@ -81,7 +82,8 @@ public class CourseDao extends BaseDao {
             ps.setString(5, course.getDescription());
             ps.setInt(6, course.getTotalSeats());
             ps.setInt(7, course.getAvailableSeats());
-            ps.setString(8, course.getCourseId());
+            ps.setInt(8, course.getCreditHours());
+            ps.setString(9, course.getCourseId());
             ps.executeUpdate();
         } catch (SQLException ex) {
             logger.error("Error updating course {}: {}", course.getCourseId(), ex.getMessage(), ex);
@@ -111,6 +113,7 @@ public class CourseDao extends BaseDao {
         int total = rs.getInt("total_seats");
         course.setTotalSeats(total);
         course.setAvailableSeats(rs.getInt("available_seats"));
+        course.setCreditHours(rs.getInt("credit_hours"));
         return course;
     }
 }

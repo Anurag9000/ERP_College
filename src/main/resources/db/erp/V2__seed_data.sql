@@ -1,7 +1,7 @@
-INSERT INTO courses (course_code, course_name, department, duration_semesters, fees, description, total_seats, available_seats)
+INSERT INTO courses (course_code, course_name, department, duration_semesters, fees, description, total_seats, available_seats, credit_hours)
 VALUES
-    ('CSE101', 'Computer Science Engineering', 'Computer Science', 8, 200000, '4-year undergraduate program in Computer Science', 60, 59),
-    ('MATH101', 'Mathematics', 'Mathematics', 6, 150000, '3-year undergraduate program in Mathematics', 40, 39)
+    ('CSE101', 'Computer Science Engineering', 'Computer Science', 8, 200000, '4-year undergraduate program in Computer Science', 60, 59, 4),
+    ('MATH101', 'Mathematics', 'Mathematics', 6, 150000, '3-year undergraduate program in Mathematics', 40, 39, 3)
 ON DUPLICATE KEY UPDATE
     course_name = VALUES(course_name),
     department = VALUES(department),
@@ -9,7 +9,8 @@ ON DUPLICATE KEY UPDATE
     fees = VALUES(fees),
     description = VALUES(description),
     total_seats = VALUES(total_seats),
-    available_seats = VALUES(available_seats);
+    available_seats = VALUES(available_seats),
+    credit_hours = VALUES(credit_hours);
 
 INSERT INTO students (student_code, auth_username, first_name, last_name, email, phone, course_code, semester, status, fees_paid, total_fees, cgpa, credits_completed, credits_in_progress, next_fee_due, academic_standing)
 VALUES

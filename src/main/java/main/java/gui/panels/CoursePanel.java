@@ -152,7 +152,8 @@ public class CoursePanel extends JPanel {
                 course.getCourseName(),
                 course.getDepartment(),
                 course.getDuration(),
-                "₹" + String.format("%.0f", course.getFees()),
+                course.getCreditHours(),
+                String.format("\u20B9%,.0f", course.getFees()),
                 course.getTotalSeats(),
                 course.getAvailableSeats(),
                 course.getEnrolledStudents(),
@@ -231,6 +232,7 @@ public class CoursePanel extends JPanel {
         JTextField nameField = new JTextField(20);
         JTextField deptField = new JTextField(20);
         JSpinner durationSpinner = new JSpinner(new SpinnerNumberModel(6, 1, 12, 1));
+        JSpinner creditSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 30, 1));
         JTextField feesField = new JTextField(10);
         JTextField seatsField = new JTextField(5);
         JTextArea descArea = new JTextArea(4, 20);
@@ -244,6 +246,7 @@ public class CoursePanel extends JPanel {
             nameField.setText(course.getCourseName());
             deptField.setText(course.getDepartment());
             durationSpinner.setValue(course.getDuration());
+            creditSpinner.setValue(course.getCreditHours());
             feesField.setText(String.valueOf(course.getFees()));
             seatsField.setText(String.valueOf(course.getTotalSeats()));
             descArea.setText(course.getDescription());
@@ -280,6 +283,12 @@ public class CoursePanel extends JPanel {
         panel.add(new JLabel("Duration (semesters):"), gbc);
         gbc.gridx = 1;
         panel.add(durationSpinner, gbc);
+        row++;
+
+        gbc.gridx = 0; gbc.gridy = row;
+        panel.add(new JLabel("Credit Hours:"), gbc);
+        gbc.gridx = 1;
+        panel.add(creditSpinner, gbc);
         row++;
 
         gbc.gridx = 0; gbc.gridy = row;
@@ -347,6 +356,7 @@ public class CoursePanel extends JPanel {
             edited.setTotalSeats(seats);
             edited.setAvailableSeats(Math.max(0, seats - edited.getEnrolledStudents()));
         }
+        edited.setCreditHours((Integer) creditSpinner.getValue());
 
         java.util.List<String> subjects = new java.util.ArrayList<>();
         for (String token : subjectsArea.getText().split(",")) {
@@ -359,3 +369,4 @@ public class CoursePanel extends JPanel {
         return edited;
     }
 }
+

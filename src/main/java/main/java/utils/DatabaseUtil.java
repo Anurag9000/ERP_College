@@ -48,6 +48,7 @@ public class DatabaseUtil {
     private static final int MAX_FAILED_ATTEMPTS = parseIntConfig("security.maxFailedAttempts", 5);
     private static final int LOCKOUT_MINUTES = parseIntConfig("security.lockoutMinutes", 15);
     private static final int PASSWORD_HISTORY_SIZE = parseIntConfig("security.passwordHistorySize", PasswordPolicy.historySize());
+    private static final int MAX_TERM_CREDITS = parseIntConfig("registration.maxCredits", 24);
     private static final AuthUserDao authUserDao = new AuthUserDao();
     private static final StudentDao studentDao = new StudentDao();
     private static final CourseDao courseDao = new CourseDao();
@@ -567,6 +568,15 @@ public class DatabaseUtil {
                 .count();
         boolean hasSeat = enrolledCount < section.getCapacity();
 
+        int courseCredits = getCourseCreditHours(section.getCourseId());
+        if (hasSeat) {
+            int currentCredits = calculateEnrolledCredits(studentId);
+            if (currentCredits + courseCredits > MAX_TERM_CREDITS) {
+                throw new IllegalStateException("Credit load would exceed the maximum of "
+                        + MAX_TERM_CREDITS + " hours.");
+            }
+        }
+
         EnrollmentRecord record = new EnrollmentRecord(studentId, sectionId,
                 hasSeat ? EnrollmentRecord.Status.ENROLLED : EnrollmentRecord.Status.WAITLISTED);
         enrollmentDao.insert(record);
@@ -582,6 +592,7 @@ public class DatabaseUtil {
                     studentId,
                     "You are enrolled in " + section.getTitle() + " (" + section.getSectionId() + ").",
                     "Registration"));
+            refreshStudentEnrollmentMetrics(studentId);
         } else {
             int position = waitlistDao.findWaitlist(sectionId).size() + 1;
             waitlistDao.insert(sectionId, studentId, position);
@@ -639,24 +650,47 @@ public class DatabaseUtil {
 
         String promotedStudent = null;
         if (previousStatus == EnrollmentRecord.Status.ENROLLED) {
-            List<String> waitlist = waitlistDao.findWaitlist(sectionId);
-            if (!waitlist.isEmpty()) {
-                promotedStudent = waitlist.get(0);
-                waitlistDao.delete(sectionId, promotedStudent);
-                EnrollmentRecord promotedRecord = sectionEnrollments.stream()
-                        .filter(rec -> rec.getStudentId().equals(promotedStudent))
-                        .findFirst()
-                        .orElse(null);
-                if (promotedRecord != null) {
-                    promotedRecord.setStatus(EnrollmentRecord.Status.ENROLLED);
-                    enrollmentDao.updateStatus(promotedRecord);
+            int courseCredits = getCourseCreditHours(section.getCourseId());
+            List<String> waitlist = new ArrayList<>(waitlistDao.findWaitlist(sectionId));
+            for (String candidate : waitlist) {
+                int candidateCredits = calculateEnrolledCredits(candidate);
+                if (candidateCredits + courseCredits <= MAX_TERM_CREDITS) {
+                    promotedStudent = candidate;
+                    waitlistDao.delete(sectionId, promotedStudent);
+                    EnrollmentRecord promotedRecord = sectionEnrollments.stream()
+                            .filter(rec -> rec.getStudentId().equals(promotedStudent))
+                            .findFirst()
+                            .orElse(null);
+                    if (promotedRecord != null) {
+                        promotedRecord.setStatus(EnrollmentRecord.Status.ENROLLED);
+                        enrollmentDao.updateStatus(promotedRecord);
+                    }
+                    addNotification(new NotificationMessage(
+                            NotificationMessage.Audience.STUDENT,
+                            promotedStudent,
+                            "Great news! A seat opened up in " + section.getTitle() + " and you are now enrolled.",
+                            "Registration"));
+                    break;
+                } else {
+                    waitlistDao.delete(sectionId, candidate);
+                    EnrollmentRecord candidateRecord = sectionEnrollments.stream()
+                            .filter(rec -> rec.getStudentId().equals(candidate))
+                            .findFirst()
+                            .orElse(null);
+                    if (candidateRecord != null) {
+                        candidateRecord.setStatus(EnrollmentRecord.Status.DROPPED);
+                        enrollmentDao.updateStatus(candidateRecord);
+                    }
+                    addNotification(new NotificationMessage(
+                            NotificationMessage.Audience.STUDENT,
+                            candidate,
+                            "A seat opened in " + section.getTitle()
+                                    + " but your current credit load exceeds the limit (" + MAX_TERM_CREDITS + ").",
+                            "Registration"));
                 }
-                addNotification(new NotificationMessage(
-                        NotificationMessage.Audience.STUDENT,
-                        promotedStudent,
-                        "Great news! A seat opened up in " + section.getTitle() + " and you are now enrolled.",
-                        "Registration"));
-            } else {
+            }
+
+            if (promotedStudent == null) {
                 Course course = getCourse(section.getCourseId());
                 if (course != null) {
                     course.setAvailableSeats(Math.min(course.getTotalSeats(), course.getAvailableSeats() + 1));
@@ -672,6 +706,10 @@ public class DatabaseUtil {
                 "Registration"));
 
         refreshSectionCache();
+        refreshStudentEnrollmentMetrics(studentId);
+        if (promotedStudent != null) {
+            refreshStudentEnrollmentMetrics(promotedStudent);
+        }
 
         String actor = performedBy == null ? "system" : performedBy;
         AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE, actor,
@@ -774,6 +812,37 @@ public class DatabaseUtil {
             }
         }
         return missing;
+    }
+
+    private static int getCourseCreditHours(String courseId) {
+        Course course = getCourse(courseId);
+        if (course == null || course.getCreditHours() <= 0) {
+            return 3;
+        }
+        return course.getCreditHours();
+    }
+
+    private static int calculateEnrolledCredits(String studentId) {
+        return enrollmentDao.findByStudent(studentId).stream()
+                .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .mapToInt(rec -> {
+                    Section section = getSection(rec.getSectionId());
+                    return section != null ? getCourseCreditHours(section.getCourseId()) : 0;
+                })
+                .sum();
+    }
+
+    private static void refreshStudentEnrollmentMetrics(String studentId) {
+        if (studentId == null) {
+            return;
+        }
+        Student student = getStudent(studentId);
+        if (student == null) {
+            return;
+        }
+        int creditsInProgress = calculateEnrolledCredits(studentId);
+        student.setCreditsInProgress(creditsInProgress);
+        updateStudent(student);
     }
 
     public static double getAverageAttendanceForSection(String sectionId) {
@@ -906,5 +975,8 @@ public class DatabaseUtil {
         }
     }
 }
+
+
+
 
 

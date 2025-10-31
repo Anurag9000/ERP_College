@@ -18,9 +18,11 @@ public class Course implements java.io.Serializable {
     private int totalSeats;
     private int availableSeats;
     private String status;
+    private int creditHours;
     
     public Course() {
         this.subjects = new ArrayList<>();
+        this.creditHours = 3;
     }
     
     public Course(String courseId, String courseName, String department, 
@@ -35,6 +37,7 @@ public class Course implements java.io.Serializable {
         this.availableSeats = totalSeats;
         this.status = "Active";
         this.subjects = new ArrayList<>();
+        this.creditHours = 3;
     }
     
     // Getters and Setters
@@ -74,4 +77,7 @@ public class Course implements java.io.Serializable {
     public void setStatus(String status) { this.status = status; }
     
     public int getEnrolledStudents() { return totalSeats - availableSeats; }
+
+    public int getCreditHours() { return creditHours; }
+    public void setCreditHours(int creditHours) { this.creditHours = creditHours; }
 }
