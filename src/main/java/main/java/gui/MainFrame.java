@@ -29,6 +29,7 @@ public class MainFrame extends JFrame {
     private EnrollmentPanel enrollmentPanel;
     private AttendancePanel attendancePanel;
     private NotificationsPanel notificationsPanel;
+    private AuditLogPanel auditLogPanel;
     private JPanel studentSelfServicePanel;
     private JPanel instructorWorkspacePanel;
     private JLabel maintenanceLabel;
@@ -150,9 +151,10 @@ public class MainFrame extends JFrame {
             coursePanel = new CoursePanel();
             feesPanel = new FeesPanel();
             sectionPanel = new SectionPanel();
-            enrollmentPanel = new EnrollmentPanel();
+            enrollmentPanel = new EnrollmentPanel(currentUser);
             attendancePanel = new AttendancePanel();
             notificationsPanel = new NotificationsPanel();
+            auditLogPanel = new AuditLogPanel();
         }
     }
 
@@ -198,6 +200,8 @@ public class MainFrame extends JFrame {
             minutes = 30L;
         }
         if (minutes <= 0) {
+            sessionTimeoutMillis = 0L;
+            clearSessionCountdownLabel();
             return;
         }
         sessionTimeoutMillis = minutes * 60_000L;
@@ -206,26 +210,27 @@ public class MainFrame extends JFrame {
         Toolkit.getDefaultToolkit().addAWTEventListener(activityListener,
                 AWTEvent.KEY_EVENT_MASK | AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_MOTION_EVENT_MASK);
         sessionTimer = new Timer("SessionTimer", true);
-        long period = Math.max(10_000L, sessionTimeoutMillis / 2);
+        long period = Math.max(5_000L, Math.min(60_000L, sessionTimeoutMillis / 10));
         sessionTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 checkSessionTimeout();
             }
         }, period, period);
-    }
-
-    private void checkSessionTimeout() {
+        SwingUtilities.invokeLater(() -> updateSessionCountdownLabel(sessionTimeoutMillis));
+    }    private void checkSessionTimeout() {
         if (sessionTimeoutMillis <= 0) {
             return;
         }
-        if (System.currentTimeMillis() - lastActivity >= sessionTimeoutMillis) {
+        long elapsed = System.currentTimeMillis() - lastActivity;
+        long remaining = sessionTimeoutMillis - elapsed;
+        if (remaining <= 0) {
             disposeSessionTimer();
             SwingUtilities.invokeLater(this::logoutDueToTimeout);
+        } else {
+            SwingUtilities.invokeLater(() -> updateSessionCountdownLabel(remaining));
         }
-    }
-
-    private void logoutDueToTimeout() {
+    }    private void logoutDueToTimeout() {
         JOptionPane.showMessageDialog(this,
                 "Session timed out due to inactivity. Please log in again.",
                 "Session Timeout",
@@ -243,9 +248,8 @@ public class MainFrame extends JFrame {
             sessionTimer.purge();
             sessionTimer = null;
         }
-    }
-
-    private void showChangePasswordDialog() {
+        SwingUtilities.invokeLater(this::clearSessionCountdownLabel);
+    }    private void showChangePasswordDialog() {
         ChangePasswordDialog dialog = new ChangePasswordDialog(this, currentUser.getUsername());
         dialog.setVisible(true);
         if (dialog.isChanged()) {
@@ -284,6 +288,28 @@ public class MainFrame extends JFrame {
         }
     }
     
+    private void updateSessionCountdownLabel(long remainingMillis) {
+        if (sessionCountdownLabel == null) {
+            return;
+        }
+        if (remainingMillis <= 0) {
+            sessionCountdownLabel.setText("Session ending now");
+            sessionCountdownLabel.setForeground(new Color(255, 193, 7));
+            return;
+        }
+        long seconds = Math.max(0L, remainingMillis / 1000L);
+        long minutes = seconds / 60L;
+        long secs = seconds % 60L;
+        sessionCountdownLabel.setText(String.format("Session ends in %02d:%02d", minutes, secs));
+        sessionCountdownLabel.setForeground(remainingMillis <= 300_000L ? Color.ORANGE : Color.WHITE);
+    }
+
+    private void clearSessionCountdownLabel() {
+        if (sessionCountdownLabel != null) {
+            sessionCountdownLabel.setText("");
+            sessionCountdownLabel.setForeground(Color.WHITE);
+        }
+    }
     private ImageIcon createTabIcon(String emoji) {
         // Simple text-based icon
         return null; // For simplicity, not using icons
@@ -331,3 +357,12 @@ public class MainFrame extends JFrame {
         SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
     }
 }
+
+
+
+
+
+
+
+
+

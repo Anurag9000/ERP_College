@@ -523,6 +523,10 @@ public class DatabaseUtil {
     }
 
     public static synchronized EnrollmentRecord registerStudentToSection(String studentId, String sectionId) {
+        return registerStudentToSection(null, studentId, sectionId);
+    }
+
+    public static synchronized EnrollmentRecord registerStudentToSection(String performedBy, String studentId, String sectionId) {
         Section section = getSection(sectionId);
         if (section == null) {
             throw new IllegalArgumentException("Section not found");
@@ -575,6 +579,10 @@ public class DatabaseUtil {
         }
 
         refreshSectionCache();
+
+        String actor = performedBy == null ? "system" : performedBy;
+        AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE, actor,
+                String.format("Registered %s in %s (%s)", studentId, section.getTitle(), record.getStatus()));
         return record;
     }
 
@@ -594,6 +602,10 @@ public class DatabaseUtil {
     }
 
     public static synchronized void dropStudentFromSection(String studentId, String sectionId) {
+        dropStudentFromSection(null, studentId, sectionId);
+    }
+
+    public static synchronized void dropStudentFromSection(String performedBy, String studentId, String sectionId) {
         Section section = getSection(sectionId);
         if (section == null) {
             throw new IllegalArgumentException("Section not found");
@@ -646,6 +658,11 @@ public class DatabaseUtil {
                 "Registration"));
 
         refreshSectionCache();
+
+        String actor = performedBy == null ? "system" : performedBy;
+        AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE, actor,
+                String.format("Dropped %s from %s (promoted: %s)", studentId, section.getTitle(),
+                        promotedStudent == null ? "none" : promotedStudent));
     }
 
     public static List<Section> getScheduleForStudent(String studentId) {

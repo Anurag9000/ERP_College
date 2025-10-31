@@ -5,6 +5,8 @@ import main.java.models.EnrollmentRecord;
 import main.java.models.Faculty;
 import main.java.models.Section;
 import main.java.models.Student;
+import main.java.models.User;
+import main.java.service.EnrollmentService;
 import main.java.utils.DatabaseUtil;
 
 import javax.swing.*;
@@ -18,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Panel to help staff manage student registrations, conflicts, and waitlists.
@@ -54,7 +57,10 @@ public class EnrollmentPanel extends JPanel {
         "Location"
     };
 
-    public EnrollmentPanel() {
+    private final User actingUser;
+
+    public EnrollmentPanel(User actingUser) {
+        this.actingUser = Objects.requireNonNull(actingUser, "actingUser");
         initializeComponents();
         setupLayout();
         setupHandlers();
@@ -261,7 +267,7 @@ public class EnrollmentPanel extends JPanel {
         String studentId = ((String) studentCombo.getSelectedItem()).split(" - ")[0];
 
         try {
-            EnrollmentRecord record = DatabaseUtil.registerStudentToSection(studentId, sectionId);
+            EnrollmentRecord record = EnrollmentService.registerSection(actingUser, studentId, sectionId);
             if (record.getStatus() == EnrollmentRecord.Status.ENROLLED) {
                 JOptionPane.showMessageDialog(this, "Enrollment confirmed!");
             } else {
@@ -295,7 +301,7 @@ public class EnrollmentPanel extends JPanel {
         }
 
         try {
-            DatabaseUtil.dropStudentFromSection(studentId, sectionId);
+            EnrollmentService.dropSection(actingUser, studentId, sectionId);
             JOptionPane.showMessageDialog(this, "Section dropped.");
             refreshTables();
         } catch (Exception ex) {

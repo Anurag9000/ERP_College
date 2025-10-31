@@ -5,6 +5,7 @@ import main.java.models.Faculty;
 import main.java.models.Section;
 import main.java.models.Student;
 import main.java.models.User;
+import main.java.utils.AuditLogService;
 import main.java.utils.DatabaseUtil;
 
 import java.time.LocalDateTime;
@@ -29,6 +30,9 @@ public final class GradebookService {
         section.clearAssessmentWeights();
         weights.forEach(section::setAssessmentWeight);
         DatabaseUtil.updateSection(section);
+        AuditLogService.log(AuditLogService.EventType.GRADE_EDIT,
+                instructor.getUsername(),
+                String.format("Defined assessments for %s (%d components)", sectionId, weights.size()));
     }
 
     public static void recordScore(User instructor, String sectionId, String studentId, String component, double score) {
@@ -36,6 +40,9 @@ public final class GradebookService {
         EnrollmentRecord record = locateEnrollment(sectionId, studentId);
         record.putScore(component, score);
         DatabaseUtil.saveData();
+        AuditLogService.log(AuditLogService.EventType.GRADE_EDIT,
+                instructor.getUsername(),
+                String.format("Recorded %s=%.2f for %s in %s", component, score, studentId, sectionId));
     }
 
     public static double computeFinal(User instructor, String sectionId, String studentId) {
@@ -47,6 +54,9 @@ public final class GradebookService {
         record.setWeighting(new HashMap<>(section.getAssessmentWeights()));
         record.setUpdatedAt(LocalDateTime.now());
         DatabaseUtil.saveData();
+        AuditLogService.log(AuditLogService.EventType.GRADE_EDIT,
+                instructor.getUsername(),
+                String.format("Computed final grade %.2f for %s in %s", finalGrade, studentId, sectionId));
         return finalGrade;
     }
 

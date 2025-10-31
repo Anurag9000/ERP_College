@@ -30,7 +30,7 @@ public final class EnrollmentService {
             enforceStudentOwnsRecord(actor, student);
         }
 
-        return DatabaseUtil.registerStudentToSection(studentId, sectionId);
+        return DatabaseUtil.registerStudentToSection(actor.getUsername(), studentId, sectionId);
     }
 
     public static void dropSection(User actor, String studentId, String sectionId) {
@@ -47,7 +47,7 @@ public final class EnrollmentService {
             enforceStudentOwnsRecord(actor, student);
         }
 
-        DatabaseUtil.dropStudentFromSection(studentId, sectionId);
+        DatabaseUtil.dropStudentFromSection(actor.getUsername(), studentId, sectionId);
     }
 
     private static void ensureCanMutate(User actor) {
