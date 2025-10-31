@@ -5,6 +5,7 @@ package main.java.models;
  */
 public class User implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
+    private Long id;
     private String username;
     private String passwordHash;
     private String salt;
@@ -36,6 +37,14 @@ public class User implements java.io.Serializable {
     // Getters and Setters
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
     
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
@@ -100,6 +109,10 @@ public class User implements java.io.Serializable {
             passwordHistory = new java.util.ArrayDeque<>();
         }
         return passwordHistory;
+    }
+
+    public void setPasswordHistory(java.util.Deque<String> history) {
+        this.passwordHistory = history;
     }
 
     public void addPasswordHistory(String salt, String hash, int maxHistory) {

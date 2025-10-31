@@ -1,5 +1,6 @@
 
 import main.java.config.ConfigLoader;
+import main.java.data.AuthUserDao;
 import main.java.utils.PasswordPolicy;
 import main.java.utils.AuditLogService;
 
@@ -19,7 +20,6 @@ import java.util.stream.Collectors;
  */
 public class DatabaseUtil {
     private static final String DATA_DIR = "data/";
-    private static final String USERS_FILE = DATA_DIR + "users.dat";
     private static final String STUDENTS_FILE = DATA_DIR + "students.dat";
     private static final String FACULTY_FILE = DATA_DIR + "faculty.dat";
     private static final String COURSES_FILE = DATA_DIR + "courses.dat";
@@ -29,7 +29,6 @@ public class DatabaseUtil {
     private static final String NOTIFICATIONS_FILE = DATA_DIR + "notifications.dat";
     private static final String SETTINGS_FILE = DATA_DIR + "settings.dat";
     
-    private static Map<String, User> users = new ConcurrentHashMap<>();
     private static Map<String, Student> students = new ConcurrentHashMap<>();
     private static Map<String, Faculty> faculty = new ConcurrentHashMap<>();
     private static Map<String, Course> courses = new ConcurrentHashMap<>();
@@ -42,6 +41,7 @@ public class DatabaseUtil {
     private static final int MAX_FAILED_ATTEMPTS = parseIntConfig("security.maxFailedAttempts", 5);
     private static final int LOCKOUT_MINUTES = parseIntConfig("security.lockoutMinutes", 15);
     private static final int PASSWORD_HISTORY_SIZE = parseIntConfig("security.passwordHistorySize", PasswordPolicy.historySize());
+    private static final AuthUserDao authUserDao = new AuthUserDao();
 
     private static int parseIntConfig(String key, int defaultValue) {
         String value = ConfigLoader.get(key);
@@ -64,7 +64,8 @@ public class DatabaseUtil {
         
         // Load existing data or create sample data
         loadData();
-        if (users.isEmpty()) {
+        boolean hasUsers = !authUserDao.findAll().isEmpty();
+        if (!hasUsers) {
             createSampleData();
             saveData();
         }
@@ -87,20 +88,12 @@ public class DatabaseUtil {
 
         settings.putIfAbsent("maintenance", "false");
 
-        // Upgrade legacy plaintext passwords if encountered
-        boolean upgraded = false;
-        for (User user : users.values()) {
-            if (user.getSalt() == null || user.getPasswordHash() == null) {
-                upgradePassword(user, "ChangeMe123!".toCharArray(), false);
-                upgraded = true;
-            }
-        }
-        if (upgraded) {
-            saveData();
-        }
     }
-    
+
     private static void createSampleData() {
+        if (authUserDao.findByUsername("admin").isPresent()) {
+            return;
+        }
         // Create default admin user
         addUser("admin", "Admin", "Administrator", "admin@college.edu", "admin123");
         addUser("inst1", "Instructor", "John Smith", "john.smith@college.edu", "inst123");
@@ -238,16 +231,6 @@ public class DatabaseUtil {
     @SuppressWarnings("unchecked")
     private static void loadData() {
         try {
-            if (new File(USERS_FILE).exists()) {
-                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(USERS_FILE));
-                users = (Map<String, User>) ois.readObject();
-                ois.close();
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading users: " + e.getMessage());
-        }
-        
-        try {
             if (new File(STUDENTS_FILE).exists()) {
                 ObjectInputStream ois = new ObjectInputStream(new FileInputStream(STUDENTS_FILE));
                 students = (Map<String, Student>) ois.readObject();
@@ -330,11 +313,7 @@ public class DatabaseUtil {
     
     public static void saveData() {
         try {
-            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(USERS_FILE));
-            oos.writeObject(users);
-            oos.close();
-            
-            oos = new ObjectOutputStream(new FileOutputStream(STUDENTS_FILE));
+            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(STUDENTS_FILE));
             oos.writeObject(students);
             oos.close();
             
@@ -373,9 +352,14 @@ public class DatabaseUtil {
     // User operations
     public static synchronized User authenticateUser(String username, String password) {
         LocalDateTime now = LocalDateTime.now();
-        User user = users.get(username);
-        if (user == null || !user.isActive()) {
-            AuditLogService.log(AuditLogService.EventType.LOGIN_FAILURE, username, "Unknown or inactive user");
+        Optional<User> optionalUser = authUserDao.findByUsername(username);
+        if (optionalUser.isEmpty()) {
+            AuditLogService.log(AuditLogService.EventType.LOGIN_FAILURE, username, "Unknown user");
+            return null;
+        }
+        User user = optionalUser.get();
+        if (!user.isActive()) {
+            AuditLogService.log(AuditLogService.EventType.LOGIN_FAILURE, username, "Inactive account");
             return null;
         }
 
@@ -385,20 +369,11 @@ public class DatabaseUtil {
             return null;
         }
 
+        boolean matched;
         String salt = user.getSalt();
         String hash = user.getPasswordHash();
-        boolean matched = false;
-
         if (salt == null || hash == null) {
-            // Legacy record fallback: treat stored passwordHash as plaintext
-            if (hash != null && hash.equals(password)) {
-                try {
-                    applyNewPassword(user, password, false, true);
-                    matched = true;
-                } catch (IllegalArgumentException ex) {
-                    matched = false;
-                }
-            }
+            matched = false;
         } else {
             matched = PasswordUtil.verifyPassword(password.toCharArray(), salt, hash);
         }
@@ -407,56 +382,56 @@ public class DatabaseUtil {
             user.resetFailedAttempts();
             user.setLockedUntil(null);
             user.setLastLogin(now);
-            saveData();
+            authUserDao.recordLoginSuccess(user);
             AuditLogService.log(AuditLogService.EventType.LOGIN_SUCCESS, username, "Login successful");
             return user;
         } else {
-            user.incrementFailedAttempts();
-            if (user.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
-                user.setLockedUntil(now.plusMinutes(LOCKOUT_MINUTES));
-                user.resetFailedAttempts();
+            int failedAttempts = user.getFailedAttempts() + 1;
+            LocalDateTime lockUntil = null;
+            if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+                lockUntil = now.plusMinutes(LOCKOUT_MINUTES);
                 AuditLogService.log(AuditLogService.EventType.ACCOUNT_LOCKED, username,
                         "Exceeded failed login attempts");
+                failedAttempts = 0;
             } else {
                 AuditLogService.log(AuditLogService.EventType.LOGIN_FAILURE, username,
-                        "Invalid credentials (" + user.getFailedAttempts() + "/" + MAX_FAILED_ATTEMPTS + ")");
+                        "Invalid credentials (" + failedAttempts + "/" + MAX_FAILED_ATTEMPTS + ")");
             }
-            saveData();
+            user.setFailedAttempts(failedAttempts);
+            user.setLockedUntil(lockUntil);
+            authUserDao.recordLoginFailure(user, failedAttempts, lockUntil);
             return null;
         }
     }
     
     public static Collection<User> getAllUsers() {
-        return new ArrayList<>(users.values());
+        return authUserDao.findAll();
     }
 
     public static User getUser(String username) {
-        return users.get(username);
+        return authUserDao.findByUsername(username).orElse(null);
     }
 
     public static synchronized User addUser(String username, String role, String fullName, String email, String rawPassword) {
-        if (users.containsKey(username)) {
+        PasswordPolicy.validateComplexity(rawPassword);
+        if (authUserDao.findByUsername(username).isPresent()) {
             throw new IllegalArgumentException("Username already exists");
         }
-        PasswordPolicy.validateComplexity(rawPassword);
         String salt = PasswordUtil.generateSalt();
         String hash = PasswordUtil.hashPassword(rawPassword.toCharArray(), salt);
         User user = new User(username, hash, salt, role, fullName, email);
+        user.setActive(true);
+        user.setMustChangePassword(false);
         user.addPasswordHistory(salt, hash, PASSWORD_HISTORY_SIZE);
-        users.put(username, user);
-        saveData();
-        return user;
+        return authUserDao.insert(user);
     }
 
     public static synchronized void updateUserProfile(String username, String fullName, String email, boolean active) {
-        User user = users.get(username);
-        if (user == null) {
-            throw new IllegalArgumentException("User not found: " + username);
-        }
+        User user = requireUser(username);
         user.setFullName(fullName);
         user.setEmail(email);
         user.setActive(active);
-        saveData();
+        authUserDao.updateProfile(user);
     }
 
     public static synchronized void changePasswordSelf(String username, String currentPassword, String newPassword) {
@@ -799,11 +774,8 @@ public class DatabaseUtil {
     }
 
     private static User requireUser(String username) {
-        User user = users.get(username);
-        if (user == null) {
-            throw new IllegalArgumentException("User not found: " + username);
-        }
-        return user;
+        return authUserDao.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
     }
 
     private static void applyNewPassword(User user, String newPassword, boolean mustChangeNext, boolean skipValidation) {
@@ -820,7 +792,7 @@ public class DatabaseUtil {
         user.resetFailedAttempts();
         user.setLockedUntil(null);
         user.setMustChangePassword(mustChangeNext);
-        saveData();
+        authUserDao.updatePassword(user, newSalt, newHash, mustChangeNext);
     }
 
     private static void ensureNotInHistory(User user, String candidate) {
@@ -857,17 +829,14 @@ public class DatabaseUtil {
     }
 
     public static boolean isUserLocked(String username) {
-        User user = users.get(username);
-        return user != null
-                && user.getLockedUntil() != null
-                && LocalDateTime.now().isBefore(user.getLockedUntil());
+        return authUserDao.findByUsername(username)
+                .map(user -> user.getLockedUntil() != null && LocalDateTime.now().isBefore(user.getLockedUntil()))
+                .orElse(false);
     }
 
     public static int remainingAttempts(String username) {
-        User user = users.get(username);
-        if (user == null) {
-            return MAX_FAILED_ATTEMPTS;
-        }
-        return Math.max(0, MAX_FAILED_ATTEMPTS - user.getFailedAttempts());
+        return authUserDao.findByUsername(username)
+                .map(user -> Math.max(0, MAX_FAILED_ATTEMPTS - user.getFailedAttempts()))
+                .orElse(MAX_FAILED_ATTEMPTS);
     }
 }

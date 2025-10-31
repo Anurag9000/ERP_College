@@ -4,6 +4,7 @@ import main.java.config.ConfigLoader;
 import main.java.gui.dialogs.ChangePasswordDialog;
 import main.java.models.User;
 import main.java.gui.panels.*;
+import main.java.utils.DatabaseUtil;
 
 import javax.swing.*;
 import java.awt.*;
@@ -248,6 +249,7 @@ public class MainFrame extends JFrame {
         ChangePasswordDialog dialog = new ChangePasswordDialog(this, currentUser.getUsername());
         dialog.setVisible(true);
         if (dialog.isChanged()) {
+            currentUser = DatabaseUtil.getUser(currentUser.getUsername());
             JOptionPane.showMessageDialog(this, "Password updated successfully.");
         }
     }
