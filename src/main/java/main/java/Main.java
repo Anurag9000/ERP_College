@@ -5,8 +5,6 @@ import main.java.data.DatabaseBootstrap;
 import main.java.gui.LoginFrame;
 import main.java.utils.DatabaseUtil;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 
 /**
  * Main entry point for the College ERP System
@@ -14,12 +12,7 @@ import javax.swing.UnsupportedLookAndFeelException;
  */
 public class Main {
     public static void main(String[] args) {
-        try {
-            FlatLightLaf.setup();
-        } catch (ClassNotFoundException | InstantiationException | 
-                 IllegalAccessException | UnsupportedLookAndFeelException e) {
-            e.printStackTrace();
-        }
+        FlatLightLaf.setup();
 
         // Run migrations and initialize application data
         DatabaseBootstrap.migrate();

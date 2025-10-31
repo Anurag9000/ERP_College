@@ -3,16 +3,19 @@
 This document captures the exhaustive workflow required to satisfy the complete project brief in `Documentation/project.pdf` alongside the beginner/intermediate enhancements we agreed upon. It is organized into executable workstreams so we can deliver the solution in focused chunks.
 
 ## 1. Platform & Architecture Foundation
+- **Status:** ✅ Core tooling wired (Maven deps, config loader, datasource registry, Flyway bootstrap).
 - Adopt freeware stack (OpenJDK, Swing, JDBC/HikariCP, MariaDB/PostgreSQL, Flyway/Liquibase, FlatLaf, PDFBox/OpenPDF, Commons CSV, SLF4J/Logback, JUnit/Mockito).
 - Split persistence into **Auth DB** and **ERP DB**; design ER diagrams, DDL, migration scripts, seed data, rollback plan.
 - Introduce modular package layout (`data`, `service`, `api`, `ui`) per spec; configure dependency injection / service locators as needed.
 
 ## 2. Authentication & Security
+- **Status:** ✅ Password policy, lockouts, audit logging, change/reset UX delivered.
 - PBKDF2/BCrypt hashing with per-user salts, password complexity policy, password history, configurable lockout.
 - Implement change-password UI (student/instructor) and admin reset flow with forced change.
 - Session timeout with auto-logoff banner; audit trail logging for logins, maintenance toggles, enrollment/grade operations.
 
 ## 3. Data Migration & Repositories
+- **Status:** 🟡 Auth DB migrated to SQL (Flyway schema, DAO layer, runtime integration). ERP entities still backed by file storage pending migration.
 - Replace file-based `DatabaseUtil` with DAO/repository layer backed by SQL.
 - Provide migration scripts to port existing `.dat` seed data into SQL tables.
 - Implement connection pooling (HikariCP), configuration management, health checks.

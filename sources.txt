@@ -5,6 +5,8 @@ D:\college_erp_fixed\src\main\java\main\java\gui\dialogs\ChangePasswordDialog.ja
 D:\college_erp_fixed\src\main\java\main\java\config\ConfigLoader.java
 D:\college_erp_fixed\src\main\java\main\java\config\DatabaseProperties.java
 D:\college_erp_fixed\src\main\java\main\java\config\DataSourceRegistry.java
+D:\college_erp_fixed\src\main\java\main\java\data\AuthUserDao.java
+D:\college_erp_fixed\src\main\java\main\java\data\DatabaseBootstrap.java
 D:\college_erp_fixed\src\main\java\main\java\gui\dialogs\FacultyDialog.java
 D:\college_erp_fixed\src\main\java\main\java\gui\dialogs\SectionDialog.java
 D:\college_erp_fixed\src\main\java\main\java\gui\dialogs\StudentDialog.java
