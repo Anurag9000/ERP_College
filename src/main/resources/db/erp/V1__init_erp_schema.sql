@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS courses (
     fees DECIMAL(12,2),
     description TEXT,
     total_seats INT,
+    available_seats INT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

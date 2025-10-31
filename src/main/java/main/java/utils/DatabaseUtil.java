@@ -1,11 +1,20 @@
 
 import main.java.config.ConfigLoader;
 import main.java.data.AuthUserDao;
+import main.java.data.dao.CourseDao;
+import main.java.data.dao.StudentDao;
+import main.java.data.dao.InstructorDao;
+import main.java.data.dao.SectionDao;
 import main.java.utils.PasswordPolicy;
 import main.java.utils.AuditLogService;
 
 import main.java.models.*;
 import java.io.*;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,6 +51,10 @@ public class DatabaseUtil {
     private static final int LOCKOUT_MINUTES = parseIntConfig("security.lockoutMinutes", 15);
     private static final int PASSWORD_HISTORY_SIZE = parseIntConfig("security.passwordHistorySize", PasswordPolicy.historySize());
     private static final AuthUserDao authUserDao = new AuthUserDao();
+    private static final StudentDao studentDao = new StudentDao();
+    private static final CourseDao courseDao = new CourseDao();
+    private static final InstructorDao instructorDao = new InstructorDao();
+    private static final SectionDao sectionDao = new SectionDao();
 
     private static int parseIntConfig(String key, int defaultValue) {
         String value = ConfigLoader.get(key);
@@ -87,6 +100,11 @@ public class DatabaseUtil {
         }
 
         settings.putIfAbsent("maintenance", "false");
+
+        refreshCourseCache();
+        refreshStudentCache();
+        refreshInstructorCache();
+        refreshSectionCache();
 
     }
 
@@ -451,22 +469,27 @@ public class DatabaseUtil {
     
     // Student operations
     public static void addStudent(Student student) {
+        studentDao.insert(student);
         students.put(student.getStudentId(), student);
-        saveData();
     }
     
     public static void updateStudent(Student student) {
+        studentDao.update(student);
         students.put(student.getStudentId(), student);
-        saveData();
     }
     
     public static void deleteStudent(String studentId) {
+        studentDao.delete(studentId);
         students.remove(studentId);
-        saveData();
     }
     
     public static Student getStudent(String studentId) {
-        return students.get(studentId);
+        Student student = students.get(studentId);
+        if (student == null) {
+            studentDao.findByCode(studentId).ifPresent(st -> students.put(studentId, st));
+            student = students.get(studentId);
+        }
+        return student;
     }
     
     public static Collection<Student> getAllStudents() {
@@ -474,63 +497,67 @@ public class DatabaseUtil {
     }
 
     public static Student findStudentByUsername(String username) {
-        return students.values().stream()
-                .filter(student -> username.equalsIgnoreCase(student.getUsername()))
-                .findFirst()
-                .orElse(null);
+        return studentDao.findByUsername(username).orElse(null);
     }
     
     // Faculty operations
     public static void addFaculty(Faculty facultyMember) {
+        instructorDao.insert(facultyMember);
         faculty.put(facultyMember.getFacultyId(), facultyMember);
-        saveData();
     }
-    
+
     public static void updateFaculty(Faculty facultyMember) {
+        instructorDao.update(facultyMember);
         faculty.put(facultyMember.getFacultyId(), facultyMember);
-        saveData();
     }
-    
+
     public static void deleteFaculty(String facultyId) {
+        instructorDao.delete(facultyId);
         faculty.remove(facultyId);
-        saveData();
     }
-    
+
     public static Faculty getFaculty(String facultyId) {
-        return faculty.get(facultyId);
+        Faculty member = faculty.get(facultyId);
+        if (member == null) {
+            instructorDao.findByCode(facultyId).ifPresent(f -> faculty.put(facultyId, f));
+            member = faculty.get(facultyId);
+        }
+        return member;
     }
-    
+
     public static Collection<Faculty> getAllFaculty() {
         return new ArrayList<>(faculty.values());
     }
 
     public static Faculty findFacultyByUsername(String username) {
-        return faculty.values().stream()
-                .filter(member -> username.equalsIgnoreCase(member.getUsername()))
-                .findFirst()
-                .orElse(null);
+        return instructorDao.findByUsername(username).orElse(null);
     }
     
     // Course operations
     public static void addCourse(Course course) {
+        courseDao.insert(course);
         courses.put(course.getCourseId(), course);
-        saveData();
     }
-    
+
     public static void updateCourse(Course course) {
+        courseDao.update(course);
         courses.put(course.getCourseId(), course);
-        saveData();
     }
-    
+
     public static void deleteCourse(String courseId) {
+        courseDao.delete(courseId);
         courses.remove(courseId);
-        saveData();
     }
-    
+
     public static Course getCourse(String courseId) {
-        return courses.get(courseId);
+        Course course = courses.get(courseId);
+        if (course == null) {
+            courseDao.findByCode(courseId).ifPresent(c -> courses.put(courseId, c));
+            course = courses.get(courseId);
+        }
+        return course;
     }
-    
+
     public static Collection<Course> getAllCourses() {
         return new ArrayList<>(courses.values());
     }
@@ -567,24 +594,34 @@ public class DatabaseUtil {
     }
 
     public static Section getSection(String sectionId) {
-        return sections.get(sectionId);
+        Section section = sections.get(sectionId);
+        if (section == null) {
+            section = sectionDao.findByCode(sectionId).orElse(null);
+            if (section != null) {
+                section.getEnrolledStudentIds().clear();
+                section.getWaitlistedStudentIds().clear();
+                sections.put(sectionId, section);
+                populateSectionEnrollmentState();
+            }
+        }
+        return section;
     }
 
     public static void addSection(Section section) {
+        sectionDao.insert(section);
         sections.put(section.getSectionId(), section);
-        saveData();
     }
 
     public static void updateSection(Section section) {
+        sectionDao.update(section);
         sections.put(section.getSectionId(), section);
-        saveData();
     }
 
     public static void deleteSection(String sectionId) {
+        sectionDao.delete(sectionId);
         sections.remove(sectionId);
         enrollments.removeIf(rec -> rec.getSectionId().equals(sectionId));
         attendanceRecords.entrySet().removeIf(entry -> entry.getKey().startsWith(sectionId + "::"));
-        saveData();
     }
 
     // Enrollment operations
@@ -838,5 +875,78 @@ public class DatabaseUtil {
         return authUserDao.findByUsername(username)
                 .map(user -> Math.max(0, MAX_FAILED_ATTEMPTS - user.getFailedAttempts()))
                 .orElse(MAX_FAILED_ATTEMPTS);
+    }
+
+    private static void refreshStudentCache() {
+        students = new ConcurrentHashMap<>();
+        for (Student student : studentDao.findAll()) {
+            students.put(student.getStudentId(), student);
+        }
+    }
+
+    private static void refreshCourseCache() {
+        courses = new ConcurrentHashMap<>();
+        for (Course course : courseDao.findAll()) {
+            courses.put(course.getCourseId(), course);
+        }
+    }
+
+    private static void refreshInstructorCache() {
+        faculty = new ConcurrentHashMap<>();
+        for (Faculty member : instructorDao.findAll()) {
+            faculty.put(member.getFacultyId(), member);
+        }
+    }
+
+    private static void refreshSectionCache() {
+        sections = new ConcurrentHashMap<>();
+        for (Section section : sectionDao.findAll()) {
+            section.getEnrolledStudentIds().clear();
+            section.getWaitlistedStudentIds().clear();
+            sections.put(section.getSectionId(), section);
+        }
+        populateSectionEnrollmentState();
+    }
+
+    private static void populateSectionEnrollmentState() {
+        DataSourceRegistry.erpDataSource().ifPresent(ds -> {
+            try (Connection conn = ds.getConnection();
+                 PreparedStatement ps = conn.prepareStatement("SELECT section_code, student_code, status FROM enrollments")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String sectionCode = rs.getString(1);
+                        String studentCode = rs.getString(2);
+                        String status = rs.getString(3);
+                        Section section = sections.get(sectionCode);
+                        if (section == null) {
+                            continue;
+                        }
+                        if ("WAITLISTED".equalsIgnoreCase(status)) {
+                            section.getWaitlistedStudentIds().add(studentCode);
+                        } else if ("ENROLLED".equalsIgnoreCase(status)) {
+                            section.getEnrolledStudentIds().add(studentCode);
+                        }
+                    }
+                }
+            } catch (SQLException ex) {
+                System.err.println("Error populating section enrollments: " + ex.getMessage());
+            }
+
+            try (Connection conn = ds.getConnection();
+                 PreparedStatement ps = conn.prepareStatement("SELECT section_code, student_code FROM section_waitlist ORDER BY section_code, position")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String sectionCode = rs.getString(1);
+                        String studentCode = rs.getString(2);
+                        Section section = sections.get(sectionCode);
+                        if (section != null && !section.getWaitlistedStudentIds().contains(studentCode)) {
+                            section.getWaitlistedStudentIds().add(studentCode);
+                        }
+                    }
+                }
+            } catch (SQLException ex) {
+                System.err.println("Error populating section waitlists: " + ex.getMessage());
+            }
+        });
     }
 }

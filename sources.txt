@@ -38,3 +38,11 @@ D:\college_erp_fixed\src\main\java\main\java\utils\PasswordPolicy.java
 D:\college_erp_fixed\src\main\java\main\java\utils\AuditLogService.java
 D:\college_erp_fixed\src\main\java\main\java\utils\PasswordUtil.java
 D:\college_erp_fixed\docs\implementation_scope.md
+D:\college_erp_fixed\src\main\resources\db\auth\V2__seed_users.sql
+D:\college_erp_fixed\src\main\resources\db\erp\V1__init_erp_schema.sql
+D:\college_erp_fixed\src\main\resources\db\erp\V2__seed_data.sql
+D:\college_erp_fixed\src\main\java\main\java\data\dao\BaseDao.java
+D:\college_erp_fixed\src\main\java\main\java\data\dao\CourseDao.java
+D:\college_erp_fixed\src\main\java\main\java\data\dao\StudentDao.java
+D:\college_erp_fixed\src\main\java\main\java\data\dao\InstructorDao.java
+D:\college_erp_fixed\src\main\java\main\java\data\dao\SectionDao.java

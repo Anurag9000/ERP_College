@@ -15,7 +15,7 @@ This document captures the exhaustive workflow required to satisfy the complete 
 - Session timeout with auto-logoff banner; audit trail logging for logins, maintenance toggles, enrollment/grade operations.
 
 ## 3. Data Migration & Repositories
-- **Status:** 🟡 Auth DB migrated to SQL (Flyway schema, DAO layer, runtime integration). ERP entities still backed by file storage pending migration.
+- **Status:** 🟡 Auth DB migrated to SQL; ERP schema + seed migrations created; DAO layer now in place for courses, students, instructors, and sections (read/write). Enrollment/attendance persistence still pending.
 - Replace file-based `DatabaseUtil` with DAO/repository layer backed by SQL.
 - Provide migration scripts to port existing `.dat` seed data into SQL tables.
 - Implement connection pooling (HikariCP), configuration management, health checks.
