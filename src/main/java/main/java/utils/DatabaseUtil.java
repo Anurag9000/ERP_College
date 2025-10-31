@@ -814,7 +814,7 @@ public class DatabaseUtil {
         return missing;
     }
 
-    private static int getCourseCreditHours(String courseId) {
+    public static int getCourseCreditHours(String courseId) {
         Course course = getCourse(courseId);
         if (course == null || course.getCreditHours() <= 0) {
             return 3;
@@ -830,6 +830,10 @@ public class DatabaseUtil {
                     return section != null ? getCourseCreditHours(section.getCourseId()) : 0;
                 })
                 .sum();
+    }
+
+    public static int getMaxTermCredits() {
+        return MAX_TERM_CREDITS;
     }
 
     private static void refreshStudentEnrollmentMetrics(String studentId) {

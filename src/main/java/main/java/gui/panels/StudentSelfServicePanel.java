@@ -69,6 +69,7 @@ public class StudentSelfServicePanel extends JPanel {
     private final JLabel financePaidLabel;
     private final JLabel financeOutstandingLabel;
     private final JLabel financeNextDueLabel;
+    private final JLabel catalogAdvisoryLabel;
 
     public StudentSelfServicePanel(User currentUser) {
         this.currentUser = currentUser;
@@ -132,6 +133,8 @@ public class StudentSelfServicePanel extends JPanel {
         financePaidLabel = createSummaryValueLabel();
         financeOutstandingLabel = createSummaryValueLabel();
         financeNextDueLabel = createSummaryValueLabel();
+        catalogAdvisoryLabel = new JLabel(" ");
+        catalogAdvisoryLabel.setForeground(new Color(220, 38, 38));
 
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -182,6 +185,7 @@ public class StudentSelfServicePanel extends JPanel {
 
         panel.add(controls, BorderLayout.NORTH);
         panel.add(new JScrollPane(catalogTable), BorderLayout.CENTER);
+        panel.add(catalogAdvisoryLabel, BorderLayout.SOUTH);
         return panel;
     }
 
@@ -430,6 +434,15 @@ public class StudentSelfServicePanel extends JPanel {
                 prereqText = "Missing: " + String.join(", ", missing);
             }
 
+            String windowText;
+            if (section.getEnrollmentDeadline() == null) {
+                windowText = "Open";
+            } else if (java.time.LocalDate.now().isAfter(section.getEnrollmentDeadline())) {
+                windowText = "Closed";
+            } else {
+                windowText = "Open until " + section.getEnrollmentDeadline();
+            }
+
             catalogModel.addRow(new Object[]{
                     section.getSectionId(),
                     section.getCourseId() + " - " + courseTitle,
@@ -438,6 +451,7 @@ public class StudentSelfServicePanel extends JPanel {
                     section.getLocation(),
                     availableSeats + "/" + section.getCapacity(),
                     statusText,
+                    windowText,
                     prereqText
             });
         }
@@ -585,6 +599,7 @@ public class StudentSelfServicePanel extends JPanel {
     private void updateActionButtons() {
         registerButton.setEnabled(false);
         dropButton.setEnabled(false);
+        catalogAdvisoryLabel.setText(" ");
 
         if (DatabaseUtil.isMaintenanceMode() || studentProfile == null) {
             return;
@@ -598,18 +613,60 @@ public class StudentSelfServicePanel extends JPanel {
         String sectionId = (String) catalogModel.getValueAt(modelRow, 0);
 
         EnrollmentRecord.Status status = enrollmentStatusBySection.get(sectionId);
+        Section section = DatabaseUtil.getSection(sectionId);
+        List<String> warnings = new ArrayList<>();
+
         if (status == EnrollmentRecord.Status.ENROLLED || status == EnrollmentRecord.Status.WAITLISTED) {
             dropButton.setEnabled(true);
-            return;
+            if (status == EnrollmentRecord.Status.WAITLISTED) {
+                warnings.add("You are currently waitlisted for this section.");
+            } else {
+                warnings.add("Already enrolled in this section.");
+            }
         }
 
-        Section section = DatabaseUtil.getSection(sectionId);
+        boolean canRegister = status == null && section != null;
         if (section != null) {
+            if (section.getEnrollmentDeadline() != null
+                    && java.time.LocalDate.now().isAfter(section.getEnrollmentDeadline())) {
+                warnings.add("Enrollment deadline passed (" + section.getEnrollmentDeadline() + ").");
+                canRegister = false;
+            }
+
             List<String> missing = DatabaseUtil.getMissingPrerequisites(studentProfile.getStudentId(), section.getCourseId());
-            registerButton.setEnabled(missing.isEmpty());
-        } else {
-            registerButton.setEnabled(true);
+            if (!missing.isEmpty()) {
+                warnings.add("Missing prerequisites: " + String.join(", ", missing));
+                canRegister = false;
+            }
+
+            int projectedCredits = calculateProjectedCredits(section);
+            if (projectedCredits > DatabaseUtil.getMaxTermCredits()) {
+                warnings.add("Credit load would exceed " + DatabaseUtil.getMaxTermCredits() + " hours.");
+                canRegister = false;
+            } else if (projectedCredits >= DatabaseUtil.getMaxTermCredits() - 3) {
+                warnings.add("Advisor approval may be required for heavy credit load.");
+            }
         }
+
+        registerButton.setEnabled(canRegister);
+        if (!warnings.isEmpty()) {
+            catalogAdvisoryLabel.setText(String.join(" ", warnings));
+        } else {
+            catalogAdvisoryLabel.setText(" ");
+        }
+    }
+
+    private int calculateProjectedCredits(Section target) {
+        int currentCredits = 0;
+        for (Section enrolled : DatabaseUtil.getScheduleForStudent(studentProfile.getStudentId())) {
+            Course enrolledCourse = DatabaseUtil.getCourse(enrolled.getCourseId());
+            currentCredits += enrolledCourse != null ? Math.max(1, enrolledCourse.getCreditHours()) : 3;
+        }
+        if (target != null) {
+            Course targetCourse = DatabaseUtil.getCourse(target.getCourseId());
+            currentCredits += targetCourse != null ? Math.max(1, targetCourse.getCreditHours()) : 3;
+        }
+        return currentCredits;
     }
 
     private void exportSchedule() {
@@ -726,6 +783,7 @@ public class StudentSelfServicePanel extends JPanel {
                         ? studentProfile.getNextFeeDueDate()
                         : "the due date"),
                 "Finance"));
+        updateFinanceSummary();
         JOptionPane.showMessageDialog(this, "Reminder sent to your notifications inbox.");
     }
 
@@ -739,6 +797,19 @@ public class StudentSelfServicePanel extends JPanel {
                 .replace("\n", "\\n");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
