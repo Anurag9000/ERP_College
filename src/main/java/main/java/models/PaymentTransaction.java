@@ -11,7 +11,7 @@ import java.util.UUID;
 public class PaymentTransaction implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private final String transactionId;
+    private String transactionId;
     private String studentId;
     private double amount;
     private LocalDate paidOn;
@@ -20,24 +20,42 @@ public class PaymentTransaction implements Serializable {
     private String notes;
 
     public PaymentTransaction() {
-        this.transactionId = UUID.randomUUID().toString();
-        this.paidOn = LocalDate.now();
+        this(UUID.randomUUID().toString());
     }
 
-    public PaymentTransaction(String studentId, double amount, LocalDate paidOn, String method, String reference, String notes) {
-        this();
+    public PaymentTransaction(String studentId, double amount, LocalDate paidOn,
+                              String method, String reference, String notes) {
+        this(UUID.randomUUID().toString());
         this.studentId = studentId;
         this.amount = amount;
-        if (paidOn != null) {
-            this.paidOn = paidOn;
-        }
+        this.paidOn = paidOn != null ? paidOn : LocalDate.now();
         this.method = method;
         this.reference = reference;
         this.notes = notes;
     }
 
+    public PaymentTransaction(String transactionId, String studentId, double amount,
+                              LocalDate paidOn, String method, String reference, String notes) {
+        this(transactionId);
+        this.studentId = studentId;
+        this.amount = amount;
+        this.paidOn = paidOn != null ? paidOn : LocalDate.now();
+        this.method = method;
+        this.reference = reference;
+        this.notes = notes;
+    }
+
+    private PaymentTransaction(String transactionId) {
+        this.transactionId = transactionId;
+        this.paidOn = LocalDate.now();
+    }
+
     public String getTransactionId() {
         return transactionId;
+    }
+
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
     }
 
     public String getStudentId() {

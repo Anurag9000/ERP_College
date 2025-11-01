@@ -4,6 +4,7 @@ import com.formdev.flatlaf.FlatLightLaf;
 import main.java.data.DatabaseBootstrap;
 import main.java.gui.LoginFrame;
 import main.java.utils.DatabaseUtil;
+import main.java.utils.FinanceReminderScheduler;
 import javax.swing.SwingUtilities;
 
 /**
@@ -17,6 +18,8 @@ public class Main {
         // Run migrations and initialize application data
         DatabaseBootstrap.migrate();
         DatabaseUtil.initializeDatabase();
+        FinanceReminderScheduler.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(FinanceReminderScheduler::stop));
         
         // Start the application
         SwingUtilities.invokeLater(() -> {

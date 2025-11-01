@@ -11,6 +11,8 @@ import main.java.data.dao.AttendanceDao;
 import main.java.data.dao.NotificationDao;
 import main.java.data.dao.SettingsDao;
 import main.java.data.dao.CoursePrerequisiteDao;
+import main.java.data.dao.PaymentTransactionDao;
+import main.java.data.dao.FeeInstallmentDao;
 import main.java.data.migration.LegacyDataMigrator;
 import main.java.utils.PasswordPolicy;
 import main.java.utils.AuditLogService;
@@ -44,8 +46,6 @@ public class DatabaseUtil {
     private static Map<String, Course> courses = new ConcurrentHashMap<>();
     private static Map<String, Section> sections = new ConcurrentHashMap<>();
     private static Map<String, String> settings = new ConcurrentHashMap<>();
-    private static Map<String, List<PaymentTransaction>> paymentHistory = new ConcurrentHashMap<>();
-    private static Map<String, List<FeeInstallment>> installmentSchedules = new ConcurrentHashMap<>();
 
     private static final int MAX_FAILED_ATTEMPTS = parseIntConfig("security.maxFailedAttempts", 5);
     private static final int LOCKOUT_MINUTES = parseIntConfig("security.lockoutMinutes", 15);
@@ -62,6 +62,8 @@ public class DatabaseUtil {
     private static final NotificationDao notificationDao = new NotificationDao();
     private static final SettingsDao settingsDao = new SettingsDao();
     private static final CoursePrerequisiteDao coursePrerequisiteDao = new CoursePrerequisiteDao();
+    private static final PaymentTransactionDao paymentTransactionDao = new PaymentTransactionDao();
+    private static final FeeInstallmentDao feeInstallmentDao = new FeeInstallmentDao();
 
     private static final Map<String, List<String>> coursePrerequisiteCache = new ConcurrentHashMap<>();
     private static final double PASSING_GRADE_THRESHOLD = 40.0;
@@ -129,8 +131,12 @@ public class DatabaseUtil {
                 }
             }
 
-            paymentHistory.put(student.getStudentId(), transactions);
-            installmentSchedules.put(student.getStudentId(), installments);
+            for (PaymentTransaction tx : transactions) {
+                paymentTransactionDao.insert(tx);
+            }
+            for (FeeInstallment installment : installments) {
+                feeInstallmentDao.insert(installment);
+            }
         }
     }
     
@@ -160,13 +166,6 @@ public class DatabaseUtil {
         if (settings == null) {
             settings = new ConcurrentHashMap<>();
         }
-        if (paymentHistory == null) {
-            paymentHistory = new ConcurrentHashMap<>();
-        }
-        if (installmentSchedules == null) {
-            installmentSchedules = new ConcurrentHashMap<>();
-        }
-
         if (settings.putIfAbsent("maintenance", "false") == null) {
             settingsDao.upsert("maintenance", "false");
         }
@@ -323,8 +322,6 @@ public class DatabaseUtil {
         courses = new ConcurrentHashMap<>();
         sections = new ConcurrentHashMap<>();
         settings = new ConcurrentHashMap<>(settingsDao.findAll());
-        paymentHistory = new ConcurrentHashMap<>();
-        installmentSchedules = new ConcurrentHashMap<>();
     }
     
     public static void saveData() {
@@ -466,16 +463,13 @@ public class DatabaseUtil {
 
     // Finance operations
     public static List<PaymentTransaction> getPaymentHistoryForStudent(String studentId) {
-        return paymentHistory.getOrDefault(studentId, Collections.emptyList())
-                .stream()
-                .sorted(Comparator.comparing(PaymentTransaction::getPaidOn).reversed())
+        return paymentTransactionDao.findByStudent(studentId).stream()
+                .map(DatabaseUtil::copyTransaction)
                 .collect(Collectors.toList());
     }
 
     public static List<FeeInstallment> getInstallmentsForStudent(String studentId) {
-        List<FeeInstallment> source = installmentSchedules.getOrDefault(studentId, Collections.emptyList());
-        return source.stream()
-                .sorted(Comparator.comparing(FeeInstallment::getDueDate))
+        return feeInstallmentDao.findByStudent(studentId).stream()
                 .map(DatabaseUtil::cloneInstallment)
                 .collect(Collectors.toList());
     }
@@ -495,14 +489,16 @@ public class DatabaseUtil {
         }
 
         PaymentTransaction transaction = new PaymentTransaction(studentId, amount, LocalDate.now(), method, reference, notes);
-        paymentHistory.computeIfAbsent(studentId, key -> new ArrayList<>()).add(transaction);
+        paymentTransactionDao.insert(transaction);
 
         double updatedPaid = Math.min(student.getTotalFees(), student.getFeesPaid() + amount);
         student.setFeesPaid(updatedPaid);
         updateStudent(student);
 
-        List<FeeInstallment> schedule = installmentSchedules.computeIfAbsent(studentId, key -> new ArrayList<>());
-        schedule.sort(Comparator.comparing(FeeInstallment::getDueDate));
+        List<FeeInstallment> schedule = feeInstallmentDao.findByStudent(studentId);
+        schedule.sort(Comparator.comparing(installment -> installment.getDueDate() == null
+                ? LocalDate.MAX
+                : installment.getDueDate()));
         double remaining = amount;
         for (FeeInstallment installment : schedule) {
             if (installment.getStatus() == FeeInstallment.Status.PAID) {
@@ -513,6 +509,7 @@ public class DatabaseUtil {
                 installment.setStatus(FeeInstallment.Status.PAID);
                 installment.setPaidOn(LocalDate.now());
                 remaining -= installmentAmount;
+                feeInstallmentDao.update(installment);
             } else {
                 break;
             }
@@ -525,45 +522,49 @@ public class DatabaseUtil {
     }
 
     public static void upsertInstallment(String studentId, FeeInstallment installment) {
-        installmentSchedules.computeIfAbsent(studentId, key -> new ArrayList<>());
-        List<FeeInstallment> schedule = installmentSchedules.get(studentId);
-        Optional<FeeInstallment> existing = schedule.stream()
-                .filter(inst -> inst.getInstallmentId().equals(installment.getInstallmentId()))
-                .findFirst();
-        if (existing.isPresent()) {
-            FeeInstallment target = existing.get();
-            target.setAmount(installment.getAmount());
-            target.setDescription(installment.getDescription());
-            target.setDueDate(installment.getDueDate());
-            target.setStatus(installment.getStatus());
-            target.setPaidOn(installment.getPaidOn());
-            target.setLastReminderSent(installment.getLastReminderSent());
-        } else {
-            schedule.add(installment);
+        installment.setStudentId(studentId);
+        if (installment.getInstallmentId() == null || installment.getInstallmentId().isBlank()) {
+            installment.setInstallmentId(UUID.randomUUID().toString());
         }
+        if (!feeInstallmentDao.update(installment)) {
+            feeInstallmentDao.insert(installment);
+        }
+    }
+
+    public static void deleteInstallment(String studentId, String installmentId) {
+        feeInstallmentDao.delete(installmentId);
     }
 
     public static void markInstallmentReminderSent(String studentId, String installmentId) {
-        List<FeeInstallment> schedule = installmentSchedules.get(studentId);
-        if (schedule == null) {
-            return;
-        }
-        LocalDate today = LocalDate.now();
-        for (FeeInstallment installment : schedule) {
-            if (installment.getInstallmentId().equals(installmentId)) {
-                installment.setLastReminderSent(today);
-                break;
-            }
-        }
+        List<FeeInstallment> schedule = feeInstallmentDao.findByStudent(studentId);
+        schedule.stream()
+                .filter(inst -> inst.getInstallmentId().equals(installmentId))
+                .findFirst()
+                .ifPresent(inst -> {
+                    inst.setLastReminderSent(LocalDate.now());
+                    feeInstallmentDao.update(inst);
+                });
     }
 
     public static FeeInstallment nextDueInstallment(String studentId) {
-        return installmentSchedules.getOrDefault(studentId, Collections.emptyList()).stream()
+        return feeInstallmentDao.findByStudent(studentId).stream()
                 .filter(inst -> inst.getStatus() != FeeInstallment.Status.PAID)
                 .sorted(Comparator.comparing(FeeInstallment::getDueDate))
                 .findFirst()
                 .map(DatabaseUtil::cloneInstallment)
                 .orElse(null);
+    }
+
+    private static PaymentTransaction copyTransaction(PaymentTransaction source) {
+        return new PaymentTransaction(
+                source.getTransactionId(),
+                source.getStudentId(),
+                source.getAmount(),
+                source.getPaidOn(),
+                source.getMethod(),
+                source.getReference(),
+                source.getNotes()
+        );
     }
 
     private static FeeInstallment cloneInstallment(FeeInstallment source) {
@@ -1081,6 +1082,15 @@ public class DatabaseUtil {
     }
 
     // Settings and maintenance
+    public static String getSetting(String key) {
+        return settings.get(key);
+    }
+
+    public static void setSetting(String key, String value) {
+        settings.put(key, value);
+        settingsDao.upsert(key, value);
+    }
+
     public static boolean isMaintenanceMode() {
         return Boolean.parseBoolean(settings.getOrDefault("maintenance", "false"));
     }
@@ -1162,7 +1172,6 @@ public class DatabaseUtil {
         }
     }
 }
-
 
 
 

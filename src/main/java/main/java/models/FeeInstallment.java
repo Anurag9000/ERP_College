@@ -17,7 +17,7 @@ public class FeeInstallment implements Serializable {
         OVERDUE
     }
 
-    private final String installmentId;
+    private String installmentId;
     private String studentId;
     private LocalDate dueDate;
     private double amount;
@@ -31,11 +31,24 @@ public class FeeInstallment implements Serializable {
     }
 
     public FeeInstallment(String studentId, LocalDate dueDate, double amount, String description) {
-        this();
+        this(UUID.randomUUID().toString());
         this.studentId = studentId;
         this.dueDate = dueDate;
         this.amount = amount;
         this.description = description;
+    }
+
+    public FeeInstallment(String installmentId, String studentId, LocalDate dueDate,
+                          double amount, Status status, String description,
+                          LocalDate paidOn, LocalDate lastReminderSent) {
+        this(installmentId);
+        this.studentId = studentId;
+        this.dueDate = dueDate;
+        this.amount = amount;
+        this.status = status != null ? status : Status.DUE;
+        this.description = description;
+        this.paidOn = paidOn;
+        this.lastReminderSent = lastReminderSent;
     }
 
     private FeeInstallment(String installmentId) {
@@ -57,6 +70,10 @@ public class FeeInstallment implements Serializable {
 
     public String getInstallmentId() {
         return installmentId;
+    }
+
+    public void setInstallmentId(String installmentId) {
+        this.installmentId = installmentId;
     }
 
     public String getStudentId() {
