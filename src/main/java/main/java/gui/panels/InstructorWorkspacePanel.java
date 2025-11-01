@@ -6,6 +6,7 @@ import main.java.models.User;
 import main.java.service.GradebookService;
 import main.java.service.InstructorService;
 import main.java.utils.DatabaseUtil;
+import main.java.gui.dialogs.ChangePasswordDialog;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -26,6 +27,7 @@ public class InstructorWorkspacePanel extends JPanel {
     private final JButton recordScoreButton;
     private final JButton computeFinalButton;
     private final JButton statsButton;
+    private final JButton changePasswordButton;
 
     public InstructorWorkspacePanel(User instructor) {
         this.instructor = instructor;
@@ -45,6 +47,11 @@ public class InstructorWorkspacePanel extends JPanel {
         recordScoreButton = new JButton("Record Score");
         computeFinalButton = new JButton("Compute Final Grade");
         statsButton = new JButton("Class Stats");
+        changePasswordButton = new JButton("Change Password");
+        changePasswordButton.setBackground(new Color(37, 99, 235).darker());
+        changePasswordButton.setForeground(Color.WHITE);
+        changePasswordButton.setFocusPainted(false);
+        changePasswordButton.setBorderPainted(false);
 
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -56,6 +63,8 @@ public class InstructorWorkspacePanel extends JPanel {
         top.add(recordScoreButton);
         top.add(computeFinalButton);
         top.add(statsButton);
+        top.add(Box.createHorizontalStrut(20));
+        top.add(changePasswordButton);
 
         add(top, BorderLayout.NORTH);
         add(new JScrollPane(rosterTable), BorderLayout.CENTER);
@@ -71,6 +80,7 @@ public class InstructorWorkspacePanel extends JPanel {
         recordScoreButton.addActionListener(e -> recordScore());
         computeFinalButton.addActionListener(e -> computeFinal());
         statsButton.addActionListener(e -> showStats());
+        changePasswordButton.addActionListener(e -> showChangePasswordDialog());
     }
 
     public void updateMaintenanceState() {
@@ -188,6 +198,16 @@ public class InstructorWorkspacePanel extends JPanel {
             refreshRoster();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void showChangePasswordDialog() {
+        java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
+        JFrame frame = parent instanceof JFrame ? (JFrame) parent : null;
+        ChangePasswordDialog dialog = new ChangePasswordDialog(frame, instructor.getUsername());
+        dialog.setVisible(true);
+        if (dialog.isChanged()) {
+            JOptionPane.showMessageDialog(this, "Password updated successfully.");
         }
     }
 

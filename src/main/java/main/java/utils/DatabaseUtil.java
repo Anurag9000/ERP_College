@@ -400,7 +400,7 @@ public class DatabaseUtil {
         String hash = PasswordUtil.hashPassword(rawPassword.toCharArray(), salt);
         User user = new User(username, hash, salt, role, fullName, email);
         user.setActive(true);
-        user.setMustChangePassword(false);
+        user.setMustChangePassword(true);
         user.addPasswordHistory(salt, hash, PASSWORD_HISTORY_SIZE);
         return authUserDao.insert(user);
     }

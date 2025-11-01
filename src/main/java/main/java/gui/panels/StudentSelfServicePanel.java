@@ -12,6 +12,7 @@ import main.java.models.NotificationMessage;
 import main.java.service.EnrollmentService;
 import main.java.service.StudentService;
 import main.java.utils.DatabaseUtil;
+import main.java.gui.dialogs.ChangePasswordDialog;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -88,6 +89,7 @@ public class StudentSelfServicePanel extends JPanel {
     private final JLabel gradeAnalyticsLabel;
     private final JButton transcriptPdfButton;
     private final JButton exportSchedulePdfButton;
+    private final JButton changePasswordButton;
     private final DefaultTableModel paymentHistoryModel;
     private final DefaultTableModel installmentModel;
     private final DefaultTableModel notificationsModel;
@@ -182,6 +184,7 @@ public class StudentSelfServicePanel extends JPanel {
         exportScheduleButton = new JButton("Export Timetable (.ics)");
         exportSchedulePdfButton = new JButton("Print Timetable (PDF)");
         transcriptPdfButton = new JButton("Download Transcript (PDF)");
+        changePasswordButton = new JButton("Change Password");
         reminderButton = new JButton("Send Payment Reminder");
         reminderButton.setEnabled(false);
 
@@ -198,6 +201,11 @@ public class StudentSelfServicePanel extends JPanel {
         exportScheduleButton.setBackground(primary);
         exportScheduleButton.setForeground(Color.WHITE);
         exportScheduleButton.setFocusPainted(false);
+        changePasswordButton.setBackground(primary.darker());
+        changePasswordButton.setForeground(Color.WHITE);
+        changePasswordButton.setFocusPainted(false);
+        changePasswordButton.setBorderPainted(false);
+        changePasswordButton.setPreferredSize(new Dimension(160, 32));
         Color success = new Color(34, 197, 94);
         Color slate = new Color(100, 116, 139);
         markReadButton.setBackground(success.darker());
@@ -255,7 +263,11 @@ public class StudentSelfServicePanel extends JPanel {
         JLabel title = new JLabel("Student Self Service");
         title.setFont(new Font("Arial", Font.BOLD, 24));
         topRow.add(title, BorderLayout.WEST);
-        topRow.add(maintenanceBanner, BorderLayout.EAST);
+        JPanel headerActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        headerActions.setOpaque(false);
+        headerActions.add(changePasswordButton);
+        headerActions.add(maintenanceBanner);
+        topRow.add(headerActions, BorderLayout.EAST);
 
         container.add(topRow, BorderLayout.NORTH);
         container.add(buildSummaryPanel(), BorderLayout.SOUTH);
@@ -452,6 +464,7 @@ public class StudentSelfServicePanel extends JPanel {
         transcriptPdfButton.addActionListener(e -> exportTranscriptPdf());
         exportScheduleButton.addActionListener(e -> exportScheduleIcs());
         exportSchedulePdfButton.addActionListener(e -> exportSchedulePdf());
+        changePasswordButton.addActionListener(e -> showChangePasswordDialog());
 
         catalogTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -489,6 +502,16 @@ public class StudentSelfServicePanel extends JPanel {
         markReadButton.addActionListener(e -> markSelectedNotification(true));
         markUnreadButton.addActionListener(e -> markSelectedNotification(false));
         refreshNotificationsButton.addActionListener(e -> populateNotifications());
+    }
+
+    private void showChangePasswordDialog() {
+        java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
+        JFrame frame = parent instanceof JFrame ? (JFrame) parent : null;
+        ChangePasswordDialog dialog = new ChangePasswordDialog(frame, currentUser.getUsername());
+        dialog.setVisible(true);
+        if (dialog.isChanged()) {
+            JOptionPane.showMessageDialog(this, "Password updated successfully.");
+        }
     }
 
     private void refreshProfile() {
