@@ -75,10 +75,8 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 - [DONE] Instructor workspace for roster selection, assessment definition, grade entry, final grade computation, stats, and maintenance-aware enablement (InstructorWorkspacePanel.java + GradebookService.java).
 - [DONE] Instructor attendance workspace with Present/Late/Absent states, CSV import/export, bulk mark tools, and per-section analytics/tardiness tracking (`gui/panels/InstructorAttendancePanel.java`).
 - [DONE] Gradebook upgrades: named assessment templates per course, enhanced CSV import/export with rubric comments, moderation workflow (draft/submitted/published), and inline component feedback dialog tied to GradebookService.
+- [DONE] Instructor analytics sidebar with grade distribution widgets, pass/fail counters, and attendance trend charts embedded in `InstructorWorkspacePanel`.
 ### Outstanding
-- [TODO] Attendance CSV import/export, bulk updates, tardiness tracking, and analytics dashboards (UI is manual only).
-- [PARTIAL] Gradebook enhancements: assessment definitions exist, but there are no templates, CSV import/export, moderation workflow, publish/finalise toggles, or inline rubric feedback.
-- [TODO] Instructor analytics widgets (grade distributions, pass/fail counts, attendance charts).
 - [TODO] Messaging hub for instructors to reach sections.
 - [TODO] Section planner for clash/capacity warnings.
 

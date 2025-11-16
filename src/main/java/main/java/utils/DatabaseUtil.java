@@ -90,6 +90,10 @@ public class DatabaseUtil {
         }
     }
 
+    public static double getPassingGradeThreshold() {
+        return PASSING_GRADE_THRESHOLD;
+    }
+
     private static void seedFinanceData(Student... sampleStudents) {
         LocalDate today = LocalDate.now();
         for (Student student : sampleStudents) {

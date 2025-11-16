@@ -9,11 +9,15 @@ import main.java.models.User;
 import main.java.utils.AuditLogService;
 import main.java.utils.DatabaseUtil;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Collections;
 import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -70,6 +74,72 @@ public final class GradebookService {
         return records.stream()
                 .mapToDouble(EnrollmentRecord::getFinalGrade)
                 .summaryStatistics();
+    }
+
+    public static GradeAnalytics gradeAnalyticsForSection(User instructor, String sectionId) {
+        ensureInstructorAccess(instructor, sectionId);
+        Section section = DatabaseUtil.getSection(sectionId);
+        List<EnrollmentRecord> records = DatabaseUtil.getEnrollmentsForSection(sectionId).stream()
+                .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .collect(Collectors.toList());
+        if (records.isEmpty()) {
+            return new GradeAnalytics(0.0, 0.0, 0.0, 0, 0, Map.of());
+        }
+        Map<String, Long> buckets = new LinkedHashMap<>();
+        buckets.put("A (85+)", 0L);
+        buckets.put("B (70-84)", 0L);
+        buckets.put("C (55-69)", 0L);
+        buckets.put("D (40-54)", 0L);
+        buckets.put("F (<40)", 0L);
+
+        double passingThreshold = DatabaseUtil.getPassingGradeThreshold();
+        long pass = 0;
+        long fail = 0;
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+        double total = 0.0;
+        int counted = 0;
+
+        for (EnrollmentRecord record : records) {
+            double grade = record.getFinalGrade();
+            if (grade <= 0) {
+                grade = section.computeFinalScore(record.getComponentScores());
+            }
+            if (grade <= 0) {
+                continue;
+            }
+            counted++;
+            total += grade;
+            min = Math.min(min, grade);
+            max = Math.max(max, grade);
+
+            if (grade >= passingThreshold) {
+                pass++;
+            } else {
+                fail++;
+            }
+            buckets.compute(bucketFor(grade), (k, v) -> v == null ? 1 : v + 1);
+        }
+
+        if (counted == 0) {
+            return new GradeAnalytics(0.0, 0.0, 0.0, pass, fail, Map.copyOf(buckets));
+        }
+        double average = total / counted;
+        return new GradeAnalytics(average, max, min, pass, fail, Map.copyOf(buckets));
+    }
+
+    public static AttendanceAnalytics attendanceAnalyticsForSection(User instructor, String sectionId) {
+        ensureInstructorAccess(instructor, sectionId);
+        List<main.java.models.AttendanceRecord> history = DatabaseUtil.getAttendanceForSection(sectionId);
+        if (history.isEmpty()) {
+            return new AttendanceAnalytics(0.0, 0, List.of());
+        }
+        List<AttendanceSnapshot> snapshots = history.stream()
+                .sorted((a, b) -> a.getDate().compareTo(b.getDate()))
+                .map(record -> new AttendanceSnapshot(record.getDate(), record.getAttendancePercentage()))
+                .collect(Collectors.toList());
+        double average = snapshots.stream().mapToDouble(AttendanceSnapshot::percentage).average().orElse(0.0);
+        return new AttendanceAnalytics(average, snapshots.size(), snapshots);
     }
 
     public static List<AssessmentTemplateDao.AssessmentTemplate> listTemplates(User instructor, String courseCode) {
@@ -149,5 +219,34 @@ public final class GradebookService {
                 .filter(rec -> rec.getStudentId().equals(studentId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Student not enrolled in section."));
+    }
+
+    private static String bucketFor(double grade) {
+        if (grade >= 85) {
+            return "A (85+)";
+        }
+        if (grade >= 70) {
+            return "B (70-84)";
+        }
+        if (grade >= 55) {
+            return "C (55-69)";
+        }
+        if (grade >= 40) {
+            return "D (40-54)";
+        }
+        return "F (<40)";
+    }
+
+    public record GradeAnalytics(double average, double max, double min,
+                                 long passCount, long failCount,
+                                 Map<String, Long> buckets) {
+    }
+
+    public record AttendanceSnapshot(LocalDate date, double percentage) {
+    }
+
+    public record AttendanceAnalytics(double averagePercent,
+                                      long sessions,
+                                      List<AttendanceSnapshot> snapshots) {
     }
 }

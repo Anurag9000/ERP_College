@@ -21,6 +21,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Files;
 import java.util.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Instructor operations for grade entry and section oversight.
@@ -30,6 +32,8 @@ public class InstructorWorkspacePanel extends JPanel {
     private final JComboBox<String> sectionCombo;
     private final DefaultTableModel rosterModel;
     private final JTable rosterTable;
+    private final GradeAnalyticsPanel gradeAnalyticsPanel;
+    private final AttendanceOverviewPanel attendanceOverviewPanel;
     private java.util.List<Section> assignedSections;
 
     private final JButton defineAssessmentsButton;
@@ -58,6 +62,8 @@ public class InstructorWorkspacePanel extends JPanel {
         };
         this.rosterTable = new JTable(rosterModel);
         rosterTable.setRowHeight(22);
+        this.gradeAnalyticsPanel = new GradeAnalyticsPanel();
+        this.attendanceOverviewPanel = new AttendanceOverviewPanel();
 
         defineAssessmentsButton = new JButton("Define Assessments");
         recordScoreButton = new JButton("Record Score");
@@ -102,8 +108,20 @@ public class InstructorWorkspacePanel extends JPanel {
         header.add(row1);
         header.add(row2);
 
+        JScrollPane rosterScroll = new JScrollPane(rosterTable);
+        rosterScroll.setBorder(BorderFactory.createTitledBorder("Roster & Grades"));
+
+        JPanel analyticsContainer = new JPanel();
+        analyticsContainer.setLayout(new BoxLayout(analyticsContainer, BoxLayout.Y_AXIS));
+        analyticsContainer.add(gradeAnalyticsPanel);
+        analyticsContainer.add(Box.createVerticalStrut(12));
+        analyticsContainer.add(attendanceOverviewPanel);
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, rosterScroll, analyticsContainer);
+        splitPane.setResizeWeight(0.65);
+
         add(header, BorderLayout.NORTH);
-        add(new JScrollPane(rosterTable), BorderLayout.CENTER);
+        add(splitPane, BorderLayout.CENTER);
 
         hookListeners();
         refreshSections();
@@ -170,6 +188,7 @@ public class InstructorWorkspacePanel extends JPanel {
             suppressGradebookStateEvents = true;
             gradebookStateCombo.setSelectedItem(Section.GradebookState.DRAFT);
             suppressGradebookStateEvents = false;
+            refreshAnalytics(null);
             updateFeedbackButtonState();
             return;
         }
@@ -182,6 +201,7 @@ public class InstructorWorkspacePanel extends JPanel {
                         rec.getFinalGrade()
                 }));
         refreshGradebookState(section);
+        refreshAnalytics(section);
         updateFeedbackButtonState();
     }
 
@@ -650,6 +670,201 @@ public class InstructorWorkspacePanel extends JPanel {
             }
         }
     }
+
+    private final class GradeAnalyticsPanel extends JPanel {
+        private final JLabel averageLabel = createMetricValue();
+        private final JLabel passLabel = createMetricValue();
+        private final JLabel failLabel = createMetricValue();
+        private final GradeDistributionChart chart = new GradeDistributionChart();
+
+        GradeAnalyticsPanel() {
+            setLayout(new BorderLayout(8, 8));
+            setBorder(BorderFactory.createTitledBorder("Grade Analytics"));
+            JPanel metrics = new JPanel(new GridLayout(1, 3, 8, 8));
+            metrics.add(buildMetric("Average", averageLabel));
+            metrics.add(buildMetric("Pass", passLabel));
+            metrics.add(buildMetric("Fail", failLabel));
+            add(metrics, BorderLayout.NORTH);
+            add(chart, BorderLayout.CENTER);
+        }
+
+        void setData(GradebookService.GradeAnalytics analytics) {
+            if (analytics == null) {
+                averageLabel.setText("—");
+                passLabel.setText("—");
+                failLabel.setText("—");
+                chart.setData(Map.of());
+                return;
+            }
+            averageLabel.setText(String.format(Locale.ENGLISH, "%.1f", analytics.average()));
+            passLabel.setText(Long.toString(analytics.passCount()));
+            failLabel.setText(Long.toString(analytics.failCount()));
+            chart.setData(analytics.buckets());
+        }
+
+        private JLabel createMetricValue() {
+            JLabel label = new JLabel("—");
+            label.setFont(new Font("Arial", Font.BOLD, 16));
+            label.setForeground(new Color(30, 41, 59));
+            return label;
+        }
+
+        private JPanel buildMetric(String title, JLabel value) {
+            JPanel panel = new JPanel(new BorderLayout());
+            JLabel heading = new JLabel(title.toUpperCase(Locale.ENGLISH));
+            heading.setFont(new Font("Arial", Font.BOLD, 11));
+            heading.setForeground(new Color(100, 116, 139));
+            panel.add(heading, BorderLayout.NORTH);
+            panel.add(value, BorderLayout.CENTER);
+            return panel;
+        }
+    }
+
+    private final class GradeDistributionChart extends JPanel {
+        private Map<String, Long> data = Map.of();
+
+        GradeDistributionChart() {
+            setPreferredSize(new Dimension(260, 160));
+            setOpaque(true);
+            setBackground(Color.WHITE);
+        }
+
+        void setData(Map<String, Long> data) {
+            this.data = data == null ? Map.of() : data;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int width = getWidth() - 40;
+            int height = getHeight() - 40;
+            int x = 20;
+            int y = 10;
+            if (data.isEmpty()) {
+                g2.setColor(new Color(148, 163, 184));
+                g2.drawString("No grade data yet.", x, y + height / 2);
+                g2.dispose();
+                return;
+            }
+            long max = data.values().stream().mapToLong(Long::longValue).max().orElse(1);
+            int barWidth = Math.max(20, width / data.size() - 10);
+            for (Map.Entry<String, Long> entry : data.entrySet()) {
+                double ratio = entry.getValue() / (double) max;
+                int barHeight = (int) (height * ratio);
+                g2.setColor(new Color(59, 130, 246));
+                g2.fillRoundRect(x, y + height - barHeight, barWidth, barHeight, 8, 8);
+                g2.setColor(new Color(71, 85, 105));
+                g2.setFont(g2.getFont().deriveFont(10f));
+                g2.drawString(entry.getKey(), x, y + height + 12);
+                g2.drawString(String.valueOf(entry.getValue()), x, y + height - barHeight - 4);
+                x += barWidth + 12;
+            }
+            g2.dispose();
+        }
+    }
+
+    private final class AttendanceOverviewPanel extends JPanel {
+        private final JLabel averageLabel = createMetricValue();
+        private final JLabel sessionsLabel = createMetricValue();
+        private final AttendanceChart chart = new AttendanceChart();
+
+        AttendanceOverviewPanel() {
+            setLayout(new BorderLayout(8, 8));
+            setBorder(BorderFactory.createTitledBorder("Attendance Trends"));
+            JPanel metrics = new JPanel(new GridLayout(1, 2, 8, 8));
+            metrics.add(buildMetric("Average Attendance", averageLabel));
+            metrics.add(buildMetric("Sessions", sessionsLabel));
+            add(metrics, BorderLayout.NORTH);
+            add(chart, BorderLayout.CENTER);
+        }
+
+        void setData(GradebookService.AttendanceAnalytics analytics) {
+            if (analytics == null) {
+                averageLabel.setText("—");
+                sessionsLabel.setText("0");
+                chart.setData(List.of());
+                return;
+            }
+            averageLabel.setText(String.format(Locale.ENGLISH, "%.1f%%", analytics.averagePercent()));
+            sessionsLabel.setText(Long.toString(analytics.sessions()));
+            chart.setData(analytics.snapshots());
+        }
+
+        private JLabel createMetricValue() {
+            JLabel label = new JLabel("—");
+            label.setFont(new Font("Arial", Font.BOLD, 16));
+            label.setForeground(new Color(30, 41, 59));
+            return label;
+        }
+
+        private JPanel buildMetric(String title, JLabel value) {
+            JPanel panel = new JPanel(new BorderLayout());
+            JLabel heading = new JLabel(title.toUpperCase(Locale.ENGLISH));
+            heading.setFont(new Font("Arial", Font.BOLD, 11));
+            heading.setForeground(new Color(100, 116, 139));
+            panel.add(heading, BorderLayout.NORTH);
+            panel.add(value, BorderLayout.CENTER);
+            return panel;
+        }
+    }
+
+    private final class AttendanceChart extends JPanel {
+        private List<GradebookService.AttendanceSnapshot> snapshots = List.of();
+        private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd");
+
+        AttendanceChart() {
+            setPreferredSize(new Dimension(260, 160));
+            setOpaque(true);
+            setBackground(Color.WHITE);
+        }
+
+        void setData(List<GradebookService.AttendanceSnapshot> snapshots) {
+            this.snapshots = snapshots == null ? List.of() : snapshots;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            if (snapshots.isEmpty()) {
+                g2.setColor(new Color(148, 163, 184));
+                g2.drawString("No attendance sessions recorded.", 10, getHeight() / 2);
+                g2.dispose();
+                return;
+            }
+            int padding = 20;
+            int width = getWidth() - padding * 2;
+            int height = getHeight() - padding * 2;
+            int xStep = snapshots.size() <= 1 ? width : width / (snapshots.size() - 1);
+            int prevX = padding;
+            int prevY = padding + height - (int) (height * (snapshots.get(0).percentage() / 100.0));
+            g2.setColor(new Color(59, 130, 246));
+            g2.setStroke(new BasicStroke(2f));
+            for (int i = 1; i < snapshots.size(); i++) {
+                GradebookService.AttendanceSnapshot snapshot = snapshots.get(i);
+                int x = padding + (i * xStep);
+                int y = padding + height - (int) (height * (snapshot.percentage() / 100.0));
+                g2.drawLine(prevX, prevY, x, y);
+                prevX = x;
+                prevY = y;
+            }
+            g2.setColor(new Color(30, 41, 59));
+            g2.setFont(g2.getFont().deriveFont(10f));
+            for (int i = 0; i < snapshots.size(); i++) {
+                GradebookService.AttendanceSnapshot snapshot = snapshots.get(i);
+                int x = padding + (i * xStep);
+                int y = padding + height - (int) (height * (snapshot.percentage() / 100.0));
+                g2.fillOval(x - 3, y - 3, 6, 6);
+                g2.drawString(snapshot.date().format(formatter), x - 12, getHeight() - 4);
+            }
+            g2.dispose();
+        }
+    }
 }
     private void refreshGradebookState(Section section) {
         suppressGradebookStateEvents = true;
@@ -714,4 +929,25 @@ public class InstructorWorkspacePanel extends JPanel {
         boolean hasSelection = rosterTable.getSelectedRow() != -1;
         boolean maintenance = DatabaseUtil.isMaintenanceMode();
         feedbackButton.setEnabled(hasSelection && !maintenance);
+    }
+    private void refreshAnalytics(Section section) {
+        if (section == null) {
+            gradeAnalyticsPanel.setData(null);
+            attendanceOverviewPanel.setData(null);
+            return;
+        }
+        try {
+            GradebookService.GradeAnalytics gradeAnalytics =
+                    GradebookService.gradeAnalyticsForSection(instructor, section.getSectionId());
+            gradeAnalyticsPanel.setData(gradeAnalytics);
+        } catch (Exception ex) {
+            gradeAnalyticsPanel.setData(null);
+        }
+        try {
+            GradebookService.AttendanceAnalytics attendanceAnalytics =
+                    GradebookService.attendanceAnalyticsForSection(instructor, section.getSectionId());
+            attendanceOverviewPanel.setData(attendanceAnalytics);
+        } catch (Exception ex) {
+            attendanceOverviewPanel.setData(null);
+        }
     }

@@ -1,5 +1,4 @@
 ## Instructor Workspace
-- [ ] Analytics widgets (grade distributions, pass/fail counts, attendance metrics with charts).
 - [ ] Messaging hub to reach enrolled students/sections.
 - [ ] Section planner (room clash/capacity warnings).
 
