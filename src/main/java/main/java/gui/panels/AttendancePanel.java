@@ -1,6 +1,7 @@
 package main.java.gui.panels;
 
 import main.java.models.AttendanceRecord;
+import main.java.models.AttendanceRecord.AttendanceStatus;
 import main.java.models.Section;
 import main.java.models.Student;
 import main.java.utils.DatabaseUtil;
@@ -153,11 +154,12 @@ public class AttendancePanel extends JPanel implements MaintenanceAware {
             return;
         }
 
-        Map<String, Boolean> existingAttendance = loadSelectedDateAttendance(sectionId);
+        Map<String, AttendanceStatus> existingAttendance = loadSelectedDateAttendance(sectionId);
         for (String studentId : section.getEnrolledStudentIds()) {
             Student student = DatabaseUtil.getStudent(studentId);
             String name = student != null ? student.getFullName() : studentId;
-            boolean present = existingAttendance.getOrDefault(studentId, Boolean.TRUE);
+            AttendanceStatus status = existingAttendance.getOrDefault(studentId, AttendanceStatus.PRESENT);
+            boolean present = status != AttendanceStatus.ABSENT;
             attendanceModel.addRow(new Object[]{studentId, name, present});
         }
 
@@ -166,13 +168,13 @@ public class AttendancePanel extends JPanel implements MaintenanceAware {
             historyModel.addRow(new Object[]{
                     record.getDate().format(DATE_FORMATTER),
                     String.format("%.0f%%", record.getAttendancePercentage()),
-                    record.getAttendanceByStudent().size() + " responses"
+                    record.getStatusByStudent().size() + " responses"
             });
         }
         updateButtonStates();
     }
 
-    private Map<String, Boolean> loadSelectedDateAttendance(String sectionId) {
+    private Map<String, AttendanceStatus> loadSelectedDateAttendance(String sectionId) {
         String dateText = dateField.getText().trim();
         LocalDate date;
         try {
@@ -189,7 +191,10 @@ public class AttendancePanel extends JPanel implements MaintenanceAware {
                 .filter(r -> r.getDate().equals(targetDate))
                 .findFirst();
 
-        return record.map(AttendanceRecord::getAttendanceByStudent).orElseGet(HashMap::new);
+        return record
+                .map(AttendanceRecord::getStatusByStudent)
+                .map(HashMap::new)
+                .orElseGet(HashMap::new);
     }
 
     private void saveAttendance() {
@@ -211,11 +216,14 @@ public class AttendancePanel extends JPanel implements MaintenanceAware {
         }
 
         String sectionId = ((String) sectionCombo.getSelectedItem()).split(" - ")[0];
-        Map<String, Boolean> attendance = new HashMap<>();
+        Map<String, AttendanceStatus> attendance = new HashMap<>();
         for (int i = 0; i < attendanceModel.getRowCount(); i++) {
             String studentId = (String) attendanceModel.getValueAt(i, 0);
             Boolean present = (Boolean) attendanceModel.getValueAt(i, 2);
-            attendance.put(studentId, present != null && present);
+            AttendanceStatus status = (present != null && present)
+                    ? AttendanceStatus.PRESENT
+                    : AttendanceStatus.ABSENT;
+            attendance.put(studentId, status);
         }
 
         DatabaseUtil.recordAttendance(sectionId, date, attendance);

@@ -1129,9 +1129,14 @@ public class DatabaseUtil {
     }
 
     // Attendance operations
-    public static void recordAttendance(String sectionId, LocalDate date, Map<String, Boolean> attendance) {
+    public static void recordAttendance(String sectionId,
+                                        LocalDate date,
+                                        Map<String, AttendanceRecord.AttendanceStatus> attendance) {
         AttendanceRecord record = new AttendanceRecord(sectionId, date);
-        record.getAttendanceByStudent().putAll(attendance);
+        attendance.forEach((studentId, status) -> record.markStatus(
+                studentId,
+                status != null ? status : AttendanceRecord.AttendanceStatus.ABSENT
+        ));
         attendanceDao.deleteBySectionAndDate(sectionId, date);
         attendanceDao.insert(record);
     }

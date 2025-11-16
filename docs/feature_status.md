@@ -1,6 +1,4 @@
 ## Instructor Workspace
-
-- [ ] Attendance CSV import/export, bulk updates, tardiness tracking, analytics dashboard.
 - [ ] Gradebook enhancements: assessment templates, grade import/export, moderation workflow, publish/finalise toggles, inline rubric/feedback entry.
 - [ ] Analytics widgets (grade distributions, pass/fail counts, attendance metrics with charts).
 - [ ] Messaging hub to reach enrolled students/sections.

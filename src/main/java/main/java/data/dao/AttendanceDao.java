@@ -2,6 +2,7 @@ package main.java.data.dao;
 
 import main.java.config.DataSourceRegistry;
 import main.java.models.AttendanceRecord;
+import main.java.models.AttendanceRecord.AttendanceStatus;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -13,8 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AttendanceDao extends BaseDao {
-    private static final String SELECT_BY_SECTION = "SELECT section_code, attendance_date, student_code, present FROM attendance_records WHERE section_code = ?";
-    private static final String INSERT = "INSERT INTO attendance_records (section_code, attendance_date, student_code, present) VALUES (?, ?, ?, ?)";
+    private static final String SELECT_BY_SECTION = "SELECT section_code, attendance_date, student_code, present, status FROM attendance_records WHERE section_code = ?";
+    private static final String INSERT = "INSERT INTO attendance_records (section_code, attendance_date, student_code, present, status) VALUES (?, ?, ?, ?, ?)";
     private static final String DELETE_SECTION = "DELETE FROM attendance_records WHERE section_code = ?";
     private static final String DELETE_SECTION_DATE = "DELETE FROM attendance_records WHERE section_code = ? AND attendance_date = ?";
 
@@ -33,7 +34,8 @@ public class AttendanceDao extends BaseDao {
                 while (rs.next()) {
                     LocalDate date = rs.getDate("attendance_date").toLocalDate();
                     AttendanceRecord record = map.computeIfAbsent(date, d -> new AttendanceRecord(sectionCode, d));
-                    record.getAttendanceByStudent().put(rs.getString("student_code"), rs.getBoolean("present"));
+                    AttendanceStatus status = resolveStatus(rs.getString("status"), rs.getBoolean("present"));
+                    record.markStatus(rs.getString("student_code"), status);
                 }
                 list.addAll(map.values());
             }
@@ -46,11 +48,13 @@ public class AttendanceDao extends BaseDao {
     public void insert(AttendanceRecord record) {
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(INSERT)) {
-            for (var entry : record.getAttendanceByStudent().entrySet()) {
+            for (var entry : record.getStatusByStudent().entrySet()) {
+                AttendanceStatus status = entry.getValue() == null ? AttendanceStatus.ABSENT : entry.getValue();
                 ps.setString(1, record.getSectionId());
                 ps.setDate(2, Date.valueOf(record.getDate()));
                 ps.setString(3, entry.getKey());
-                ps.setBoolean(4, entry.getValue());
+                ps.setBoolean(4, status != AttendanceStatus.ABSENT);
+                ps.setString(5, status.name());
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -58,6 +62,16 @@ public class AttendanceDao extends BaseDao {
             logger.error("Error inserting attendance for section {}: {}", record.getSectionId(), ex.getMessage(), ex);
             throw new IllegalStateException("Unable to insert attendance", ex);
         }
+    }
+
+    private AttendanceStatus resolveStatus(String statusRaw, boolean presentFlag) {
+        if (statusRaw != null && !statusRaw.isBlank()) {
+            try {
+                return AttendanceStatus.valueOf(statusRaw.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return presentFlag ? AttendanceStatus.PRESENT : AttendanceStatus.ABSENT;
     }
 
     public void deleteBySectionAndDate(String sectionCode, LocalDate date) {

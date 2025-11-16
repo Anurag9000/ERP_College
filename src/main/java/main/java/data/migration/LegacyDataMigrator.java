@@ -9,6 +9,7 @@ import main.java.data.dao.SectionDao;
 import main.java.data.dao.StudentDao;
 import main.java.data.dao.WaitlistDao;
 import main.java.models.AttendanceRecord;
+import main.java.models.AttendanceRecord.AttendanceStatus;
 import main.java.models.Course;
 import main.java.models.EnrollmentRecord;
 import main.java.models.Faculty;
@@ -243,9 +244,14 @@ public final class LegacyDataMigrator {
             }
             attendanceDao.deleteBySectionAndDate(record.getSectionId(), record.getDate());
             // Defensive copy of attendance map to avoid shared references
-            Map<String, Boolean> snapshot = new HashMap<>(record.getAttendanceByStudent());
+            Map<String, AttendanceStatus> snapshot = new HashMap<>(record.getStatusByStudent());
+            if (snapshot.isEmpty()) {
+                Map<String, Boolean> legacy = record.getAttendanceByStudent();
+                legacy.forEach((student, present) -> snapshot.put(student,
+                        present != null && present ? AttendanceStatus.PRESENT : AttendanceStatus.ABSENT));
+            }
             AttendanceRecord fresh = new AttendanceRecord(record.getSectionId(), record.getDate());
-            snapshot.forEach(fresh::markAttendance);
+            snapshot.forEach(fresh::markStatus);
             attendanceDao.insert(fresh);
             changed = true;
         }
