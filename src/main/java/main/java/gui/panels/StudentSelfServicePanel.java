@@ -1023,6 +1023,16 @@ public class StudentSelfServicePanel extends JPanel {
         }
         int modelRow = catalogTable.convertRowIndexToModel(row);
         String sectionId = (String) catalogModel.getValueAt(modelRow, 0);
+        Section section = DatabaseUtil.getSection(sectionId);
+        if (section != null && section.isRequiresAdvisorApproval()) {
+            try {
+                DatabaseUtil.submitRegistrationRequest(currentUser, studentProfile.getStudentId(), sectionId);
+                JOptionPane.showMessageDialog(this, "Registration request submitted for advisor approval.");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to submit request", JOptionPane.ERROR_MESSAGE);
+            }
+            return;
+        }
         try {
             EnrollmentService.registerSection(currentUser, studentProfile.getStudentId(), sectionId);
             JOptionPane.showMessageDialog(this, "Registration request processed.");

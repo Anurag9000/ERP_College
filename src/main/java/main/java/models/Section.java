@@ -29,6 +29,7 @@ public class Section implements Serializable {
     private LocalDate dropDeadline;
     private String semester;
     private int year;
+    private boolean requiresAdvisorApproval;
 
     private final List<String> enrolledStudentIds;
     private final List<String> waitlistedStudentIds;
@@ -56,6 +57,7 @@ public class Section implements Serializable {
         this.dropDeadline = LocalDate.now().plusDays(28);
         this.semester = "Fall";
         this.year = LocalDate.now().getYear();
+        this.requiresAdvisorApproval = false;
         this.enrolledStudentIds = new ArrayList<>();
         this.waitlistedStudentIds = new ArrayList<>();
         this.assessmentWeights = new LinkedHashMap<>();
@@ -163,6 +165,14 @@ public class Section implements Serializable {
 
     public void setYear(int year) {
         this.year = year;
+    }
+
+    public boolean isRequiresAdvisorApproval() {
+        return requiresAdvisorApproval;
+    }
+
+    public void setRequiresAdvisorApproval(boolean requiresAdvisorApproval) {
+        this.requiresAdvisorApproval = requiresAdvisorApproval;
     }
 
     public List<String> getEnrolledStudentIds() {

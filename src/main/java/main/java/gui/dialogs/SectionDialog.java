@@ -66,6 +66,7 @@ public class SectionDialog extends JDialog {
         endTimeField = new JTextField("10:30", 5);
         locationField = new JTextField(15);
         capacitySpinner = new JSpinner(new SpinnerNumberModel(30, 1, 200, 1));
+        approvalCheck = new JCheckBox("Requires advisor approval");
 
         if (section == null) {
             String nextId = DatabaseUtil.generateNextId("SEC", DatabaseUtil.getAllSections());
@@ -162,6 +163,15 @@ public class SectionDialog extends JDialog {
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(capacitySpinner, gbc);
+        row++;
+
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        panel.add(approvalCheck, gbc);
+        row++;
+        gbc.gridwidth = 1;
 
         JButton cancelButton = new JButton("Cancel");
         cancelButton.setBackground(new Color(107, 114, 128));
@@ -201,6 +211,7 @@ public class SectionDialog extends JDialog {
         endTimeField.setText(section.getEndTime().format(TIME_FORMATTER));
         locationField.setText(section.getLocation());
         capacitySpinner.setValue(section.getCapacity());
+        approvalCheck.setSelected(section.isRequiresAdvisorApproval());
     }
 
     private void selectComboItem(JComboBox<String> combo, String id) {
@@ -249,6 +260,7 @@ public class SectionDialog extends JDialog {
 
         if (section == null) {
             section = new Section(sectionId, courseId, title, facultyId, day, start, end, location, capacity);
+            section.setRequiresAdvisorApproval(approvalCheck.isSelected());
         } else {
             section.setTitle(title);
             section.setCourseId(courseId);
@@ -258,6 +270,7 @@ public class SectionDialog extends JDialog {
             section.setEndTime(end);
             section.setLocation(location);
             section.setCapacity(capacity);
+            section.setRequiresAdvisorApproval(approvalCheck.isSelected());
         }
 
         confirmed = true;

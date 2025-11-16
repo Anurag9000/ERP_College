@@ -31,6 +31,7 @@ public class MainFrame extends JFrame {
     private NotificationsPanel notificationsPanel;
     private DiagnosticsPanel diagnosticsPanel;
     private WaitlistApprovalPanel waitlistApprovalPanel;
+    private RegistrationApprovalPanel registrationApprovalPanel;
     private UserManagementPanel userManagementPanel;
     private AuditLogPanel auditLogPanel;
     private JPanel studentSelfServicePanel;
@@ -165,6 +166,7 @@ public class MainFrame extends JFrame {
             attendancePanel = new AttendancePanel();
             notificationsPanel = new NotificationsPanel();
             waitlistApprovalPanel = new WaitlistApprovalPanel(currentUser);
+            registrationApprovalPanel = new RegistrationApprovalPanel(currentUser);
             diagnosticsPanel = new DiagnosticsPanel();
             userManagementPanel = new UserManagementPanel(currentUser);
             auditLogPanel = new AuditLogPanel();
@@ -190,6 +192,7 @@ public class MainFrame extends JFrame {
             tabbedPane.addTab("Fees", createTabIcon("💰"), feesPanel);
             tabbedPane.addTab("Notifications", createTabIcon("🔔"), notificationsPanel);
             tabbedPane.addTab("Waitlists", createTabIcon("📋"), waitlistApprovalPanel);
+            tabbedPane.addTab("Reg Approvals", createTabIcon("📝"), registrationApprovalPanel);
             tabbedPane.addTab("Maintenance", createTabIcon("🛠"), new MaintenancePanel(currentUser, this::updateMaintenanceBadge));
             tabbedPane.addTab("Diagnostics", createTabIcon("🩺"), diagnosticsPanel);
         }

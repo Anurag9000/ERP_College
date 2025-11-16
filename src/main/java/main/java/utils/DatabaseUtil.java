@@ -14,6 +14,7 @@ import main.java.data.dao.CoursePrerequisiteDao;
 import main.java.data.dao.CourseRelationshipDao;
 import main.java.data.dao.PaymentTransactionDao;
 import main.java.data.dao.FeeInstallmentDao;
+import main.java.data.dao.RegistrationRequestDao;
 import main.java.data.migration.LegacyDataMigrator;
 import main.java.utils.PasswordPolicy;
 import main.java.utils.AuditLogService;
@@ -66,6 +67,7 @@ public class DatabaseUtil {
     private static final CourseRelationshipDao courseRelationshipDao = new CourseRelationshipDao();
     private static final PaymentTransactionDao paymentTransactionDao = new PaymentTransactionDao();
     private static final FeeInstallmentDao feeInstallmentDao = new FeeInstallmentDao();
+    private static final RegistrationRequestDao registrationRequestDao = new RegistrationRequestDao();
 
     private static final Map<String, List<String>> coursePrerequisiteCache = new ConcurrentHashMap<>();
     private static final Map<String, List<String>> courseCorequisiteCache = new ConcurrentHashMap<>();
@@ -773,6 +775,12 @@ public class DatabaseUtil {
             throw new IllegalStateException("Conflicts with anti-requisite(s): " + String.join(", ", conflicts));
         }
 
+        if (section.isRequiresAdvisorApproval()
+                && (actor == null || "Student".equalsIgnoreCase(actor.getRole()))) {
+            submitRegistrationRequest(actor, studentId, sectionId);
+            throw new IllegalStateException("Registration submitted for advisor approval.");
+        }
+
         List<EnrollmentRecord> existing = enrollmentDao.findBySection(sectionId);
         boolean already = existing.stream()
                 .anyMatch(rec -> rec.getStudentId().equals(studentId)
@@ -1087,13 +1095,101 @@ public class DatabaseUtil {
             addNotification(new NotificationMessage(
                     NotificationMessage.Audience.STUDENT,
                     studentId,
-                    "Advisor approval revoked for " + section.getTitle() + ". Contact advising for details.",
-                    "Registration"));
+                "Advisor approval revoked for " + section.getTitle() + ". Contact advising for details.",
+                "Registration"));
         }
         refreshSectionCache();
     }
 
     public record WaitlistSnapshot(String studentId, String studentName, int position, boolean approved) {
+    }
+
+    // Registration request operations
+    public static void submitRegistrationRequest(User actor, String studentId, String sectionId) {
+        registrationRequestDao.findByStudentSection(studentId, sectionId).ifPresent(existing -> {
+            if ("PENDING".equalsIgnoreCase(existing.status())) {
+                throw new IllegalStateException("Registration request already pending advisor approval.");
+            }
+            if ("APPROVED".equalsIgnoreCase(existing.status())) {
+                throw new IllegalStateException("Registration request already approved.");
+            }
+        });
+        String requestedBy = actor != null ? actor.getUsername() : "student";
+        registrationRequestDao.insert(studentId, sectionId, requestedBy);
+        Section section = getSection(sectionId);
+        addNotification(new NotificationMessage(
+                NotificationMessage.Audience.STUDENT,
+                studentId,
+                "Registration request submitted for " + (section != null ? section.getTitle() : sectionId) + ".",
+                "Registration"));
+    }
+
+    public static List<RegistrationRequestView> getPendingRegistrationRequests() {
+        List<RegistrationRequestView> views = new ArrayList<>();
+        for (RegistrationRequestDao.RequestRecord record : registrationRequestDao.findPending()) {
+            Student student = getStudent(record.studentCode());
+            Section section = getSection(record.sectionCode());
+            views.add(new RegistrationRequestView(
+                    record.id(),
+                    record.studentCode(),
+                    student != null ? student.getFullName() : record.studentCode(),
+                    record.sectionCode(),
+                    section != null ? section.getTitle() : record.sectionCode(),
+                    record.requestedBy(),
+                    record.createdAt()));
+        }
+        return views;
+    }
+
+    public static void approveRegistrationRequest(User admin, long requestId, String notes) {
+        ensureAdmin(admin);
+        RegistrationRequestDao.RequestRecord record = registrationRequestDao.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Request not found."));
+        if (!"PENDING".equalsIgnoreCase(record.status())) {
+            throw new IllegalStateException("Request already processed.");
+        }
+        try {
+            registerStudentToSection(admin, record.studentCode(), record.sectionCode());
+            registrationRequestDao.updateStatus(requestId, "APPROVED", admin.getUsername(), notes);
+            addNotification(new NotificationMessage(
+                    NotificationMessage.Audience.STUDENT,
+                    record.studentCode(),
+                    "Advisor approved your registration for " + record.sectionCode() + ".",
+                    "Registration"));
+        } catch (RuntimeException ex) {
+            registrationRequestDao.updateStatus(requestId, "REJECTED", admin.getUsername(), ex.getMessage());
+            throw ex;
+        }
+    }
+
+    public static void rejectRegistrationRequest(User admin, long requestId, String notes) {
+        ensureAdmin(admin);
+        RegistrationRequestDao.RequestRecord record = registrationRequestDao.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Request not found."));
+        if (!"PENDING".equalsIgnoreCase(record.status())) {
+            throw new IllegalStateException("Request already processed.");
+        }
+        registrationRequestDao.updateStatus(requestId, "REJECTED", admin.getUsername(), notes);
+        addNotification(new NotificationMessage(
+                NotificationMessage.Audience.STUDENT,
+                record.studentCode(),
+                "Advisor rejected your registration for " + record.sectionCode() + ". " + (notes == null ? "" : notes),
+                "Registration"));
+    }
+
+    private static void ensureAdmin(User actor) {
+        if (actor == null || !"Admin".equalsIgnoreCase(actor.getRole())) {
+            throw new SecurityException("Administrator privileges required.");
+        }
+    }
+
+    public record RegistrationRequestView(long id,
+                                          String studentId,
+                                          String studentName,
+                                          String sectionId,
+                                          String sectionTitle,
+                                          String requestedBy,
+                                          java.time.Instant requestedAt) {
     }
 
     public static List<String> getCoursePrerequisites(String courseId) {

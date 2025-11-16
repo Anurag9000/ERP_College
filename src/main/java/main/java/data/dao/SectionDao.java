@@ -17,11 +17,11 @@ import java.util.List;
 import java.util.Optional;
 
 public class SectionDao extends BaseDao {
-    private static final String BASE_SELECT = "SELECT id, section_code, course_code, title, instructor_code, day_of_week, start_time, end_time, location, capacity, enrollment_deadline, drop_deadline, semester, year FROM sections";
+    private static final String BASE_SELECT = "SELECT id, section_code, course_code, title, instructor_code, day_of_week, start_time, end_time, location, capacity, enrollment_deadline, drop_deadline, semester, year, requires_advisor_approval FROM sections";
     private static final String SELECT_ALL = BASE_SELECT + " ORDER BY section_code";
     private static final String SELECT_BY_CODE = BASE_SELECT + " WHERE section_code = ?";
-    private static final String INSERT = "INSERT INTO sections (section_code, course_code, title, instructor_code, day_of_week, start_time, end_time, location, capacity, enrollment_deadline, drop_deadline, semester, year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    private static final String UPDATE = "UPDATE sections SET course_code = ?, title = ?, instructor_code = ?, day_of_week = ?, start_time = ?, end_time = ?, location = ?, capacity = ?, enrollment_deadline = ?, drop_deadline = ?, semester = ?, year = ? WHERE section_code = ?";
+    private static final String INSERT = "INSERT INTO sections (section_code, course_code, title, instructor_code, day_of_week, start_time, end_time, location, capacity, enrollment_deadline, drop_deadline, semester, year, requires_advisor_approval) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String UPDATE = "UPDATE sections SET course_code = ?, title = ?, instructor_code = ?, day_of_week = ?, start_time = ?, end_time = ?, location = ?, capacity = ?, enrollment_deadline = ?, drop_deadline = ?, semester = ?, year = ?, requires_advisor_approval = ? WHERE section_code = ?";
     private static final String DELETE = "DELETE FROM sections WHERE section_code = ?";
 
     public SectionDao() {
@@ -122,6 +122,7 @@ public class SectionDao extends BaseDao {
         }
         section.setSemester(rs.getString("semester"));
         section.setYear(rs.getInt("year"));
+        section.setRequiresAdvisorApproval(rs.getBoolean("requires_advisor_approval"));
         return section;
     }
 
@@ -161,6 +162,7 @@ public class SectionDao extends BaseDao {
             ps.setNull(idx++, java.sql.Types.DATE);
         }
         ps.setString(idx++, section.getSemester());
-        ps.setInt(idx, section.getYear());
+        ps.setInt(idx++, section.getYear());
+        ps.setBoolean(idx, section.isRequiresAdvisorApproval());
     }
 }
