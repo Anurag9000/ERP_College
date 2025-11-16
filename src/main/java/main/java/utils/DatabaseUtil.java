@@ -2,6 +2,7 @@
 import main.java.config.ConfigLoader;
 import main.java.data.AuthUserDao;
 import main.java.data.dao.CourseDao;
+import main.java.data.dao.AssessmentTemplateDao;
 import main.java.data.dao.StudentDao;
 import main.java.data.dao.InstructorDao;
 import main.java.data.dao.SectionDao;
@@ -66,6 +67,7 @@ public class DatabaseUtil {
     private static final SettingsDao settingsDao = new SettingsDao();
     private static final CoursePrerequisiteDao coursePrerequisiteDao = new CoursePrerequisiteDao();
     private static final CourseRelationshipDao courseRelationshipDao = new CourseRelationshipDao();
+    private static final AssessmentTemplateDao assessmentTemplateDao = new AssessmentTemplateDao();
     private static final PaymentTransactionDao paymentTransactionDao = new PaymentTransactionDao();
     private static final FeeInstallmentDao feeInstallmentDao = new FeeInstallmentDao();
     private static final RegistrationRequestDao registrationRequestDao = new RegistrationRequestDao();
@@ -678,6 +680,128 @@ public class DatabaseUtil {
         if (offsetDays < 0) {
             throw new IllegalArgumentException("Offset days cannot be negative.");
         }
+    }
+
+    private static String serializeWeights(Map<String, Double> weights) {
+        StringBuilder builder = new StringBuilder();
+        weights.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
+                .forEach(entry -> {
+                    if (builder.length() > 0) {
+                        builder.append('\n');
+                    }
+                    builder.append(entry.getKey().replace("\n", " "))
+                            .append('=')
+                            .append(entry.getValue());
+                });
+        return builder.toString();
+    }
+
+    private static Map<String, Double> deserializeWeights(String payload) {
+        Map<String, Double> weights = new LinkedHashMap<>();
+        if (payload == null || payload.isBlank()) {
+            return weights;
+        }
+        String[] lines = payload.split("\\n");
+        for (String line : lines) {
+            if (line.isBlank()) {
+                continue;
+            }
+            int idx = line.indexOf('=');
+            if (idx <= 0) {
+                continue;
+            }
+            String component = line.substring(0, idx).trim();
+            String value = line.substring(idx + 1).trim();
+            if (component.isEmpty()) {
+                continue;
+            }
+            try {
+                weights.put(component, Double.parseDouble(value));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return weights;
+    }
+
+    // Gradebook template + moderation operations
+    public static List<AssessmentTemplateDao.AssessmentTemplate> getAssessmentTemplates(String courseCode) {
+        if (courseCode == null || courseCode.isBlank()) {
+            return Collections.emptyList();
+        }
+        return assessmentTemplateDao.findByCourse(courseCode.trim());
+    }
+
+    public static AssessmentTemplateDao.AssessmentTemplate createAssessmentTemplate(String courseCode,
+                                                                                     String templateName,
+                                                                                     Map<String, Double> weights,
+                                                                                     String createdBy) {
+        if (courseCode == null || courseCode.isBlank()) {
+            throw new IllegalArgumentException("Course code is required.");
+        }
+        if (templateName == null || templateName.isBlank()) {
+            throw new IllegalArgumentException("Template name is required.");
+        }
+        if (weights == null || weights.isEmpty()) {
+            throw new IllegalArgumentException("Provide at least one assessment component.");
+        }
+        String payload = serializeWeights(weights);
+        return assessmentTemplateDao.insert(courseCode.trim(), templateName.trim(), payload,
+                createdBy == null ? "system" : createdBy);
+    }
+
+    public static void deleteAssessmentTemplate(long templateId) {
+        assessmentTemplateDao.delete(templateId);
+    }
+
+    public static void applyAssessmentTemplate(long templateId, String sectionId) {
+        Section section = getSection(sectionId);
+        if (section == null) {
+            throw new IllegalArgumentException("Section not found: " + sectionId);
+        }
+        AssessmentTemplateDao.AssessmentTemplate template = assessmentTemplateDao.findById(templateId);
+        if (template == null) {
+            throw new IllegalArgumentException("Template not found: " + templateId);
+        }
+        if (!section.getCourseId().equalsIgnoreCase(template.courseCode())) {
+            throw new IllegalArgumentException("Template course mismatch. Expected " + section.getCourseId());
+        }
+        Map<String, Double> weights = deserializeWeights(template.weightsJson());
+        if (weights.isEmpty()) {
+            throw new IllegalStateException("Template has no assessments.");
+        }
+        section.clearAssessmentWeights();
+        weights.forEach(section::setAssessmentWeight);
+        updateSection(section);
+    }
+
+    public static Section.GradebookState getGradebookState(String sectionId) {
+        Section section = getSection(sectionId);
+        return section == null ? Section.GradebookState.DRAFT : section.getGradebookState();
+    }
+
+    public static void updateGradebookState(String sectionId, Section.GradebookState state) {
+        Section section = getSection(sectionId);
+        if (section == null) {
+            throw new IllegalArgumentException("Section not found: " + sectionId);
+        }
+        section.setGradebookState(state);
+        updateSection(section);
+    }
+
+    public static Map<String, String> getComponentFeedback(String sectionId, String studentId) {
+        EnrollmentRecord record = findEnrollmentRecord(sectionId, studentId);
+        return record.getComponentFeedback();
+    }
+
+    public static void saveComponentFeedback(String sectionId, String studentId, Map<String, String> feedback) {
+        EnrollmentRecord record = findEnrollmentRecord(sectionId, studentId);
+        record.setComponentFeedback(feedback);
+    }
+
+    public static void saveComponentFeedbackEntry(String sectionId, String studentId, String component, String comment) {
+        EnrollmentRecord record = findEnrollmentRecord(sectionId, studentId);
+        record.putFeedback(component, comment);
     }
 
     private static PaymentTransaction copyTransaction(PaymentTransaction source) {
@@ -1648,6 +1772,13 @@ public class DatabaseUtil {
     }
 
     public record TermGpa(String termLabel, double gpa, boolean probation) {
+    }
+
+    private static EnrollmentRecord findEnrollmentRecord(String sectionId, String studentId) {
+        return enrollmentDao.findBySection(sectionId).stream()
+                .filter(rec -> rec.getStudentId().equalsIgnoreCase(studentId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Student " + studentId + " not enrolled in section " + sectionId));
     }
 }
 

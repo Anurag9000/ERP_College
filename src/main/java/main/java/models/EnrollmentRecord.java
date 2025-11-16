@@ -23,11 +23,13 @@ public class EnrollmentRecord implements Serializable {
     private Status status;
     private LocalDateTime updatedAt;
     private Map<String, Double> componentScores;
+    private Map<String, String> componentFeedback;
     private double finalGrade;
     private Map<String, Double> weighting;
 
     public EnrollmentRecord() {
         this.componentScores = new LinkedHashMap<>();
+        this.componentFeedback = new LinkedHashMap<>();
         this.weighting = new LinkedHashMap<>();
     }
 
@@ -37,6 +39,7 @@ public class EnrollmentRecord implements Serializable {
         this.status = status;
         this.updatedAt = LocalDateTime.now();
         this.componentScores = new LinkedHashMap<>();
+        this.componentFeedback = new LinkedHashMap<>();
         this.weighting = new LinkedHashMap<>();
     }
 
@@ -102,6 +105,23 @@ public class EnrollmentRecord implements Serializable {
 
     public void setWeighting(Map<String, Double> weighting) {
         this.weighting = new LinkedHashMap<>(weighting);
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public Map<String, String> getComponentFeedback() {
+        return componentFeedback == null ? Collections.emptyMap() : Collections.unmodifiableMap(componentFeedback);
+    }
+
+    public void setComponentFeedback(Map<String, String> feedback) {
+        this.componentFeedback = feedback == null ? new LinkedHashMap<>() : new LinkedHashMap<>(feedback);
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void putFeedback(String component, String comment) {
+        if (this.componentFeedback == null) {
+            this.componentFeedback = new LinkedHashMap<>();
+        }
+        this.componentFeedback.put(component, comment);
         this.updatedAt = LocalDateTime.now();
     }
 }

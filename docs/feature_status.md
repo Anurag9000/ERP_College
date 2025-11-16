@@ -1,5 +1,4 @@
 ## Instructor Workspace
-- [ ] Gradebook enhancements: assessment templates, grade import/export, moderation workflow, publish/finalise toggles, inline rubric/feedback entry.
 - [ ] Analytics widgets (grade distributions, pass/fail counts, attendance metrics with charts).
 - [ ] Messaging hub to reach enrolled students/sections.
 - [ ] Section planner (room clash/capacity warnings).

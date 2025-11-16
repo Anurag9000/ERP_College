@@ -34,11 +34,13 @@ public class Section implements Serializable {
     private final List<String> enrolledStudentIds;
     private final List<String> waitlistedStudentIds;
     private final Map<String, Double> assessmentWeights;
+    private GradebookState gradebookState = GradebookState.DRAFT;
 
     public Section() {
         this.enrolledStudentIds = new ArrayList<>();
         this.waitlistedStudentIds = new ArrayList<>();
         this.assessmentWeights = new LinkedHashMap<>();
+        this.gradebookState = GradebookState.DRAFT;
     }
 
     public Section(String sectionId, String courseId, String title, String facultyId,
@@ -61,6 +63,7 @@ public class Section implements Serializable {
         this.enrolledStudentIds = new ArrayList<>();
         this.waitlistedStudentIds = new ArrayList<>();
         this.assessmentWeights = new LinkedHashMap<>();
+        this.gradebookState = GradebookState.DRAFT;
     }
 
     public String getSectionId() {
@@ -187,6 +190,14 @@ public class Section implements Serializable {
         return assessmentWeights;
     }
 
+    public GradebookState getGradebookState() {
+        return gradebookState == null ? GradebookState.DRAFT : gradebookState;
+    }
+
+    public void setGradebookState(GradebookState gradebookState) {
+        this.gradebookState = gradebookState == null ? GradebookState.DRAFT : gradebookState;
+    }
+
     public void setAssessmentWeight(String component, double weight) {
         assessmentWeights.put(component, weight);
     }
@@ -266,5 +277,11 @@ public class Section implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(sectionId);
+    }
+
+    public enum GradebookState {
+        DRAFT,
+        SUBMITTED,
+        PUBLISHED
     }
 }

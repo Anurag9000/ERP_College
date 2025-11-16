@@ -1,5 +1,6 @@
 package main.java.service;
 
+import main.java.data.dao.AssessmentTemplateDao;
 import main.java.models.EnrollmentRecord;
 import main.java.models.Faculty;
 import main.java.models.Section;
@@ -9,6 +10,7 @@ import main.java.utils.AuditLogService;
 import main.java.utils.DatabaseUtil;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
 import java.util.List;
@@ -68,6 +70,61 @@ public final class GradebookService {
         return records.stream()
                 .mapToDouble(EnrollmentRecord::getFinalGrade)
                 .summaryStatistics();
+    }
+
+    public static List<AssessmentTemplateDao.AssessmentTemplate> listTemplates(User instructor, String courseCode) {
+        if (instructor == null) {
+            throw new SecurityException("Missing instructor session.");
+        }
+        return DatabaseUtil.getAssessmentTemplates(courseCode);
+    }
+
+    public static AssessmentTemplateDao.AssessmentTemplate saveTemplate(User instructor,
+                                                                        String courseCode,
+                                                                        String templateName,
+                                                                        Map<String, Double> weights) {
+        if (instructor == null) {
+            throw new SecurityException("Missing instructor session.");
+        }
+        return DatabaseUtil.createAssessmentTemplate(courseCode, templateName, weights, instructor.getUsername());
+    }
+
+    public static void deleteTemplate(User instructor, long templateId) {
+        if (instructor == null) {
+            throw new SecurityException("Missing instructor session.");
+        }
+        DatabaseUtil.deleteAssessmentTemplate(templateId);
+    }
+
+    public static void applyTemplate(User instructor, long templateId, String sectionId) {
+        ensureInstructorAccess(instructor, sectionId);
+        DatabaseUtil.applyAssessmentTemplate(templateId, sectionId);
+    }
+
+    public static Section.GradebookState getGradebookState(User instructor, String sectionId) {
+        ensureInstructorAccess(instructor, sectionId);
+        return DatabaseUtil.getGradebookState(sectionId);
+    }
+
+    public static void updateGradebookState(User instructor, String sectionId, Section.GradebookState state) {
+        ensureInstructorAccess(instructor, sectionId);
+        DatabaseUtil.updateGradebookState(sectionId, state);
+    }
+
+    public static Map<String, String> getFeedback(User instructor, String sectionId, String studentId) {
+        ensureInstructorAccess(instructor, sectionId);
+        return DatabaseUtil.getComponentFeedback(sectionId, studentId);
+    }
+
+    public static void saveFeedback(User instructor, String sectionId, String studentId, Map<String, String> feedback) {
+        ensureInstructorAccess(instructor, sectionId);
+        DatabaseUtil.saveComponentFeedback(sectionId, studentId,
+                feedback == null ? Collections.emptyMap() : feedback);
+    }
+
+    public static void saveFeedback(User instructor, String sectionId, String studentId, String component, String comment) {
+        ensureInstructorAccess(instructor, sectionId);
+        DatabaseUtil.saveComponentFeedbackEntry(sectionId, studentId, component, comment);
     }
 
     private static void ensureInstructorAccess(User instructor, String sectionId) {

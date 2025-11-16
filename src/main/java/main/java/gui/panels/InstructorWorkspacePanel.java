@@ -1,5 +1,6 @@
 package main.java.gui.panels;
 
+import main.java.data.dao.AssessmentTemplateDao;
 import main.java.gui.dialogs.ChangePasswordDialog;
 import main.java.models.EnrollmentRecord;
 import main.java.models.Section;
@@ -37,7 +38,12 @@ public class InstructorWorkspacePanel extends JPanel {
     private final JButton statsButton;
     private final JButton exportCsvButton;
     private final JButton importCsvButton;
+    private final JButton manageTemplatesButton;
+    private final JButton feedbackButton;
     private final JButton changePasswordButton;
+    private final JButton advanceStateButton;
+    private final JComboBox<Section.GradebookState> gradebookStateCombo;
+    private boolean suppressGradebookStateEvents;
 
     public InstructorWorkspacePanel(User instructor) {
         this.instructor = instructor;
@@ -59,6 +65,11 @@ public class InstructorWorkspacePanel extends JPanel {
         statsButton = new JButton("Class Stats");
         exportCsvButton = new JButton("Export Grades CSV");
         importCsvButton = new JButton("Import Grades CSV");
+        manageTemplatesButton = new JButton("Templates");
+        feedbackButton = new JButton("Rubric / Feedback");
+        feedbackButton.setEnabled(false);
+        advanceStateButton = new JButton("Advance State");
+        gradebookStateCombo = new JComboBox<>(Section.GradebookState.values());
         changePasswordButton = new JButton("Change Password");
         changePasswordButton.setBackground(new Color(37, 99, 235).darker());
         changePasswordButton.setForeground(Color.WHITE);
@@ -68,19 +79,30 @@ public class InstructorWorkspacePanel extends JPanel {
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        top.add(new JLabel("Section:"));
-        top.add(sectionCombo);
-        top.add(defineAssessmentsButton);
-        top.add(recordScoreButton);
-        top.add(computeFinalButton);
-        top.add(statsButton);
-        top.add(exportCsvButton);
-        top.add(importCsvButton);
-        top.add(Box.createHorizontalStrut(20));
-        top.add(changePasswordButton);
+        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        row1.add(new JLabel("Section:"));
+        row1.add(sectionCombo);
+        row1.add(new JLabel("Gradebook State:"));
+        row1.add(gradebookStateCombo);
+        row1.add(advanceStateButton);
+        row1.add(manageTemplatesButton);
+        row1.add(changePasswordButton);
 
-        add(top, BorderLayout.NORTH);
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        row2.add(defineAssessmentsButton);
+        row2.add(recordScoreButton);
+        row2.add(feedbackButton);
+        row2.add(computeFinalButton);
+        row2.add(statsButton);
+        row2.add(exportCsvButton);
+        row2.add(importCsvButton);
+
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.add(row1);
+        header.add(row2);
+
+        add(header, BorderLayout.NORTH);
         add(new JScrollPane(rosterTable), BorderLayout.CENTER);
 
         hookListeners();
@@ -96,7 +118,16 @@ public class InstructorWorkspacePanel extends JPanel {
         statsButton.addActionListener(e -> showStats());
         exportCsvButton.addActionListener(e -> exportGradesCsv());
         importCsvButton.addActionListener(e -> importGradesCsv());
+        manageTemplatesButton.addActionListener(e -> openTemplateManager());
+        feedbackButton.addActionListener(e -> openFeedbackDialog());
+        gradebookStateCombo.addActionListener(e -> handleGradebookStateChange());
+        advanceStateButton.addActionListener(e -> advanceGradebookState());
         changePasswordButton.addActionListener(e -> showChangePasswordDialog());
+        rosterTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updateFeedbackButtonState();
+            }
+        });
     }
 
     public void updateMaintenanceState() {
@@ -106,6 +137,10 @@ public class InstructorWorkspacePanel extends JPanel {
         computeFinalButton.setEnabled(!maintenance);
         exportCsvButton.setEnabled(!maintenance);
         importCsvButton.setEnabled(!maintenance);
+        manageTemplatesButton.setEnabled(!maintenance);
+        feedbackButton.setEnabled(!maintenance && rosterTable.getSelectedRow() != -1);
+        gradebookStateCombo.setEnabled(!maintenance);
+        advanceStateButton.setEnabled(!maintenance);
     }
 
     private void refreshSections() {
@@ -132,6 +167,10 @@ public class InstructorWorkspacePanel extends JPanel {
         rosterModel.setRowCount(0);
         Section section = getSelectedSection();
         if (section == null) {
+            suppressGradebookStateEvents = true;
+            gradebookStateCombo.setSelectedItem(Section.GradebookState.DRAFT);
+            suppressGradebookStateEvents = false;
+            updateFeedbackButtonState();
             return;
         }
         java.util.List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForSection(section.getSectionId());
@@ -142,6 +181,8 @@ public class InstructorWorkspacePanel extends JPanel {
                         rec.getStatus(),
                         rec.getFinalGrade()
                 }));
+        refreshGradebookState(section);
+        updateFeedbackButtonState();
     }
 
     private void defineAssessments() {
@@ -185,18 +226,39 @@ public class InstructorWorkspacePanel extends JPanel {
             return;
         }
         String studentId = (String) rosterModel.getValueAt(row, 0);
-        String component = JOptionPane.showInputDialog(this, "Component name:");
-        if (component == null || component.trim().isEmpty()) {
+        JComboBox<String> componentField = new JComboBox<>(section.getAssessmentWeights().keySet().toArray(new String[0]));
+        componentField.setEditable(true);
+        JTextField scoreField = new JTextField();
+        JTextArea feedbackArea = new JTextArea(3, 20);
+        feedbackArea.setLineWrap(true);
+        feedbackArea.setWrapStyleWord(true);
+        JPanel panel = new JPanel(new BorderLayout(6, 6));
+        JPanel form = new JPanel(new GridLayout(0, 1, 4, 4));
+        form.add(new JLabel("Component:"));
+        form.add(componentField);
+        form.add(new JLabel("Score:"));
+        form.add(scoreField);
+        panel.add(form, BorderLayout.NORTH);
+        panel.add(new JScrollPane(feedbackArea), BorderLayout.CENTER);
+        int result = JOptionPane.showConfirmDialog(this, panel, "Record Score",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) {
             return;
         }
-        String scoreInput = JOptionPane.showInputDialog(this, "Score for " + component + ":");
-        if (scoreInput == null || scoreInput.trim().isEmpty()) {
+        Object selectedComponent = componentField.getEditor().getItem();
+        if (selectedComponent == null || selectedComponent.toString().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Component name is required.");
             return;
         }
+        String component = selectedComponent.toString().trim();
         try {
-            double score = Double.parseDouble(scoreInput.trim());
-            GradebookService.recordScore(instructor, section.getSectionId(), studentId, component.trim(), score);
+            double score = Double.parseDouble(scoreField.getText().trim());
+            GradebookService.recordScore(instructor, section.getSectionId(), studentId, component, score);
+            if (!feedbackArea.getText().trim().isEmpty()) {
+                GradebookService.saveFeedback(instructor, section.getSectionId(), studentId, component, feedbackArea.getText().trim());
+            }
             JOptionPane.showMessageDialog(this, "Score saved.");
+            refreshRoster();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -266,14 +328,17 @@ public class InstructorWorkspacePanel extends JPanel {
         File target = chooser.getSelectedFile();
         try (FileWriter writer = new FileWriter(target);
              CSVPrinter printer = new CSVPrinter(writer,
-                     CSVFormat.DEFAULT.withHeader("Student ID", "Component", "Score", "Final Grade"))) {
+                     CSVFormat.DEFAULT.withHeader("Student ID", "Component", "Score", "Final Grade", "Feedback"))) {
             for (EnrollmentRecord record : enrollments) {
                 Map<String, Double> scores = record.getComponentScores();
+                Map<String, String> feedbackMap = record.getComponentFeedback();
                 if (scores.isEmpty()) {
-                    printer.printRecord(record.getStudentId(), "", "", record.getFinalGrade());
+                    String feedback = feedbackMap.getOrDefault("Overall", "");
+                    printer.printRecord(record.getStudentId(), "", "", record.getFinalGrade(), feedback);
                 } else {
                     for (Map.Entry<String, Double> entry : scores.entrySet()) {
-                        printer.printRecord(record.getStudentId(), entry.getKey(), entry.getValue(), record.getFinalGrade());
+                        String feedback = feedbackMap.getOrDefault(entry.getKey(), "");
+                        printer.printRecord(record.getStudentId(), entry.getKey(), entry.getValue(), record.getFinalGrade(), feedback);
                     }
                 }
             }
@@ -315,7 +380,14 @@ public class InstructorWorkspacePanel extends JPanel {
                 }
                 try {
                     double score = Double.parseDouble(scoreRaw.trim());
-                    GradebookService.recordScore(instructor, section.getSectionId(), studentId.trim(), component.trim(), score);
+                    String componentName = component.trim();
+                    GradebookService.recordScore(instructor, section.getSectionId(), studentId.trim(), componentName, score);
+                    if (record.isMapped("Feedback")) {
+                        String feedback = record.get("Feedback");
+                        if (feedback != null && !feedback.trim().isEmpty()) {
+                            GradebookService.saveFeedback(instructor, section.getSectionId(), studentId.trim(), componentName, feedback.trim());
+                        }
+                    }
                     success++;
                 } catch (Exception ex) {
                     failures.add("Row " + record.getRecordNumber() + ": " + ex.getMessage());
@@ -332,4 +404,314 @@ public class InstructorWorkspacePanel extends JPanel {
                     "Import Failed", JOptionPane.ERROR_MESSAGE);
         }
     }
+
+    private void openTemplateManager() {
+        Section section = getSelectedSection();
+        if (section == null) {
+            JOptionPane.showMessageDialog(this, "Select a section first.");
+            return;
+        }
+        TemplateManagerDialog dialog = new TemplateManagerDialog(section);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void openFeedbackDialog() {
+        Section section = getSelectedSection();
+        int row = rosterTable.getSelectedRow();
+        if (section == null || row == -1) {
+            JOptionPane.showMessageDialog(this, "Select a student first.");
+            return;
+        }
+        String studentId = (String) rosterModel.getValueAt(row, 0);
+        FeedbackDialog dialog = new FeedbackDialog(section, studentId);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private Map<String, Double> parseTemplatePayload(String payload) {
+        Map<String, Double> weights = new LinkedHashMap<>();
+        if (payload == null || payload.isBlank()) {
+            return weights;
+        }
+        String[] lines = payload.split("\\n");
+        for (String line : lines) {
+            if (line.isBlank()) {
+                continue;
+            }
+            int idx = line.indexOf('=');
+            if (idx <= 0) {
+                continue;
+            }
+            String component = line.substring(0, idx).trim();
+            String value = line.substring(idx + 1).trim();
+            if (component.isEmpty()) {
+                continue;
+            }
+            try {
+                weights.put(component, Double.parseDouble(value));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return weights;
+    }
+
+    private final class TemplateManagerDialog extends JDialog {
+        private final Section section;
+        private final DefaultListModel<AssessmentTemplateDao.AssessmentTemplate> listModel = new DefaultListModel<>();
+        private final JList<AssessmentTemplateDao.AssessmentTemplate> templateList = new JList<>(listModel);
+        private final JTextArea previewArea = new JTextArea(10, 30);
+
+        TemplateManagerDialog(Section section) {
+            super(SwingUtilities.getWindowAncestor(InstructorWorkspacePanel.this), "Assessment Templates", ModalityType.APPLICATION_MODAL);
+            this.section = section;
+            buildUi();
+            refreshTemplates();
+        }
+
+        private void buildUi() {
+            setLayout(new BorderLayout(10, 10));
+            templateList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            templateList.addListSelectionListener(e -> {
+                if (!e.getValueIsAdjusting()) {
+                    updatePreview();
+                }
+            });
+            previewArea.setEditable(false);
+            previewArea.setLineWrap(true);
+            previewArea.setWrapStyleWord(true);
+
+            JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+            JButton saveButton = new JButton("Save Current");
+            JButton applyButton = new JButton("Apply to Section");
+            JButton deleteButton = new JButton("Delete");
+            actions.add(saveButton);
+            actions.add(applyButton);
+            actions.add(deleteButton);
+
+            saveButton.addActionListener(e -> saveCurrentTemplate());
+            applyButton.addActionListener(e -> applySelectedTemplate());
+            deleteButton.addActionListener(e -> deleteSelectedTemplate());
+
+            add(new JScrollPane(templateList), BorderLayout.WEST);
+            add(new JScrollPane(previewArea), BorderLayout.CENTER);
+            add(actions, BorderLayout.SOUTH);
+            setSize(640, 360);
+        }
+
+        private void refreshTemplates() {
+            listModel.clear();
+            List<AssessmentTemplateDao.AssessmentTemplate> templates =
+                    GradebookService.listTemplates(instructor, section.getCourseId());
+            for (AssessmentTemplateDao.AssessmentTemplate template : templates) {
+                listModel.addElement(template);
+            }
+            updatePreview();
+        }
+
+        private void updatePreview() {
+            AssessmentTemplateDao.AssessmentTemplate template = templateList.getSelectedValue();
+            if (template == null) {
+                previewArea.setText("Select a template to view details.");
+                return;
+            }
+            Map<String, Double> weights = parseTemplatePayload(template.weightsJson());
+            StringBuilder builder = new StringBuilder("Template: ")
+                    .append(template.templateName())
+                    .append("\nComponents:\n");
+            weights.forEach((component, weight) ->
+                    builder.append(" • ").append(component).append(" = ").append(weight).append("\n"));
+            previewArea.setText(builder.toString());
+            previewArea.setCaretPosition(0);
+        }
+
+        private void saveCurrentTemplate() {
+            Map<String, Double> weights = new LinkedHashMap<>(section.getAssessmentWeights());
+            if (weights.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Define assessments for this section before saving a template.");
+                return;
+            }
+            String name = JOptionPane.showInputDialog(this, "Template name:");
+            if (name == null || name.trim().isEmpty()) {
+                return;
+            }
+            try {
+                GradebookService.saveTemplate(instructor, section.getCourseId(), name.trim(), weights);
+                refreshTemplates();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to save template", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+
+        private void applySelectedTemplate() {
+            AssessmentTemplateDao.AssessmentTemplate template = templateList.getSelectedValue();
+            if (template == null) {
+                JOptionPane.showMessageDialog(this, "Select a template first.");
+                return;
+            }
+            try {
+                GradebookService.applyTemplate(instructor, template.id(), section.getSectionId());
+                JOptionPane.showMessageDialog(this, "Template applied to section.");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to apply template", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+
+        private void deleteSelectedTemplate() {
+            AssessmentTemplateDao.AssessmentTemplate template = templateList.getSelectedValue();
+            if (template == null) {
+                return;
+            }
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Delete template \"" + template.templateName() + "\"?",
+                    "Delete Template", JOptionPane.YES_NO_OPTION);
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+            try {
+                GradebookService.deleteTemplate(instructor, template.id());
+                refreshTemplates();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to delete template", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private final class FeedbackDialog extends JDialog {
+        private final Section section;
+        private final String studentId;
+        private final Map<String, JTextArea> editors = new LinkedHashMap<>();
+
+        FeedbackDialog(Section section, String studentId) {
+            super(SwingUtilities.getWindowAncestor(InstructorWorkspacePanel.this), "Feedback for " + studentId, ModalityType.APPLICATION_MODAL);
+            this.section = section;
+            this.studentId = studentId;
+            buildUi();
+        }
+
+        private void buildUi() {
+            setLayout(new BorderLayout(10, 10));
+            JPanel listPanel = new JPanel();
+            listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+
+            Set<String> components = new LinkedHashSet<>(section.getAssessmentWeights().keySet());
+            EnrollmentRecord enrollment = DatabaseUtil.getEnrollmentsForSection(section.getSectionId()).stream()
+                    .filter(rec -> rec.getStudentId().equals(studentId))
+                    .findFirst()
+                    .orElse(null);
+            if (enrollment != null) {
+                components.addAll(enrollment.getComponentScores().keySet());
+            }
+            if (components.isEmpty()) {
+                components.add("Overall");
+            }
+
+            Map<String, String> existingFeedback = GradebookService.getFeedback(instructor, section.getSectionId(), studentId);
+            for (String component : components) {
+                JLabel label = new JLabel(component);
+                label.setAlignmentX(Component.LEFT_ALIGNMENT);
+                JTextArea area = new JTextArea(3, 30);
+                area.setLineWrap(true);
+                area.setWrapStyleWord(true);
+                area.setText(existingFeedback.getOrDefault(component, ""));
+                editors.put(component, area);
+
+                JPanel entry = new JPanel();
+                entry.setLayout(new BoxLayout(entry, BoxLayout.Y_AXIS));
+                entry.setAlignmentX(Component.LEFT_ALIGNMENT);
+                entry.add(label);
+                entry.add(Box.createVerticalStrut(4));
+                entry.add(new JScrollPane(area));
+                entry.add(Box.createVerticalStrut(10));
+                listPanel.add(entry);
+            }
+
+            JButton saveButton = new JButton("Save");
+            saveButton.addActionListener(e -> saveFeedback());
+            add(new JScrollPane(listPanel), BorderLayout.CENTER);
+            add(saveButton, BorderLayout.SOUTH);
+            pack();
+        }
+
+        private void saveFeedback() {
+            Map<String, String> payload = new LinkedHashMap<>();
+            editors.forEach((component, area) -> {
+                String text = area.getText().trim();
+                if (!text.isEmpty()) {
+                    payload.put(component, text);
+                }
+            });
+            try {
+                GradebookService.saveFeedback(instructor, section.getSectionId(), studentId, payload);
+                JOptionPane.showMessageDialog(this, "Feedback saved.");
+                dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to save feedback", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
 }
+    private void refreshGradebookState(Section section) {
+        suppressGradebookStateEvents = true;
+        try {
+            Section.GradebookState state = GradebookService.getGradebookState(instructor, section.getSectionId());
+            gradebookStateCombo.setSelectedItem(state);
+        } catch (Exception ex) {
+            gradebookStateCombo.setSelectedItem(Section.GradebookState.DRAFT);
+        } finally {
+            suppressGradebookStateEvents = false;
+        }
+    }
+
+    private void handleGradebookStateChange() {
+        if (suppressGradebookStateEvents) {
+            return;
+        }
+        Section section = getSelectedSection();
+        if (section == null) {
+            return;
+        }
+        Section.GradebookState selected = (Section.GradebookState) gradebookStateCombo.getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        try {
+            GradebookService.updateGradebookState(instructor, section.getSectionId(), selected);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update state", JOptionPane.ERROR_MESSAGE);
+            refreshGradebookState(section);
+        }
+    }
+
+    private void advanceGradebookState() {
+        Section section = getSelectedSection();
+        if (section == null) {
+            JOptionPane.showMessageDialog(this, "Select a section first.");
+            return;
+        }
+        Section.GradebookState current = (Section.GradebookState) gradebookStateCombo.getSelectedItem();
+        Section.GradebookState next = nextState(current);
+        try {
+            GradebookService.updateGradebookState(instructor, section.getSectionId(), next);
+            refreshGradebookState(section);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to advance state", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private Section.GradebookState nextState(Section.GradebookState current) {
+        if (current == null) {
+            return Section.GradebookState.DRAFT;
+        }
+        return switch (current) {
+            case DRAFT -> Section.GradebookState.SUBMITTED;
+            case SUBMITTED -> Section.GradebookState.PUBLISHED;
+            default -> Section.GradebookState.PUBLISHED;
+        };
+    }
+
+    private void updateFeedbackButtonState() {
+        boolean hasSelection = rosterTable.getSelectedRow() != -1;
+        boolean maintenance = DatabaseUtil.isMaintenanceMode();
+        feedbackButton.setEnabled(hasSelection && !maintenance);
+    }
