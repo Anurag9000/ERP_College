@@ -1,16 +1,24 @@
 package main.java.gui.panels;
 
+import main.java.gui.dialogs.ChangePasswordDialog;
 import main.java.models.EnrollmentRecord;
 import main.java.models.Section;
 import main.java.models.User;
 import main.java.service.GradebookService;
 import main.java.service.InstructorService;
 import main.java.utils.DatabaseUtil;
-import main.java.gui.dialogs.ChangePasswordDialog;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.CSVRecord;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.nio.file.Files;
 import java.util.*;
 
 /**
@@ -27,6 +35,8 @@ public class InstructorWorkspacePanel extends JPanel {
     private final JButton recordScoreButton;
     private final JButton computeFinalButton;
     private final JButton statsButton;
+    private final JButton exportCsvButton;
+    private final JButton importCsvButton;
     private final JButton changePasswordButton;
 
     public InstructorWorkspacePanel(User instructor) {
@@ -47,6 +57,8 @@ public class InstructorWorkspacePanel extends JPanel {
         recordScoreButton = new JButton("Record Score");
         computeFinalButton = new JButton("Compute Final Grade");
         statsButton = new JButton("Class Stats");
+        exportCsvButton = new JButton("Export Grades CSV");
+        importCsvButton = new JButton("Import Grades CSV");
         changePasswordButton = new JButton("Change Password");
         changePasswordButton.setBackground(new Color(37, 99, 235).darker());
         changePasswordButton.setForeground(Color.WHITE);
@@ -63,6 +75,8 @@ public class InstructorWorkspacePanel extends JPanel {
         top.add(recordScoreButton);
         top.add(computeFinalButton);
         top.add(statsButton);
+        top.add(exportCsvButton);
+        top.add(importCsvButton);
         top.add(Box.createHorizontalStrut(20));
         top.add(changePasswordButton);
 
@@ -80,6 +94,8 @@ public class InstructorWorkspacePanel extends JPanel {
         recordScoreButton.addActionListener(e -> recordScore());
         computeFinalButton.addActionListener(e -> computeFinal());
         statsButton.addActionListener(e -> showStats());
+        exportCsvButton.addActionListener(e -> exportGradesCsv());
+        importCsvButton.addActionListener(e -> importGradesCsv());
         changePasswordButton.addActionListener(e -> showChangePasswordDialog());
     }
 
@@ -88,6 +104,8 @@ public class InstructorWorkspacePanel extends JPanel {
         defineAssessmentsButton.setEnabled(!maintenance);
         recordScoreButton.setEnabled(!maintenance);
         computeFinalButton.setEnabled(!maintenance);
+        exportCsvButton.setEnabled(!maintenance);
+        importCsvButton.setEnabled(!maintenance);
     }
 
     private void refreshSections() {
@@ -224,6 +242,94 @@ public class InstructorWorkspacePanel extends JPanel {
                             stats.getCount(), stats.getAverage(), stats.getMax(), stats.getMin()));
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void exportGradesCsv() {
+        Section section = getSelectedSection();
+        if (section == null) {
+            JOptionPane.showMessageDialog(this, "No section selected.");
+            return;
+        }
+        java.util.List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForSection(section.getSectionId());
+        if (enrollments.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No enrollments to export.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new File(section.getSectionId() + "_grades.csv"));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File target = chooser.getSelectedFile();
+        try (FileWriter writer = new FileWriter(target);
+             CSVPrinter printer = new CSVPrinter(writer,
+                     CSVFormat.DEFAULT.withHeader("Student ID", "Component", "Score", "Final Grade"))) {
+            for (EnrollmentRecord record : enrollments) {
+                Map<String, Double> scores = record.getComponentScores();
+                if (scores.isEmpty()) {
+                    printer.printRecord(record.getStudentId(), "", "", record.getFinalGrade());
+                } else {
+                    for (Map.Entry<String, Double> entry : scores.entrySet()) {
+                        printer.printRecord(record.getStudentId(), entry.getKey(), entry.getValue(), record.getFinalGrade());
+                    }
+                }
+            }
+            JOptionPane.showMessageDialog(this, "Grades exported to " + target.getAbsolutePath());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to export grades: " + ex.getMessage(),
+                    "Export Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void importGradesCsv() {
+        Section section = getSelectedSection();
+        if (section == null) {
+            JOptionPane.showMessageDialog(this, "No section selected.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File source = chooser.getSelectedFile();
+        int success = 0;
+        java.util.List<String> failures = new ArrayList<>();
+        try (CSVParser parser = CSVFormat.DEFAULT
+                .withFirstRecordAsHeader()
+                .withTrim()
+                .parse(new FileReader(source))) {
+            for (CSVRecord record : parser) {
+                String studentId = record.get("Student ID");
+                String component = record.get("Component");
+                String scoreRaw = record.get("Score");
+                if (studentId == null || studentId.isBlank()
+                        || component == null || component.isBlank()
+                        || scoreRaw == null || scoreRaw.isBlank()) {
+                    failures.add("Missing fields on row " + record.getRecordNumber());
+                    continue;
+                }
+                try {
+                    double score = Double.parseDouble(scoreRaw.trim());
+                    GradebookService.recordScore(instructor, section.getSectionId(), studentId.trim(), component.trim(), score);
+                    success++;
+                } catch (Exception ex) {
+                    failures.add("Row " + record.getRecordNumber() + ": " + ex.getMessage());
+                }
+            }
+            refreshRoster();
+            StringBuilder summary = new StringBuilder("Imported " + success + " rows.");
+            if (!failures.isEmpty()) {
+                summary.append("\nIssues:\n").append(String.join("\n", failures));
+            }
+            JOptionPane.showMessageDialog(this, summary.toString());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to import grades: " + ex.getMessage(),
+                    "Import Failed", JOptionPane.ERROR_MESSAGE);
         }
     }
 }
