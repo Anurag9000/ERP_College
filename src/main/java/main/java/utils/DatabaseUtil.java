@@ -612,13 +612,13 @@ public class DatabaseUtil {
     public static void addCourse(Course course) {
         courseDao.insert(course);
         courses.put(course.getCourseId(), course);
-        coursePrerequisiteCache.remove(course.getCourseId());
+        clearCourseRelationshipCaches(course.getCourseId());
     }
 
     public static void updateCourse(Course course) {
         courseDao.update(course);
         courses.put(course.getCourseId(), course);
-        coursePrerequisiteCache.remove(course.getCourseId());
+        clearCourseRelationshipCaches(course.getCourseId());
     }
 
     public static void deleteCourse(String courseId) {
@@ -761,6 +761,16 @@ public class DatabaseUtil {
         List<String> missingPrereqs = getMissingPrerequisites(studentId, section.getCourseId());
         if (!missingPrereqs.isEmpty()) {
             throw new IllegalStateException("Missing prerequisite(s): " + String.join(", ", missingPrereqs));
+        }
+
+        List<String> missingCoreqs = getMissingCorequisites(studentId, section.getCourseId());
+        if (!missingCoreqs.isEmpty()) {
+            throw new IllegalStateException("Missing co-requisite(s): " + String.join(", ", missingCoreqs));
+        }
+
+        List<String> conflicts = getAntirequisiteConflicts(studentId, section.getCourseId());
+        if (!conflicts.isEmpty()) {
+            throw new IllegalStateException("Conflicts with anti-requisite(s): " + String.join(", ", conflicts));
         }
 
         List<EnrollmentRecord> existing = enrollmentDao.findBySection(sectionId);
@@ -1093,6 +1103,20 @@ public class DatabaseUtil {
         return coursePrerequisiteCache.computeIfAbsent(courseId, coursePrerequisiteDao::findPrerequisites);
     }
 
+    public static List<String> getCourseCorequisites(String courseId) {
+        if (courseId == null) {
+            return Collections.emptyList();
+        }
+        return courseCorequisiteCache.computeIfAbsent(courseId, courseRelationshipDao::findCorequisites);
+    }
+
+    public static List<String> getCourseAntirequisites(String courseId) {
+        if (courseId == null) {
+            return Collections.emptyList();
+        }
+        return courseAntirequisiteCache.computeIfAbsent(courseId, courseRelationshipDao::findAntirequisites);
+    }
+
     public static Set<String> getCompletedCourseIds(String studentId) {
         if (studentId == null) {
             return Collections.emptySet();
@@ -1141,6 +1165,38 @@ public class DatabaseUtil {
             }
         }
         return missing;
+    }
+
+    public static List<String> getMissingCorequisites(String studentId, String courseId) {
+        List<String> coreqs = getCourseCorequisites(courseId);
+        if (coreqs.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<String> completed = getCompletedCourseIds(studentId);
+        Set<String> active = getActiveCourseIds(studentId);
+        List<String> missing = new ArrayList<>();
+        for (String coreq : coreqs) {
+            if (!completed.contains(coreq) && !active.contains(coreq)) {
+                missing.add(coreq);
+            }
+        }
+        return missing;
+    }
+
+    public static List<String> getAntirequisiteConflicts(String studentId, String courseId) {
+        List<String> antireqs = getCourseAntirequisites(courseId);
+        if (antireqs.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<String> completed = getCompletedCourseIds(studentId);
+        Set<String> active = getActiveCourseIds(studentId);
+        List<String> conflicts = new ArrayList<>();
+        for (String antireq : antireqs) {
+            if (completed.contains(antireq) || active.contains(antireq)) {
+                conflicts.add(antireq);
+            }
+        }
+        return conflicts;
     }
 
     public static int getCourseCreditHours(String courseId) {
@@ -1278,6 +1334,12 @@ public class DatabaseUtil {
         for (Course course : courseDao.findAll()) {
             courses.put(course.getCourseId(), course);
         }
+    }
+
+    private static void clearCourseRelationshipCaches(String courseId) {
+        coursePrerequisiteCache.remove(courseId);
+        courseCorequisiteCache.remove(courseId);
+        courseAntirequisiteCache.remove(courseId);
     }
 
     private static void refreshInstructorCache() {

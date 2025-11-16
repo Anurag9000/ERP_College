@@ -1095,6 +1095,18 @@ public class StudentSelfServicePanel extends JPanel {
                 canRegister = false;
             }
 
+            List<String> missingCoreqs = DatabaseUtil.getMissingCorequisites(studentProfile.getStudentId(), section.getCourseId());
+            if (!missingCoreqs.isEmpty()) {
+                warnings.add("Missing co-requisites: " + String.join(", ", missingCoreqs));
+                canRegister = false;
+            }
+
+            List<String> conflicts = DatabaseUtil.getAntirequisiteConflicts(studentProfile.getStudentId(), section.getCourseId());
+            if (!conflicts.isEmpty()) {
+                warnings.add("Conflicts with anti-requisites: " + String.join(", ", conflicts));
+                canRegister = false;
+            }
+
             int projectedCredits = calculateProjectedCredits(section);
             if (projectedCredits > DatabaseUtil.getMaxTermCredits()) {
                 warnings.add("Credit load would exceed " + DatabaseUtil.getMaxTermCredits() + " hours.");
