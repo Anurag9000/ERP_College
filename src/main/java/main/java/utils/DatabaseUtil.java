@@ -14,6 +14,7 @@ import main.java.data.dao.CoursePrerequisiteDao;
 import main.java.data.dao.CourseRelationshipDao;
 import main.java.data.dao.PaymentTransactionDao;
 import main.java.data.dao.FeeInstallmentDao;
+import main.java.data.dao.FeeScheduleTemplateDao;
 import main.java.data.dao.RegistrationRequestDao;
 import main.java.data.migration.LegacyDataMigrator;
 import main.java.utils.PasswordPolicy;
@@ -68,6 +69,7 @@ public class DatabaseUtil {
     private static final PaymentTransactionDao paymentTransactionDao = new PaymentTransactionDao();
     private static final FeeInstallmentDao feeInstallmentDao = new FeeInstallmentDao();
     private static final RegistrationRequestDao registrationRequestDao = new RegistrationRequestDao();
+    private static final FeeScheduleTemplateDao feeScheduleTemplateDao = new FeeScheduleTemplateDao();
 
     private static final Map<String, List<String>> coursePrerequisiteCache = new ConcurrentHashMap<>();
     private static final Map<String, List<String>> courseCorequisiteCache = new ConcurrentHashMap<>();
