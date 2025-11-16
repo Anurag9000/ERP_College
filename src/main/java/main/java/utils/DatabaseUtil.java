@@ -1475,6 +1475,56 @@ public class DatabaseUtil {
             }
         }
     }
+
+    public static List<TermGpa> getStudentGpaHistory(String studentId) {
+        Map<TermKey, List<Double>> gradesByTerm = new HashMap<>();
+        for (EnrollmentRecord record : enrollmentDao.findByStudent(studentId)) {
+            if (record.getFinalGrade() <= 0) {
+                continue;
+            }
+            Section section = getSection(record.getSectionId());
+            if (section == null) {
+                continue;
+            }
+            TermKey key = new TermKey(section.getYear(), section.getSemester());
+            gradesByTerm.computeIfAbsent(key, k -> new ArrayList<>()).add(record.getFinalGrade());
+        }
+        return gradesByTerm.entrySet().stream()
+                .sorted(Comparator.comparingInt(e -> e.getKey().orderValue()))
+                .map(entry -> {
+                    double avg = entry.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+                    double gpa = Math.min(4.0, Math.max(0.0, (avg / 100.0) * 4.0));
+                    boolean probation = gpa < 2.0;
+                    return new TermGpa(entry.getKey().label(), gpa, probation);
+                })
+                .collect(Collectors.toList());
+    }
+
+    private record TermKey(int year, String semester) {
+        String label() {
+            return (semester == null ? "Unknown" : semester) + " " + year;
+        }
+
+        int orderValue() {
+            return year * 10 + semesterOrder(semester);
+        }
+
+        private int semesterOrder(String semester) {
+            if (semester == null) {
+                return 0;
+            }
+            return switch (semester.toLowerCase(Locale.ENGLISH)) {
+                case "spring" -> 1;
+                case "summer" -> 2;
+                case "fall" -> 3;
+                case "winter" -> 0;
+                default -> 5;
+            };
+        }
+    }
+
+    public record TermGpa(String termLabel, double gpa, boolean probation) {
+    }
 }
 
 

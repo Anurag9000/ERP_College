@@ -87,6 +87,7 @@ public class StudentSelfServicePanel extends JPanel {
     private final JLabel financeNextDueLabel;
     private final JLabel catalogAdvisoryLabel;
     private final JLabel gradeAnalyticsLabel;
+    private final GpaChartPanel gpaChartPanel;
     private final JButton transcriptPdfButton;
     private final JButton exportSchedulePdfButton;
     private final JButton changePasswordButton;
@@ -242,6 +243,7 @@ public class StudentSelfServicePanel extends JPanel {
         catalogAdvisoryLabel.setForeground(new Color(220, 38, 38));
         gradeAnalyticsLabel = new JLabel(" ");
         gradeAnalyticsLabel.setForeground(new Color(71, 85, 105));
+        gpaChartPanel = new GpaChartPanel();
         currentGradeRiskCourses = new ArrayList<>();
 
         setLayout(new BorderLayout());
@@ -346,6 +348,12 @@ public class StudentSelfServicePanel extends JPanel {
         metricsRow.add(buildMetricPanel("Standing", standingLabel));
 
         wrapper.add(metricsRow, BorderLayout.NORTH);
+
+        JPanel chartWrapper = new JPanel(new BorderLayout());
+        chartWrapper.setOpaque(false);
+        chartWrapper.setBorder(BorderFactory.createTitledBorder("GPA Trend"));
+        chartWrapper.add(gpaChartPanel, BorderLayout.CENTER);
+        wrapper.add(chartWrapper, BorderLayout.CENTER);
 
         standingAlertLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         JPanel alertRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 4));
@@ -526,6 +534,7 @@ public class StudentSelfServicePanel extends JPanel {
             updateFinanceSummary();
             populateFinanceTables();
             populateNotifications();
+            updateGpaHistory();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Profile not found", JOptionPane.ERROR_MESSAGE);
             this.studentProfile = null;
@@ -542,6 +551,7 @@ public class StudentSelfServicePanel extends JPanel {
             unreadOnlyCheck.setSelected(false);
             updateNotificationActions();
             updateActionButtons();
+            updateGpaHistory();
         }
     }
 
@@ -554,6 +564,7 @@ public class StudentSelfServicePanel extends JPanel {
         updateFinanceSummary();
         populateFinanceTables();
         populateNotifications();
+        updateGpaHistory();
     }
 
     public void refreshForMaintenance() {
@@ -1012,6 +1023,21 @@ public class StudentSelfServicePanel extends JPanel {
         } else {
             standingAlertLabel.setText("");
             standingAlertLabel.setVisible(false);
+        }
+    }
+
+    private void updateGpaHistory() {
+        List<DatabaseUtil.TermGpa> history = studentProfile == null
+                ? Collections.emptyList()
+                : DatabaseUtil.getStudentGpaHistory(studentProfile.getStudentId());
+        gpaChartPanel.setHistory(history);
+        if (history.isEmpty()) {
+            return;
+        }
+        DatabaseUtil.TermGpa latest = history.get(history.size() - 1);
+        if (latest.probation()) {
+            standingAlertLabel.setText(String.format("Probation risk: %s GPA %.2f", latest.termLabel(), latest.gpa()));
+            standingAlertLabel.setVisible(true);
         }
     }
 
@@ -1578,6 +1604,68 @@ public class StudentSelfServicePanel extends JPanel {
                 .replace(",", "\\,")
                 .replace(";", "\\;")
                 .replace("\n", "\\n");
+    }
+
+    private static final class GpaChartPanel extends JPanel {
+        private List<DatabaseUtil.TermGpa> history = Collections.emptyList();
+
+        GpaChartPanel() {
+            setPreferredSize(new Dimension(0, 140));
+        }
+
+        void setHistory(List<DatabaseUtil.TermGpa> history) {
+            this.history = history == null ? Collections.emptyList() : history;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int width = getWidth();
+            int height = getHeight();
+            g2.setColor(Color.WHITE);
+            g2.fillRect(0, 0, width, height);
+            g2.setColor(new Color(226, 232, 240));
+            g2.drawRect(0, 0, width - 1, height - 1);
+            if (history.isEmpty()) {
+                g2.setColor(Color.DARK_GRAY);
+                g2.drawString("No GPA history yet.", 10, height / 2);
+                g2.dispose();
+                return;
+            }
+            int padding = 30;
+            int chartWidth = width - padding * 2;
+            int chartHeight = height - padding * 2;
+            int originX = padding;
+            int originY = height - padding;
+            g2.setColor(new Color(148, 163, 184));
+            g2.drawLine(originX, originY, originX + chartWidth, originY);
+            g2.drawLine(originX, originY, originX, originY - chartHeight);
+
+            int points = history.size();
+            double stepX = points > 1 ? chartWidth / (double) (points - 1) : chartWidth;
+
+            int prevX = -1;
+            int prevY = -1;
+            for (int i = 0; i < points; i++) {
+                DatabaseUtil.TermGpa term = history.get(i);
+                double normalized = term.gpa() / 4.0;
+                int x = originX + (int) Math.round(i * stepX);
+                int y = originY - (int) Math.round(normalized * chartHeight);
+                g2.setColor(new Color(59, 130, 246));
+                if (prevX != -1) {
+                    g2.drawLine(prevX, prevY, x, y);
+                }
+                g2.fillOval(x - 3, y - 3, 6, 6);
+                g2.setColor(Color.DARK_GRAY);
+                g2.drawString(term.termLabel(), x - 20, originY + 15);
+                prevX = x;
+                prevY = y;
+            }
+            g2.dispose();
+        }
     }
 }
 

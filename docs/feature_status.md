@@ -1,5 +1,3 @@
-- [ ] Registration workflow enhancements:
-- [ ] GPA/standing analytics with historical trend graphs and probation alerts.
 - [ ] Transcript watermarking, certificate downloads, registrar messaging workflow.
 - [ ] Fee schedule configuration UI, installment visualization for students, polished reminder messaging.
 - [ ] Notification inbox upgrades (category filters tied to maintenance/system broadcasts).
