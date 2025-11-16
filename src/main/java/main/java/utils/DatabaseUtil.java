@@ -299,7 +299,7 @@ public class DatabaseUtil {
         enrollmentDao.insert(er2);
         EnrollmentRecord er3 = new EnrollmentRecord(s2.getStudentId(), sec2.getSectionId(), EnrollmentRecord.Status.WAITLISTED);
         enrollmentDao.insert(er3);
-        waitlistDao.insert(sec2.getSectionId(), s2.getStudentId(), 1);
+        waitlistDao.insert(sec2.getSectionId(), s2.getStudentId(), 1, true);
 
         // Seed welcome notifications
         addNotification(new NotificationMessage(
@@ -746,7 +746,9 @@ public class DatabaseUtil {
         return registerStudentToSection(null, studentId, sectionId);
     }
 
-    public static synchronized EnrollmentRecord registerStudentToSection(String performedBy, String studentId, String sectionId) {
+    public static synchronized EnrollmentRecord registerStudentToSection(User actor, String studentId, String sectionId) {
+        String performedBy = actor == null ? null : actor.getUsername();
+        boolean autoApproved = actor != null && !"Student".equalsIgnoreCase(actor.getRole());
         Section section = getSection(sectionId);
         if (section == null) {
             throw new IllegalArgumentException("Section not found");
@@ -804,19 +806,23 @@ public class DatabaseUtil {
                     "Registration"));
             refreshStudentEnrollmentMetrics(studentId);
         } else {
-            int position = waitlistDao.findWaitlist(sectionId).size() + 1;
-            waitlistDao.insert(sectionId, studentId, position);
+            int position = waitlistDao.findEntries(sectionId).size() + 1;
+            waitlistDao.insert(sectionId, studentId, position, autoApproved);
+            String approvalText = autoApproved
+                    ? "You are approved and will be auto-enrolled when a seat opens."
+                    : "Advisor approval is required before you can be auto-enrolled.";
             addNotification(new NotificationMessage(
                     NotificationMessage.Audience.STUDENT,
                     studentId,
-                    "Section " + section.getTitle() + " is full. You are #" + position + " on the waitlist.",
+                    "Section " + section.getTitle() + " is full. You are #"
+                            + position + " on the waitlist. " + approvalText,
                     "Registration"));
         }
 
         refreshSectionCache();
 
-        String actor = performedBy == null ? "system" : performedBy;
-        AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE, actor,
+        String actorName = performedBy == null ? "system" : performedBy;
+        AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE, actorName,
                 String.format("Registered %s in %s (%s)", studentId, section.getTitle(), record.getStatus()));
         return record;
     }
@@ -890,52 +896,15 @@ public class DatabaseUtil {
 
         String promotedStudent = null;
         if (previousStatus == EnrollmentRecord.Status.ENROLLED) {
-            int courseCredits = getCourseCreditHours(section.getCourseId());
-            List<String> waitlist = new ArrayList<>(waitlistDao.findWaitlist(sectionId));
-            for (String candidate : waitlist) {
-                int candidateCredits = calculateEnrolledCredits(candidate);
-                if (candidateCredits + courseCredits <= MAX_TERM_CREDITS) {
-                    promotedStudent = candidate;
-                    waitlistDao.delete(sectionId, promotedStudent);
-                    EnrollmentRecord promotedRecord = sectionEnrollments.stream()
-                            .filter(rec -> rec.getStudentId().equals(promotedStudent))
-                            .findFirst()
-                            .orElse(null);
-                    if (promotedRecord != null) {
-                        promotedRecord.setStatus(EnrollmentRecord.Status.ENROLLED);
-                        enrollmentDao.updateStatus(promotedRecord);
-                    }
-                    addNotification(new NotificationMessage(
-                            NotificationMessage.Audience.STUDENT,
-                            promotedStudent,
-                            "Great news! A seat opened up in " + section.getTitle() + " and you are now enrolled.",
-                            "Registration"));
-                    break;
-                } else {
-                    waitlistDao.delete(sectionId, candidate);
-                    EnrollmentRecord candidateRecord = sectionEnrollments.stream()
-                            .filter(rec -> rec.getStudentId().equals(candidate))
-                            .findFirst()
-                            .orElse(null);
-                    if (candidateRecord != null) {
-                        candidateRecord.setStatus(EnrollmentRecord.Status.DROPPED);
-                        enrollmentDao.updateStatus(candidateRecord);
-                    }
-                    addNotification(new NotificationMessage(
-                            NotificationMessage.Audience.STUDENT,
-                            candidate,
-                            "A seat opened in " + section.getTitle()
-                                    + " but your current credit load exceeds the limit (" + MAX_TERM_CREDITS + ").",
-                            "Registration"));
-                }
-            }
-
-            if (promotedStudent == null) {
+            boolean promoted = promoteApprovedWaitlistedIfPossible(section, sectionEnrollments);
+            if (!promoted) {
                 Course course = getCourse(section.getCourseId());
                 if (course != null) {
                     course.setAvailableSeats(Math.min(course.getTotalSeats(), course.getAvailableSeats() + 1));
                     updateCourse(course);
                 }
+            } else {
+                promotedStudent = "auto";
             }
         }
 
@@ -947,14 +916,70 @@ public class DatabaseUtil {
 
         refreshSectionCache();
         refreshStudentEnrollmentMetrics(studentId);
-        if (promotedStudent != null) {
-            refreshStudentEnrollmentMetrics(promotedStudent);
-        }
-
+        refreshSectionCache();
+        refreshStudentEnrollmentMetrics(studentId);
         String actor = performedBy == null ? "system" : performedBy;
         AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE, actor,
-                String.format("Dropped %s from %s (promoted: %s)", studentId, section.getTitle(),
-                        promotedStudent == null ? "none" : promotedStudent));
+                String.format("Dropped %s from %s", studentId, section.getTitle()));
+    }
+
+    private static boolean promoteApprovedWaitlistedIfPossible(Section section, List<EnrollmentRecord> sectionEnrollments) {
+        List<WaitlistDao.WaitlistEntry> waitlist = waitlistDao.findEntries(section.getSectionId());
+        if (waitlist.isEmpty()) {
+            return false;
+        }
+        long enrolledCount = sectionEnrollments.stream()
+                .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .count();
+        if (enrolledCount >= section.getCapacity()) {
+            return false;
+        }
+        int courseCredits = getCourseCreditHours(section.getCourseId());
+        for (WaitlistDao.WaitlistEntry entry : waitlist) {
+            if (!entry.advisorApproved()) {
+                continue;
+            }
+            String candidate = entry.studentCode();
+            int candidateCredits = calculateEnrolledCredits(candidate);
+            if (candidateCredits + courseCredits <= MAX_TERM_CREDITS) {
+                waitlistDao.delete(section.getSectionId(), candidate);
+                EnrollmentRecord promotedRecord = sectionEnrollments.stream()
+                        .filter(rec -> rec.getStudentId().equals(candidate))
+                        .findFirst()
+                        .orElse(null);
+                if (promotedRecord != null) {
+                    promotedRecord.setStatus(EnrollmentRecord.Status.ENROLLED);
+                    enrollmentDao.updateStatus(promotedRecord);
+                }
+                addNotification(new NotificationMessage(
+                        NotificationMessage.Audience.STUDENT,
+                        candidate,
+                        "Great news! A seat opened up in " + section.getTitle() + " and you are now enrolled.",
+                        "Registration"));
+                refreshStudentEnrollmentMetrics(candidate);
+                AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE,
+                        "system",
+                        String.format("Auto-promoted %s into %s from waitlist", candidate, section.getSectionId()));
+                return true;
+            } else {
+                waitlistDao.delete(section.getSectionId(), candidate);
+                EnrollmentRecord candidateRecord = sectionEnrollments.stream()
+                        .filter(rec -> rec.getStudentId().equals(candidate))
+                        .findFirst()
+                        .orElse(null);
+                if (candidateRecord != null) {
+                    candidateRecord.setStatus(EnrollmentRecord.Status.DROPPED);
+                    enrollmentDao.updateStatus(candidateRecord);
+                }
+                addNotification(new NotificationMessage(
+                        NotificationMessage.Audience.STUDENT,
+                        candidate,
+                        "A seat opened in " + section.getTitle()
+                                + " but your current credit load exceeds the limit (" + MAX_TERM_CREDITS + ").",
+                        "Registration"));
+            }
+        }
+        return false;
     }
 
     public static List<Section> getScheduleForStudent(String studentId) {
@@ -1003,6 +1028,62 @@ public class DatabaseUtil {
                         Section::getCourseId,
                         Collectors.summingLong(sec -> sec.getWaitlistedStudentIds().size())
                 ));
+    }
+
+    public static List<WaitlistDao.WaitlistEntry> getWaitlistEntries(String sectionId) {
+        return waitlistDao.findEntries(sectionId);
+    }
+
+    public static List<WaitlistSnapshot> getWaitlistSnapshot(String sectionId) {
+        List<WaitlistSnapshot> snapshot = new ArrayList<>();
+        for (WaitlistDao.WaitlistEntry entry : waitlistDao.findEntries(sectionId)) {
+            Student student = getStudent(entry.studentCode());
+            String name = student != null ? student.getFullName() : entry.studentCode();
+            snapshot.add(new WaitlistSnapshot(entry.studentCode(), name, entry.position(), entry.advisorApproved()));
+        }
+        return snapshot;
+    }
+
+    public static boolean isWaitlistApproved(String studentId, String sectionId) {
+        return waitlistDao.findEntries(sectionId).stream()
+                .filter(entry -> entry.studentCode().equals(studentId))
+                .map(WaitlistDao.WaitlistEntry::advisorApproved)
+                .findFirst()
+                .orElse(false);
+    }
+
+    public static void setWaitlistApproval(User actor, String sectionId, String studentId, boolean approved) {
+        if (actor == null || !"Admin".equalsIgnoreCase(actor.getRole())) {
+            throw new SecurityException("Administrator privileges required.");
+        }
+        waitlistDao.updateApproval(sectionId, studentId, approved);
+        Section section = getSection(sectionId);
+        if (approved && section != null) {
+            List<EnrollmentRecord> enrollments = enrollmentDao.findBySection(sectionId);
+            boolean promoted = promoteApprovedWaitlistedIfPossible(section, enrollments);
+            if (promoted) {
+                Course course = getCourse(section.getCourseId());
+                if (course != null) {
+                    course.setAvailableSeats(Math.max(0, course.getAvailableSeats() - 1));
+                    updateCourse(course);
+                }
+            }
+            addNotification(new NotificationMessage(
+                    NotificationMessage.Audience.STUDENT,
+                    studentId,
+                    "Advisor approval granted for " + section.getTitle() + ". You'll be enrolled automatically when a seat opens.",
+                    "Registration"));
+        } else if (!approved && section != null) {
+            addNotification(new NotificationMessage(
+                    NotificationMessage.Audience.STUDENT,
+                    studentId,
+                    "Advisor approval revoked for " + section.getTitle() + ". Contact advising for details.",
+                    "Registration"));
+        }
+        refreshSectionCache();
+    }
+
+    public record WaitlistSnapshot(String studentId, String studentName, int position, boolean approved) {
     }
 
     public static List<String> getCoursePrerequisites(String courseId) {
@@ -1227,8 +1308,9 @@ public class DatabaseUtil {
                     section.getWaitlistedStudentIds().add(record.getStudentId());
                 }
             }
-            List<String> waitlist = waitlistDao.findWaitlist(section.getSectionId());
-            for (String studentCode : waitlist) {
+            List<WaitlistDao.WaitlistEntry> waitlist = waitlistDao.findEntries(section.getSectionId());
+            for (WaitlistDao.WaitlistEntry entry : waitlist) {
+                String studentCode = entry.studentCode();
                 if (!section.getWaitlistedStudentIds().contains(studentCode)) {
                     section.getWaitlistedStudentIds().add(studentCode);
                 }

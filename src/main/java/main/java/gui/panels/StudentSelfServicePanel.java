@@ -1072,7 +1072,10 @@ public class StudentSelfServicePanel extends JPanel {
         if (status == EnrollmentRecord.Status.ENROLLED || status == EnrollmentRecord.Status.WAITLISTED) {
             dropButton.setEnabled(true);
             if (status == EnrollmentRecord.Status.WAITLISTED) {
-                warnings.add("You are currently waitlisted for this section.");
+                boolean approved = DatabaseUtil.isWaitlistApproved(studentProfile.getStudentId(), sectionId);
+                warnings.add(approved
+                        ? "You are waitlisted (advisor approved)."
+                        : "Waitlisted; advisor approval pending.");
             } else {
                 warnings.add("Already enrolled in this section.");
             }

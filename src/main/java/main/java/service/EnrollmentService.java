@@ -35,7 +35,7 @@ public final class EnrollmentService {
             enforceStudentOwnsRecord(actor, student);
         }
 
-        return DatabaseUtil.registerStudentToSection(actor.getUsername(), studentId, sectionId);
+        return DatabaseUtil.registerStudentToSection(actor, studentId, sectionId);
     }
 
     public static void dropSection(User actor, String studentId, String sectionId) {

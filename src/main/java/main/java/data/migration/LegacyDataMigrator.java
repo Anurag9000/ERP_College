@@ -213,7 +213,7 @@ public final class LegacyDataMigrator {
             if (record.getStatus() == EnrollmentRecord.Status.WAITLISTED) {
                 List<String> waitlist = waitlistDao.findWaitlist(record.getSectionId());
                 if (!waitlist.contains(record.getStudentId())) {
-                    waitlistDao.insert(record.getSectionId(), record.getStudentId(), waitlist.size() + 1);
+                    waitlistDao.insert(record.getSectionId(), record.getStudentId(), waitlist.size() + 1, true);
                 }
             }
             if (record.getStatus() == EnrollmentRecord.Status.ENROLLED) {
