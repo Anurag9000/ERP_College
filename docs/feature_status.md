@@ -1,9 +1,6 @@
 ## Instructor Workspace
-- [ ] Section planner (room clash/capacity warnings).
 
 ## Admin Console & Operations
-
-- [ ] Full user lifecycle UI (create/assign roles, suspend/reactivate, audit reset events).
 - [ ] Catalog management for courses/sections/rooms/prereqs/capacity planning.
 - [ ] Enrollment oversight tools (approvals, overrides, extensions, waitlist management).
 - [ ] Maintenance scheduler (immediate + future windows, countdown banner, auto notifications).

@@ -77,9 +77,7 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 - [DONE] Gradebook upgrades: named assessment templates per course, enhanced CSV import/export with rubric comments, moderation workflow (draft/submitted/published), and inline component feedback dialog tied to GradebookService.
 - [DONE] Instructor analytics sidebar with grade distribution widgets, pass/fail counters, and attendance trend charts embedded in `InstructorWorkspacePanel`.
 - [DONE] Instructor messaging hub targeting enrolled sections/students with notification delivery and a persistent send log (`InstructorMessagingPanel.java` + new DAO/migration).
-### Outstanding
-- [TODO] Section planner for clash/capacity warnings.
-
+- [DONE] Section planner dashboard with clash detection (room/faculty overlaps), capacity warnings, and schedule filters (`SectionPlannerPanel.java`).
 ## Admin Console & Operations
 ### Delivered
 - [DONE] Overview dashboard summarising student/faculty/course counts, pending fees, waitlists, and average attendance (`DashboardPanel.java`).
@@ -91,8 +89,8 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 - [DONE] NotificationsPanel for broadcasting ALL/STUDENT/INSTRUCTOR/ADMIN messages.
 - [DONE] MaintenancePanel for toggling maintenance and invoking callbacks.
 - [DONE] AuditLogPanel for viewing/exporting audit events.
+- [DONE] UserManagementPanel now supports editing profiles/roles, suspend/reactivate toggles, and per-user audit trail viewing.
 ### Outstanding
-- [PARTIAL] Full user lifecycle UI: no suspend/reactivate toggles or per-user audit history.
 - [PARTIAL] Catalog management depth: no dedicated UI for prerequisites, room inventory, or capacity planning beyond manual fields.
 - [PARTIAL] Enrollment oversight (approvals, overrides, extensions) beyond manual register/drop in EnrollmentPanel.
 - [PARTIAL] Maintenance scheduler: only immediate toggles exist; no future windows or countdown banners.

@@ -4,8 +4,10 @@ import main.java.models.Faculty;
 import main.java.models.Student;
 import main.java.models.User;
 import main.java.utils.DatabaseUtil;
+import main.java.utils.AuditLogService;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Admin-only helper operations (user provisioning, settings, assignments).
@@ -55,5 +57,33 @@ public final class AdminService {
     public static void toggleMaintenance(User actor, boolean maintenanceOn) {
         ensureAdmin(actor);
         DatabaseUtil.setMaintenanceMode(maintenanceOn);
+    }
+
+    public static void updateUserProfile(User actor, String username, String fullName, String email) {
+        ensureAdmin(actor);
+        DatabaseUtil.updateUserContact(username, fullName, email);
+        AuditLogService.log(AuditLogService.EventType.USER_MANAGEMENT,
+                actor.getUsername(),
+                "Updated profile for " + username);
+    }
+
+    public static void updateUserRole(User actor, String username, String role) {
+        ensureAdmin(actor);
+        DatabaseUtil.updateUserRole(username, role);
+        AuditLogService.log(AuditLogService.EventType.USER_MANAGEMENT,
+                actor.getUsername(),
+                "Changed role for " + username + " to " + role);
+    }
+
+    public static void setUserActive(User actor, String username, boolean active) {
+        ensureAdmin(actor);
+        DatabaseUtil.setUserActive(username, active);
+        AuditLogService.log(AuditLogService.EventType.USER_MANAGEMENT,
+                actor.getUsername(),
+                (active ? "Reactivated " : "Suspended ") + username);
+    }
+
+    public static List<AuditLogService.AuditEvent> auditTrailForUser(String username) {
+        return AuditLogService.recentEventsForUser(username);
     }
 }

@@ -429,6 +429,31 @@ public class DatabaseUtil {
         authUserDao.updateProfile(user);
     }
 
+    public static synchronized void updateUserRole(String username, String role) {
+        if (role == null || role.isBlank()) {
+            throw new IllegalArgumentException("Role is required.");
+        }
+        User user = requireUser(username);
+        user.setRole(role.trim());
+        authUserDao.updateRole(user);
+    }
+
+    public static synchronized void setUserActive(String username, boolean active) {
+        User user = requireUser(username);
+        if (user.isActive() == active) {
+            return;
+        }
+        user.setActive(active);
+        authUserDao.updateProfile(user);
+    }
+
+    public static synchronized void updateUserContact(String username, String fullName, String email) {
+        User user = requireUser(username);
+        user.setFullName(fullName);
+        user.setEmail(email);
+        authUserDao.updateProfile(user);
+    }
+
     public static synchronized void changePasswordSelf(String username, String currentPassword, String newPassword) {
         User user = requireUser(username);
         if (!PasswordUtil.verifyPassword(currentPassword.toCharArray(), user.getSalt(), user.getPasswordHash())) {

@@ -25,6 +25,7 @@ public class AuthUserDao {
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String INSERT_HISTORY = "INSERT INTO password_history (user_id, password_hash, salt) VALUES (?, ?, ?)";
     private static final String UPDATE_PROFILE = "UPDATE users SET full_name = ?, email = ?, active = ? WHERE id = ?";
+    private static final String UPDATE_ROLE = "UPDATE users SET role = ? WHERE id = ?";
     private static final String UPDATE_LOGIN_SUCCESS = "UPDATE users SET failed_attempts = 0, locked_until = NULL, last_login = ?, must_change_password = ? WHERE id = ?";
     private static final String UPDATE_LOGIN_FAILURE = "UPDATE users SET failed_attempts = ?, locked_until = ? WHERE id = ?";
     private static final String UPDATE_PASSWORD = "UPDATE users SET password_hash = ?, salt = ?, must_change_password = ?, failed_attempts = 0, locked_until = NULL WHERE id = ?";
@@ -132,6 +133,18 @@ public class AuthUserDao {
         } catch (SQLException ex) {
             LOGGER.error("Error updating password for {}: {}", user.getUsername(), ex.getMessage(), ex);
             throw new IllegalStateException("Unable to update password", ex);
+        }
+    }
+
+    public void updateRole(User user) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(UPDATE_ROLE)) {
+            ps.setString(1, user.getRole());
+            ps.setLong(2, user.getId());
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            LOGGER.error("Error updating role for {}: {}", user.getUsername(), ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to update user role", ex);
         }
     }
 

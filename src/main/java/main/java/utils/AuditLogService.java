@@ -30,7 +30,8 @@ public final class AuditLogService {
         ENROLLMENT_CHANGE,
         SECTION_ASSIGNMENT,
         GRADE_EDIT,
-        FINANCE_PAYMENT
+        FINANCE_PAYMENT,
+        USER_MANAGEMENT
     }
 
     public static final class AuditEvent {
@@ -120,5 +121,16 @@ public final class AuditLogService {
                         event.getActor() == null ? "n/a" : event.getActor(),
                         event.getDetails()))
                 .collect(Collectors.joining(System.lineSeparator()));
+    }
+
+    public static List<AuditEvent> recentEventsForUser(String username) {
+        if (username == null || username.isBlank()) {
+            return Collections.emptyList();
+        }
+        String needle = username.trim();
+        return recentEvents().stream()
+                .filter(event -> needle.equalsIgnoreCase(event.getActor())
+                        || (event.getDetails() != null && event.getDetails().toLowerCase().contains(needle.toLowerCase())))
+                .collect(Collectors.toList());
     }
 }
