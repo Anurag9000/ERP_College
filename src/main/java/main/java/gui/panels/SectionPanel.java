@@ -273,10 +273,15 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
         dialog.setVisible(true);
 
         if (dialog.isConfirmed()) {
-            Section newSection = dialog.getSection();
-            DatabaseUtil.addSection(newSection);
-            loadData();
-            JOptionPane.showMessageDialog(this, "Section added successfully.");
+            try {
+                Section newSection = dialog.getSection();
+                DatabaseUtil.addSection(newSection);
+                loadData();
+                JOptionPane.showMessageDialog(this, "Section added successfully.");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to add section",
+                        JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
@@ -306,9 +311,14 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
         dialog.setVisible(true);
 
         if (dialog.isConfirmed()) {
-            DatabaseUtil.updateSection(dialog.getSection());
-            loadData();
-            JOptionPane.showMessageDialog(this, "Section updated successfully.");
+            try {
+                DatabaseUtil.updateSection(dialog.getSection());
+                loadData();
+                JOptionPane.showMessageDialog(this, "Section updated successfully.");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update section",
+                        JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 

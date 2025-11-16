@@ -686,11 +686,13 @@ public class DatabaseUtil {
     }
 
     public static void addSection(Section section) {
+        enforceRoomScheduleClash(section);
         sectionDao.insert(section);
         sections.put(section.getSectionId(), section);
     }
 
     public static void updateSection(Section section) {
+        enforceRoomScheduleClash(section);
         sectionDao.update(section);
         sections.put(section.getSectionId(), section);
     }
@@ -832,6 +834,36 @@ public class DatabaseUtil {
             return false;
         }
         return !(b.getEndTime().isBefore(a.getStartTime()) || b.getStartTime().isAfter(a.getEndTime()));
+    }
+
+    private static void enforceRoomScheduleClash(Section candidate) {
+        if (candidate.getLocation() == null || candidate.getLocation().isBlank()) {
+            return;
+        }
+        for (Section existing : sections.values()) {
+            if (existing.getSectionId().equalsIgnoreCase(candidate.getSectionId())) {
+                continue;
+            }
+            if (roomsConflict(existing, candidate)) {
+                throw new IllegalStateException(String.format(
+                        "Room %s is already in use by %s (%s %s-%s).",
+                        existing.getLocation(),
+                        existing.getSectionId(),
+                        existing.getDayOfWeek(),
+                        existing.getStartTime(),
+                        existing.getEndTime()));
+            }
+        }
+    }
+
+    private static boolean roomsConflict(Section a, Section b) {
+        if (a.getLocation() == null || b.getLocation() == null) {
+            return false;
+        }
+        if (!a.getLocation().equalsIgnoreCase(b.getLocation())) {
+            return false;
+        }
+        return overlaps(a, b);
     }
 
     public static synchronized void dropStudentFromSection(String studentId, String sectionId) {

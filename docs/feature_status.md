@@ -1,6 +1,5 @@
 # Feature Implementation Tracker
 
-This checklist tracks every requirement from `Documentation/project.pdf` plus the enhancement backlog we identified. Items marked with `[x]` are delivered; `[ ]` items still need implementation.
 
 ## Baseline Specification
 
@@ -16,7 +15,6 @@ This checklist tracks every requirement from `Documentation/project.pdf` plus th
 ## Student Experience
 
 - [ ] Registration workflow enhancements:
-  - [ ] Clash detection for time **and** room.
   - [ ] Automated waitlist promotion queue with advisor approvals.
   - [ ] Full co-/anti-requisite enforcement.
   - [ ] Departmental/advisor approval flow.
