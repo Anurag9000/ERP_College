@@ -1,0 +1,208 @@
+# Comprehensive Feature Inventory
+
+Legend:  
+- [DONE] fully implemented in the current code base  
+- [PARTIAL] implemented in part, but gaps remain as noted  
+- [TODO] not yet implemented
+
+Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, utils, DAO layer), Flyway SQL migrations under `src/main/resources/db/**`, and delivered docs under `docs/`.
+
+## Baseline Specification
+### Delivered
+- [DONE] Role-based login that launches role-specific dashboards (`src/main/java/main/java/gui/LoginFrame.java`, `gui/MainFrame.java`).
+- [DONE] Catalog/section tables with search & filters for both students and staff (`gui/panels/StudentSelfServicePanel.java`, `SectionPanel.java`, `EnrollmentPanel.java`).
+- [DONE] Student registration & drop workflow with prerequisite, credit-cap, and maintenance checks via `StudentSelfServicePanel`, `EnrollmentService.java`, and `DatabaseUtil.java`.
+- [DONE] Instructor grade entry, assessment weight editing, stats, and maintenance awareness in `gui/panels/InstructorWorkspacePanel.java` + `service/GradebookService.java`.
+- [DONE] Transcript export to CSV/PDF from `StudentSelfServicePanel#exportTranscript*`.
+- [DONE] Admin CRUD for users/students/faculty/courses/sections (`UserManagementPanel.java`, `StudentPanel.java`, `FacultyPanel.java`, `CoursePanel.java`, `SectionPanel.java`) plus staff-driven enrollment oversight (`EnrollmentPanel.java`).
+- [DONE] Admin UI to assign instructors to sections (`gui/dialogs/SectionDialog.java`) and toggle maintenance in-app (`MaintenancePanel.java` + `AdminService.toggleMaintenance`).
+- [DONE] Student drop/enroll deadlines enforced (`EnrollmentService.java` validates section deadlines before write).
+- [DONE] Waitlist management with automatic promotion and notifications (`DatabaseUtil#registerStudentToSection` / `#dropStudentFromSection`).
+### Outstanding
+- [PARTIAL] Maintenance mode enforcement: StudentSelfServicePanel, EnrollmentService, InstructorWorkspacePanel, and InstructorAttendancePanel block writes, but admin CRUD panels still bypass the guard.
+- [PARTIAL] Timetable day/time grid + rich printable layout: students can export table listings to ICS/PDF, but there is no calendar-grid visualization or admin publish flow.
+- [TODO] Instructor grade CSV import/export hooks.
+- [TODO] Optional backup/restore automation beyond the manual steps documented in `docs/database/README.md`.
+
+## Platform & Architecture
+### Delivered
+- [DONE] Dual datasources (auth + ERP) wired through HikariCP with Flyway migrations (`config/DataSourceRegistry.java`, `data/DatabaseBootstrap.java`, `src/main/resources/db/**`).
+- [DONE] DAO coverage for auth users plus every ERP table (students, faculty, courses, sections, enrollments, attendance, waitlists, notifications, settings, finance) in `src/main/java/main/java/data/dao/`.
+- [DONE] Central configuration loader + application settings (`config/ConfigLoader.java`, `src/main/resources/application.properties`) for JDBC, security, and session timeout.
+- [DONE] Finance reminder scheduler delivering hourly installment reminders/digests (`utils/FinanceReminderScheduler.java`).
+- [DONE] Legacy `.dat` migrator to seed SQL schemas (`data/migration/LegacyDataMigrator.java`).
+### Outstanding
+- [PARTIAL] Dual-database documentation: `docs/database/README.md` covers provisioning + rollback, but ERDs and full seed-loader docs are still missing.
+- [TODO] Package modularisation + dependency injection (UI/services still talk to `DatabaseUtil` directly).
+- [TODO] Health checks/config diagnostics (no datasource ping or startup sanity reporting).
+
+## Authentication & Security
+### Delivered
+- [DONE] Self-service change password dialog embedded in every role (`gui/dialogs/ChangePasswordDialog.java`, invoked from `MainFrame` and `StudentSelfServicePanel`).
+- [DONE] Admin password reset that forces "must change next login" (`UserManagementPanel.resetPassword`, `DatabaseUtil.resetPasswordByAdmin`).
+- [DONE] Password policy enforcement + PBKDF2 hashing, history checks, and lockout tracking (`utils/PasswordPolicy.java`, `utils/PasswordUtil.java`, `DatabaseUtil` auth helpers).
+- [DONE] Audit logging for logins, lockouts, password events, enrollments, grade edits, finance payments, maintenance toggles (`utils/AuditLogService.java`, DAO + SLF4J) with an exportable UI (`gui/panels/AuditLogPanel.java`).
+### Outstanding
+- [PARTIAL] Session inactivity timeout: `MainFrame` tracks idle time and auto-logs out, but the countdown label is never initialised so users do not see the banner warning requested in the spec.
+
+## Data Migration & Repositories
+### Delivered
+- [DONE] DAO-backed persistence for enrollment, grade, attendance, waitlist, and settings data (`EnrollmentDao`, `AttendanceDao`, `WaitlistDao`, `SettingsDao`).
+- [DONE] Finance + notification repositories (`PaymentTransactionDao`, `FeeInstallmentDao`, `NotificationDao`) integrated with the UI.
+- [DONE] Legacy `.dat` import path via `LegacyDataMigrator` to populate both schemas on first boot.
+### Outstanding
+- [PARTIAL] Migration tooling/docs for `.dat` files: code exists, but there is no operator playbook beyond a note in `docs/database/README.md`.
+- [TODO] Datasource health probes and richer DAO error surfacing (errors still bubble up as generic IllegalStateExceptions).
+
+## Student Experience
+### Delivered
+- [DONE] Catalog browsing with search, day filter, open-only toggle, maintenance banner, and contextual advisories (StudentSelfServicePanel.java).
+- [DONE] Registration/drop actions delegated to `EnrollmentService` with prerequisite, deadline, and credit-load enforcement plus waitlist promotion + notifications (`DatabaseUtil` + `EnrollmentService`).
+- [DONE] Timetable tab with ICS + PDF export (`StudentSelfServicePanel#exportScheduleIcs/#exportSchedulePdf`).
+- [DONE] Grades tab summarising assessments, final marks, and risk alerts via `updateGradeAnalytics`.
+- [DONE] Transcript CSV/PDF exports with custom formatting (`exportTranscript`, `exportTranscriptPdf`).
+- [DONE] Finance tab showing fee summary, payment history, installment plan, and a reminder button tied to `DatabaseUtil.markInstallmentReminderSent`.
+- [DONE] Notification inbox enhancements: category filter, unread toggle, mark read/unread, refresh, backed by `NotificationDao`.
+- [DONE] Self-service change password launch button and maintenance warning banner.
+### Outstanding
+- [PARTIAL] Registration workflow enhancements: time clash detection works, but there is no room-clash check, advisor approval queue, or co-/anti-requisite enforcement (CourseRelationshipDao is unused); deadlines are enforced.
+- [PARTIAL] Timetable day/time grid + rich printable layout: students can export table listings to ICS/PDF, but there is no calendar-grid visualization or admin publish flow.
+- [PARTIAL] GPA/standing analytics: textual summaries and trend hints exist, but no historical charts or probation alerts.
+- [TODO] Transcript watermarking, certificate downloads, and registrar messaging workflow.
+
+## Instructor Workspace
+### Delivered
+- [DONE] Instructor workspace for roster selection, assessment definition, grade entry, final grade computation, stats, and maintenance-aware enablement (InstructorWorkspacePanel.java + GradebookService.java).
+- [DONE] Instructor attendance capture per assigned section (`InstructorAttendancePanel.java`) with maintenance guard.
+### Outstanding
+- [TODO] Attendance CSV import/export, bulk updates, tardiness tracking, and analytics dashboards (UI is manual only).
+- [PARTIAL] Gradebook enhancements: assessment definitions exist, but there are no templates, CSV import/export, moderation workflow, publish/finalise toggles, or inline rubric feedback.
+- [TODO] Instructor analytics widgets (grade distributions, pass/fail counts, attendance charts).
+- [TODO] Messaging hub for instructors to reach sections.
+- [TODO] Section planner for clash/capacity warnings.
+
+## Admin Console & Operations
+### Delivered
+- [DONE] Overview dashboard summarising student/faculty/course counts, pending fees, waitlists, and average attendance (`DashboardPanel.java`).
+- [DONE] UserManagementPanel for creating users and resetting passwords (must-change flag enforced).
+- [DONE] Student/Faculty/Course/Section panels with search, CRUD dialogs, and schedule view actions.
+- [DONE] EnrollmentPanel for staff-driven registration/drop, schedule visibility, waitlist counts.
+- [DONE] AttendancePanel for marking attendance and viewing history across sections.
+- [DONE] FeesPanel with searchable roster, payment recording, installment editor dialog, and CSV exports (summary + per-student statements).
+- [DONE] NotificationsPanel for broadcasting ALL/STUDENT/INSTRUCTOR/ADMIN messages.
+- [DONE] MaintenancePanel for toggling maintenance and invoking callbacks.
+- [DONE] AuditLogPanel for viewing/exporting audit events.
+### Outstanding
+- [PARTIAL] Full user lifecycle UI: no suspend/reactivate toggles or per-user audit history.
+- [PARTIAL] Catalog management depth: no dedicated UI for prerequisites, room inventory, or capacity planning beyond manual fields.
+- [PARTIAL] Enrollment oversight (approvals, overrides, extensions) beyond manual register/drop in EnrollmentPanel.
+- [PARTIAL] Maintenance scheduler: only immediate toggles exist; no future windows or countdown banners.
+- [TODO] Data governance (backup/restore wrappers, archival, anonymisation scripts).
+- [PARTIAL] Reporting suite: dashboard metrics exist, but there are no drill-down reports for waitlists, attendance compliance, or financial arrears.
+- [TODO] Bulk CSV/XLS import/export for master data (current exports are limited to finance/audit tables).
+
+## Maintenance & Notifications
+### Delivered
+- [DONE] Central maintenance flag persisted via `SettingsDao`, toggled through `AdminService`, and surfaced through automatic ALL-audience notifications plus MainFrame and StudentSelfServicePanel banners.
+- [DONE] Finance reminder scheduler that inspects installments and issues notifications/digests every hour (`utils/FinanceReminderScheduler.java`).
+- [DONE] Notification centre with broadcast UI (`NotificationsPanel`) and student inbox filters (categories, unread toggles, mark read/unread).
+### Outstanding
+- [PARTIAL] Maintenance guard coverage for every write path (admin CRUD surfaces still active; no scheduler for future windows).
+- [PARTIAL] Notification centre enhancements: no email/SMS stubs, digest configuration UI, or historical insights for admins.
+
+## Analytics & Degree Planning
+- [TODO] Degree audit planner, advisor dashboards, risk alerts.
+- [TODO] Real-time analytics (heatmaps, waitlist pressure) using freeware charting.
+- [TODO] Advising communication log / issue tracker linked to student profiles.
+
+## Testing, CI, Quality
+- [TODO] Automated unit/integration tests for DAO/service layers and UI smoke tests (no test sources are present).
+- [TODO] Acceptance checklist covering login, registration, waitlist, maintenance, grade entry, transcripts, finance exports.
+- [TODO] Load/performance sanity testing artifacts.
+- [TODO] CI pipeline (GitHub Actions or similar) that runs migrations/tests/packages.
+- [TODO] Logging/audit configuration review (logback config is default without retention tuning).
+
+## Documentation & Deliverables
+### Delivered
+- [PARTIAL] README.md plus `docs/platform/tech_stack.md` and `docs/database/README.md` cover high-level stack, build/run steps, and schema provisioning.
+### Outstanding
+- [TODO] 5–7 page architecture/maintenance/enhancement/testing report.
+- [TODO] Diagram set (use-case, ERD, component/class, sequence diagrams) – `docs/diagrams/` is still a stub.
+- [PARTIAL] How-to-run guide (basic instructions in README, but no dedicated onboarding doc).
+- [TODO] Demo assets (storyboard, script, slides, recorded walkthrough).
+- [TODO] CHANGELOG, contribution guidelines, dependency licence notice.
+
+## Deployment & Packaging
+- [TODO] Maven/Gradle profiles, fat JAR packaging, externalised config samples, `.env` template.
+- [TODO] Docker Compose stack (databases + app) with smoke tests and sample data seeds.
+- [TODO] Optional REST layer (Spring Boot/Javalin) for integrations/mobile clients.
+
+## Additional Enhancements
+- [TODO] Public API surface for integrations/mobile apps.
+- [TODO] CSV/XLS importers for students/courses/enrollments/grades/attendance with validation + rollback.
+- [TODO] Additional exports (gradebooks, schedules, instructor financial statements).
+- [TODO] Advisor approval workflow integrated with the registration UI/service layer.
+
+## Product Enhancement Backlog (All Pending Unless Marked)
+- [TODO] Optional Google Classroom sync (assignments parity with institutes that already use GC).
+- [TODO] Meeting slots: student requests + professor approvals via shared calendar UI.
+- [TODO] Manual event philosophy: opt-in campus event feeds so calendars avoid auto-flooding.
+- [TODO] Booking tutor/TA support workflow for routed academic questions.
+- [TODO] Exam artefacts together UX unifying admit card, syllabus, date sheet, and mark sheet.
+- [TODO] App/web balance guidelines for high-frequency vs low-touch flows.
+- [TODO] Admin/prof controls to ensure only authorised users can edit timetables/course artefacts.
+- [TODO] Announcement safety rails (category-driven notification priority management).
+- [TODO] Research/collab mode to connect students with professors/PhDs.
+- [TODO] Personalisation defaults so core calendar entries auto-load while electives/extras remain opt-in.
+- [TODO] Cross-department curiosity feed letting students subscribe to other department events/timetables.
+- [TODO] Scalable architecture hooks (configurable categories/roles/mark schemes per institution).
+- [TODO] Editable timetable windows for admins to demo adjustments live.
+- [TODO] Current marks within course view (running totals per subject).
+- [TODO] TA office hours & booking workflow with delegation support.
+- [TODO] Interest clubs dashboard with category-specific announcements and manual add-to-calendar.
+- [TODO] Timetable conflict simulator for admins before publishing changes.
+- [TODO] Free slot finder that computes mutually free hours for students/professors.
+- [PARTIAL] External calendar sync: students can export ICS files today, but there is no automated feed or instructor/admin export path.
+- [TODO] Inline feedback threads per assessment question with acknowledgement workflow.
+- [TODO] Theme & accessibility settings (high-contrast, font scaling, colour-blind palettes).
+- [TODO] Preference-based notifications (per-category opt-in/out, digest cadence controls).
+- [TODO] Personal learning goals dashboard for attendance/grade targets with visuals.
+🟪 A. Calendar & Planner (Missing Completely)
+Central Smart Calendar as the main hub
+Auto-fill of classes/tests into the calendar
+Student manual event addition (opt-in events)
+Pastel/dull subject color coding inside calendar
+Dot/label indicators for subjects/events
+Weekly/Monthly planner view (Not just timetable)
+🟪 B. Visual Design System (Missing Completely)
+Pastel UI theme as a strict design rule
+Subject color consistency across assignments/marks/notifications
+Dot-based subtle color indicators
+Minimalistic clean UX design philosophy (“bad UI → no use”)
+🟪 C. Event Philosophy (Missing Completely)
+Events should NOT auto-dump into the calendar
+Only event headlines shown; details only if student adds
+Rejecting ‘interest-based auto add’ logic
+Strict noise-control philosophy for events
+🟪 D. Faculty Interaction & Availability (Missing Completely)
+Appointment / slot-booking system (student → professor)
+TA-routed academic queries system
+Prof Profile window (view prof + subjects + schedule)
+“Where’s My Prof now?” quick lookup
+Prof availability timeline visible to students
+🟪 E. Personalisation & Notifications (Missing Completely)
+Per-category notification preferences
+Student controls what notifications to receive
+Anti-spam rules for notifications
+Personalised defaults (classes auto-load; events opt-in)
+🟪 F. Department-Level Logic (Missing Completely)
+Dept-based visibility defaults (default = own dept)
+Toggle to view other departments’ timetables/announcements
+Cross-dept curiosity / manual add of other dept events
+🟪 G. Rollout, Trust, Architecture Philosophy (Missing Completely)
+Institute-first rollout strategy (start with IIITD)
+App vs Web usage-frequency strategy
+Govt,DU trust, privacy, compliance plan
+🟪 H. UX Micro-Details (Missing Completely)
+Subtle background color rules for subjects
+Non-techie-friendly naming/labels

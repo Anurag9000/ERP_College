@@ -11,6 +11,7 @@ import main.java.data.dao.AttendanceDao;
 import main.java.data.dao.NotificationDao;
 import main.java.data.dao.SettingsDao;
 import main.java.data.dao.CoursePrerequisiteDao;
+import main.java.data.dao.CourseRelationshipDao;
 import main.java.data.dao.PaymentTransactionDao;
 import main.java.data.dao.FeeInstallmentDao;
 import main.java.data.migration.LegacyDataMigrator;
@@ -62,10 +63,13 @@ public class DatabaseUtil {
     private static final NotificationDao notificationDao = new NotificationDao();
     private static final SettingsDao settingsDao = new SettingsDao();
     private static final CoursePrerequisiteDao coursePrerequisiteDao = new CoursePrerequisiteDao();
+    private static final CourseRelationshipDao courseRelationshipDao = new CourseRelationshipDao();
     private static final PaymentTransactionDao paymentTransactionDao = new PaymentTransactionDao();
     private static final FeeInstallmentDao feeInstallmentDao = new FeeInstallmentDao();
 
     private static final Map<String, List<String>> coursePrerequisiteCache = new ConcurrentHashMap<>();
+    private static final Map<String, List<String>> courseCorequisiteCache = new ConcurrentHashMap<>();
+    private static final Map<String, List<String>> courseAntirequisiteCache = new ConcurrentHashMap<>();
     private static final double PASSING_GRADE_THRESHOLD = 40.0;
 
     private static int parseIntConfig(String key, int defaultValue) {
