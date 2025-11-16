@@ -987,6 +987,58 @@ public class DatabaseUtil {
         return section;
     }
 
+    public static List<SectionConflict> findSectionConflicts() {
+        List<SectionConflict> conflicts = new ArrayList<>();
+        List<Section> allSections = new ArrayList<>(getAllSections());
+        for (int i = 0; i < allSections.size(); i++) {
+            Section a = allSections.get(i);
+            if (a.getDayOfWeek() == null || a.getStartTime() == null || a.getEndTime() == null) {
+                continue;
+            }
+            for (int j = i + 1; j < allSections.size(); j++) {
+                Section b = allSections.get(j);
+                if (b.getDayOfWeek() == null || b.getStartTime() == null || b.getEndTime() == null) {
+                    continue;
+                }
+                if (!a.getDayOfWeek().equals(b.getDayOfWeek())) {
+                    continue;
+                }
+                if (!overlaps(a, b)) {
+                    continue;
+                }
+                if (a.getLocation() != null && b.getLocation() != null
+                        && a.getLocation().equalsIgnoreCase(b.getLocation())) {
+                    String detail = String.format("%s %s-%s @ %s",
+                            a.getDayOfWeek(), a.getStartTime(), a.getEndTime(), a.getLocation());
+                    conflicts.add(new SectionConflict(SectionConflict.Type.ROOM,
+                            a.getSectionId(), b.getSectionId(), detail));
+                }
+                if (a.getFacultyId() != null && b.getFacultyId() != null
+                        && a.getFacultyId().equalsIgnoreCase(b.getFacultyId())) {
+                    String detail = String.format("Faculty %s %s %s-%s",
+                            a.getFacultyId(), a.getDayOfWeek(), a.getStartTime(), a.getEndTime());
+                    conflicts.add(new SectionConflict(SectionConflict.Type.FACULTY,
+                            a.getSectionId(), b.getSectionId(), detail));
+                }
+            }
+        }
+        return conflicts;
+    }
+
+    public static List<CapacityWarning> findCapacityWarnings() {
+        List<CapacityWarning> warnings = new ArrayList<>();
+        for (Section section : getAllSections()) {
+            int enrolled = enrollmentDao.findBySection(section.getSectionId()).stream()
+                    .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                    .mapToInt(rec -> 1)
+                    .sum();
+            if (enrolled > section.getCapacity()) {
+                warnings.add(new CapacityWarning(section.getSectionId(), section.getCapacity(), enrolled));
+            }
+        }
+        return warnings;
+    }
+
     public static void addSection(Section section) {
         enforceRoomScheduleClash(section);
         sectionDao.insert(section);
@@ -1829,6 +1881,19 @@ public class DatabaseUtil {
     }
 
     public record TermGpa(String termLabel, double gpa, boolean probation) {
+    }
+
+    public record SectionConflict(SectionConflict.Type type, String sectionA, String sectionB, String detail) {
+        public enum Type {
+            ROOM,
+            FACULTY
+        }
+    }
+
+    public record CapacityWarning(String sectionId, int capacity, int enrolled) {
+        public int overBy() {
+            return Math.max(0, enrolled - capacity);
+        }
     }
 
     private static EnrollmentRecord findEnrollmentRecord(String sectionId, String studentId) {
