@@ -28,6 +28,7 @@ public final class AuditLogService {
         PASSWORD_RESET,
         MAINTENANCE_TOGGLE,
         ENROLLMENT_CHANGE,
+        SECTION_ASSIGNMENT,
         GRADE_EDIT,
         FINANCE_PAYMENT
     }

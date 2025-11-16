@@ -10,7 +10,7 @@ This checklist tracks every requirement from `Documentation/project.pdf` plus th
 - [x] Grade entry, weighting, and simple stats for instructors.
 - [x] Transcript export (CSV/PDF) and student grade view.
 - [x] Admin can add users, create courses/sections.
-- [ ] Admin UI to assign instructors to sections and toggle Maintenance Mode in-app.
+- [x] Admin UI to assign instructors to sections and toggle Maintenance Mode in-app.
 - [ ] Maintenance mode enforcement for *all* write actions (currently only partial guards).
 - [ ] Student drop deadlines strictly enforced.
 - [ ] Timetable rendered on a day/time grid and richer printable layout.
@@ -26,8 +26,8 @@ This checklist tracks every requirement from `Documentation/project.pdf` plus th
 ## Authentication & Security
 
 - [x] Student/instructor self-service change password screen.
-- [x] Admin password reset with “must change next login”.
-- [ ] Extend audit trail (maintenance toggles, enrollment overrides, grade edits) and provide export UI.
+- [x] Admin password reset with "must change next login".
+- [x] Extend audit trail (maintenance toggles, enrollment overrides, grade edits) and provide export UI.
 
 ## Data Migration & Repositories
 

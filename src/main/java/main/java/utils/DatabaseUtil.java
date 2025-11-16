@@ -703,6 +703,34 @@ public class DatabaseUtil {
         attendanceDao.deleteBySection(sectionId);
     }
 
+    public static synchronized void assignInstructorToSection(String sectionId, String facultyId, String performedBy) {
+        if (sectionId == null || sectionId.isBlank()) {
+            throw new IllegalArgumentException("Section ID is required.");
+        }
+        if (facultyId == null || facultyId.isBlank()) {
+            throw new IllegalArgumentException("Instructor ID is required.");
+        }
+        Section section = getSection(sectionId);
+        if (section == null) {
+            throw new IllegalArgumentException("Section not found: " + sectionId);
+        }
+        Faculty instructor = getFaculty(facultyId);
+        if (instructor == null) {
+            throw new IllegalArgumentException("Instructor not found: " + facultyId);
+        }
+        if (facultyId.equals(section.getFacultyId())) {
+            return;
+        }
+        section.setFacultyId(facultyId);
+        updateSection(section);
+        refreshSectionCache();
+
+        String actor = performedBy == null || performedBy.isBlank() ? "system" : performedBy;
+        AuditLogService.log(AuditLogService.EventType.SECTION_ASSIGNMENT,
+                actor,
+                String.format("Assigned %s to section %s", facultyId, sectionId));
+    }
+
     // Enrollment operations
     public static List<EnrollmentRecord> getEnrollmentsForStudent(String studentId) {
         return enrollmentDao.findByStudent(studentId);

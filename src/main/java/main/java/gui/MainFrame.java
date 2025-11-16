@@ -157,7 +157,7 @@ public class MainFrame extends JFrame {
             facultyPanel = new FacultyPanel();
             coursePanel = new CoursePanel();
             feesPanel = new FeesPanel();
-            sectionPanel = new SectionPanel();
+            sectionPanel = new SectionPanel(currentUser);
             enrollmentPanel = new EnrollmentPanel(currentUser);
             attendancePanel = new AttendancePanel();
             notificationsPanel = new NotificationsPanel();
