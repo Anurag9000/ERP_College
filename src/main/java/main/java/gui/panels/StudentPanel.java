@@ -4,6 +4,7 @@ import main.java.models.Student;
 import main.java.models.User;
 import main.java.utils.DatabaseUtil;
 import main.java.gui.dialogs.StudentDialog;
+import main.java.gui.panels.MaintenanceAware;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
@@ -19,11 +20,12 @@ import javax.swing.RowFilter;
 /**
  * Panel for managing student information
  */
-public class StudentPanel extends JPanel {
+public class StudentPanel extends JPanel implements MaintenanceAware {
     private JTable studentTable;
     private DefaultTableModel tableModel;
     private JTextField searchField;
     private JButton addButton, editButton, deleteButton, refreshButton, scheduleButton;
+    private boolean maintenanceMode;
     
     private final String[] columnNames = {
         "Student ID", "Username", "Name", "Email", "Phone", "Course",
@@ -139,10 +141,7 @@ public class StudentPanel extends JPanel {
         // Table selection
         studentTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                boolean hasSelection = studentTable.getSelectedRow() != -1;
-                editButton.setEnabled(hasSelection);
-                deleteButton.setEnabled(hasSelection);
-                scheduleButton.setEnabled(hasSelection);
+                updateButtonStates();
             }
         });
         
@@ -191,6 +190,7 @@ public class StudentPanel extends JPanel {
             };
             tableModel.addRow(row);
         }
+        updateButtonStates();
     }
     
     private void filterTable() {
@@ -239,6 +239,10 @@ public class StudentPanel extends JPanel {
     }
     
     private void addStudent() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         StudentDialog dialog = new StudentDialog(
             (JFrame) SwingUtilities.getWindowAncestor(this), 
             "Add Student", 
@@ -263,6 +267,10 @@ public class StudentPanel extends JPanel {
     }
     
     private void editStudent() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         int selectedRow = studentTable.getSelectedRow();
         if (selectedRow == -1) return;
         
@@ -297,6 +305,10 @@ public class StudentPanel extends JPanel {
     }
     
     private void deleteStudent() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         int selectedRow = studentTable.getSelectedRow();
         if (selectedRow == -1) return;
         
@@ -317,5 +329,19 @@ public class StudentPanel extends JPanel {
             loadStudentData();
             JOptionPane.showMessageDialog(this, "Student deleted successfully!");
         }
+    }
+
+    @Override
+    public void onMaintenanceModeChanged(boolean maintenance) {
+        this.maintenanceMode = maintenance;
+        updateButtonStates();
+    }
+
+    private void updateButtonStates() {
+        addButton.setEnabled(!maintenanceMode);
+        boolean hasSelection = studentTable.getSelectedRow() != -1;
+        editButton.setEnabled(hasSelection && !maintenanceMode);
+        deleteButton.setEnabled(hasSelection && !maintenanceMode);
+        scheduleButton.setEnabled(hasSelection);
     }
 }

@@ -4,6 +4,7 @@ import main.java.models.AttendanceRecord;
 import main.java.models.Section;
 import main.java.models.Student;
 import main.java.utils.DatabaseUtil;
+import main.java.gui.panels.MaintenanceAware;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -18,7 +19,7 @@ import java.util.Optional;
 /**
  * Panel for tracking attendance summaries by section.
  */
-public class AttendancePanel extends JPanel {
+public class AttendancePanel extends JPanel implements MaintenanceAware {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private JComboBox<String> sectionCombo;
@@ -30,6 +31,7 @@ public class AttendancePanel extends JPanel {
     private JButton saveButton;
     private JButton markAllPresentButton;
     private JButton markAllAbsentButton;
+    private boolean maintenanceMode;
 
     public AttendancePanel() {
         initializeComponents();
@@ -134,6 +136,7 @@ public class AttendancePanel extends JPanel {
         for (Section section : DatabaseUtil.getAllSections()) {
             sectionCombo.addItem(section.getSectionId() + " - " + section.getTitle());
         }
+        updateButtonStates();
     }
 
     private void refreshTables() {
@@ -166,6 +169,7 @@ public class AttendancePanel extends JPanel {
                     record.getAttendanceByStudent().size() + " responses"
             });
         }
+        updateButtonStates();
     }
 
     private Map<String, Boolean> loadSelectedDateAttendance(String sectionId) {
@@ -189,6 +193,10 @@ public class AttendancePanel extends JPanel {
     }
 
     private void saveAttendance() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         if (sectionCombo.getSelectedItem() == null) {
             JOptionPane.showMessageDialog(this, "Select a section first.");
             return;
@@ -216,8 +224,25 @@ public class AttendancePanel extends JPanel {
     }
 
     private void setAllAttendance(boolean present) {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         for (int i = 0; i < attendanceModel.getRowCount(); i++) {
             attendanceModel.setValueAt(present, i, 2);
         }
+    }
+    
+    @Override
+    public void onMaintenanceModeChanged(boolean maintenance) {
+        this.maintenanceMode = maintenance;
+        updateButtonStates();
+    }
+
+    private void updateButtonStates() {
+        boolean enable = !maintenanceMode && sectionCombo.getSelectedItem() != null;
+        saveButton.setEnabled(enable);
+        markAllPresentButton.setEnabled(enable);
+        markAllAbsentButton.setEnabled(enable);
     }
 }

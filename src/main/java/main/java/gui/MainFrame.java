@@ -29,6 +29,7 @@ public class MainFrame extends JFrame {
     private EnrollmentPanel enrollmentPanel;
     private AttendancePanel attendancePanel;
     private NotificationsPanel notificationsPanel;
+    private UserManagementPanel userManagementPanel;
     private AuditLogPanel auditLogPanel;
     private JPanel studentSelfServicePanel;
     private JPanel instructorWorkspacePanel;
@@ -161,6 +162,7 @@ public class MainFrame extends JFrame {
             enrollmentPanel = new EnrollmentPanel(currentUser);
             attendancePanel = new AttendancePanel();
             notificationsPanel = new NotificationsPanel();
+            userManagementPanel = new UserManagementPanel(currentUser);
             auditLogPanel = new AuditLogPanel();
         }
     }
@@ -174,7 +176,7 @@ public class MainFrame extends JFrame {
             tabbedPane.addTab("Attendance", createTabIcon("📝"), new InstructorAttendancePanel(currentUser));
         } else {
             tabbedPane.addTab("Dashboard", createTabIcon("📊"), dashboardPanel);
-            tabbedPane.addTab("Users", createTabIcon("👤"), new UserManagementPanel(currentUser));
+            tabbedPane.addTab("Users", createTabIcon("👤"), userManagementPanel);
             tabbedPane.addTab("Students", createTabIcon("👥"), studentPanel);
             tabbedPane.addTab("Faculty", createTabIcon("👨‍🏫"), facultyPanel);
             tabbedPane.addTab("Courses", createTabIcon("📚"), coursePanel);
@@ -195,6 +197,37 @@ public class MainFrame extends JFrame {
         }
         if (instructorWorkspacePanel instanceof InstructorWorkspacePanel) {
             ((InstructorWorkspacePanel) instructorWorkspacePanel).updateMaintenanceState();
+        }
+        notifyMaintenanceAware(maintenance);
+    }
+
+    private void notifyMaintenanceAware(boolean maintenance) {
+        if (studentPanel instanceof MaintenanceAware aware) {
+            aware.onMaintenanceModeChanged(maintenance);
+        }
+        if (facultyPanel instanceof MaintenanceAware aware) {
+            aware.onMaintenanceModeChanged(maintenance);
+        }
+        if (coursePanel instanceof MaintenanceAware aware) {
+            aware.onMaintenanceModeChanged(maintenance);
+        }
+        if (feesPanel instanceof MaintenanceAware aware) {
+            aware.onMaintenanceModeChanged(maintenance);
+        }
+        if (sectionPanel instanceof MaintenanceAware aware) {
+            aware.onMaintenanceModeChanged(maintenance);
+        }
+        if (enrollmentPanel instanceof MaintenanceAware aware) {
+            aware.onMaintenanceModeChanged(maintenance);
+        }
+        if (attendancePanel instanceof MaintenanceAware aware) {
+            aware.onMaintenanceModeChanged(maintenance);
+        }
+        if (notificationsPanel instanceof MaintenanceAware aware) {
+            aware.onMaintenanceModeChanged(maintenance);
+        }
+        if (userManagementPanel instanceof MaintenanceAware aware) {
+            aware.onMaintenanceModeChanged(maintenance);
         }
     }
 

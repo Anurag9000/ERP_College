@@ -4,6 +4,7 @@ import main.java.gui.dialogs.FacultyDialog;
 import main.java.models.Faculty;
 import main.java.models.User;
 import main.java.utils.DatabaseUtil;
+import main.java.gui.panels.MaintenanceAware;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
@@ -14,11 +15,12 @@ import javax.swing.RowFilter;
 /**
  * Panel for managing faculty information
  */
-public class FacultyPanel extends JPanel {
+public class FacultyPanel extends JPanel implements MaintenanceAware {
     private JTable facultyTable;
     private DefaultTableModel tableModel;
     private JTextField searchField;
     private JButton addButton, editButton, deleteButton, refreshButton;
+    private boolean maintenanceMode;
     
     private final String[] columnNames = {
         "Faculty ID", "Username", "Name", "Department", "Designation",
@@ -127,9 +129,7 @@ public class FacultyPanel extends JPanel {
         // Table selection
         facultyTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                boolean hasSelection = facultyTable.getSelectedRow() != -1;
-                editButton.setEnabled(hasSelection);
-                deleteButton.setEnabled(hasSelection);
+                updateButtonStates();
             }
         });
         
@@ -162,6 +162,7 @@ public class FacultyPanel extends JPanel {
             };
             tableModel.addRow(row);
         }
+        updateButtonStates();
     }
     
     private void filterTable() {
@@ -177,6 +178,10 @@ public class FacultyPanel extends JPanel {
     }
     
     private void addFaculty() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         FacultyDialog dialog = new FacultyDialog((JFrame) SwingUtilities.getWindowAncestor(this), "Add Faculty", null);
         dialog.setVisible(true);
         if (dialog.isConfirmed()) {
@@ -195,6 +200,10 @@ public class FacultyPanel extends JPanel {
     }
     
     private void editFaculty() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         int selectedRow = facultyTable.getSelectedRow();
         if (selectedRow == -1) {
             return;
@@ -224,6 +233,10 @@ public class FacultyPanel extends JPanel {
     }
     
     private void deleteFaculty() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         int selectedRow = facultyTable.getSelectedRow();
         if (selectedRow == -1) return;
         
@@ -244,5 +257,18 @@ public class FacultyPanel extends JPanel {
             loadFacultyData();
             JOptionPane.showMessageDialog(this, "Faculty deleted successfully!");
         }
+    }
+
+    @Override
+    public void onMaintenanceModeChanged(boolean maintenance) {
+        this.maintenanceMode = maintenance;
+        updateButtonStates();
+    }
+
+    private void updateButtonStates() {
+        addButton.setEnabled(!maintenanceMode);
+        boolean hasSelection = facultyTable.getSelectedRow() != -1;
+        editButton.setEnabled(hasSelection && !maintenanceMode);
+        deleteButton.setEnabled(hasSelection && !maintenanceMode);
     }
 }

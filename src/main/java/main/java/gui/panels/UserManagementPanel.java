@@ -3,6 +3,7 @@ package main.java.gui.panels;
 import main.java.models.User;
 import main.java.service.AdminService;
 import main.java.utils.DatabaseUtil;
+import main.java.gui.panels.MaintenanceAware;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -11,10 +12,13 @@ import java.awt.*;
 /**
  * Administrative user provisioning and password reset panel.
  */
-public class UserManagementPanel extends JPanel {
+public class UserManagementPanel extends JPanel implements MaintenanceAware {
     private final User adminUser;
     private final DefaultTableModel tableModel;
     private final JTable userTable;
+    private final JButton addButton;
+    private final JButton resetPasswordButton;
+    private boolean maintenanceMode;
 
     public UserManagementPanel(User adminUser) {
         this.adminUser = adminUser;
@@ -33,8 +37,8 @@ public class UserManagementPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton addButton = new JButton("Add User");
-        JButton resetPasswordButton = new JButton("Reset Password");
+        this.addButton = new JButton("Add User");
+        this.resetPasswordButton = new JButton("Reset Password");
         top.add(addButton);
         top.add(resetPasswordButton);
 
@@ -62,6 +66,10 @@ public class UserManagementPanel extends JPanel {
     }
 
     private void addUser() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         JTextField usernameField = new JTextField();
         JComboBox<String> roleCombo = new JComboBox<>(new String[]{"Student", "Instructor", "Admin"});
         JTextField nameField = new JTextField();
@@ -98,6 +106,10 @@ public class UserManagementPanel extends JPanel {
     }
 
     private void resetPassword() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         int row = userTable.getSelectedRow();
         if (row == -1) {
             JOptionPane.showMessageDialog(this, "Select a user first.");
@@ -114,5 +126,11 @@ public class UserManagementPanel extends JPanel {
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to reset password", JOptionPane.ERROR_MESSAGE);
         }
+    }
+    @Override
+    public void onMaintenanceModeChanged(boolean maintenance) {
+        this.maintenanceMode = maintenance;
+        addButton.setEnabled(!maintenance);
+        resetPasswordButton.setEnabled(!maintenance);
     }
 }

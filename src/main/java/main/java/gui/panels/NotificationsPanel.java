@@ -2,6 +2,7 @@ package main.java.gui.panels;
 
 import main.java.models.NotificationMessage;
 import main.java.utils.DatabaseUtil;
+import main.java.gui.panels.MaintenanceAware;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -12,13 +13,14 @@ import java.util.List;
 /**
  * Panel to review and broadcast system notifications.
  */
-public class NotificationsPanel extends JPanel {
+public class NotificationsPanel extends JPanel implements MaintenanceAware {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private JComboBox<String> audienceFilter;
     private JTable notificationTable;
     private DefaultTableModel tableModel;
     private JButton broadcastButton;
+    private boolean maintenanceMode;
 
     public NotificationsPanel() {
         initializeComponents();
@@ -110,6 +112,10 @@ public class NotificationsPanel extends JPanel {
     }
 
     private void broadcastMessage() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         JTextField categoryField = new JTextField("General");
         JTextArea messageArea = new JTextArea(4, 25);
         messageArea.setLineWrap(true);
@@ -149,5 +155,11 @@ public class NotificationsPanel extends JPanel {
         DatabaseUtil.addNotification(notification);
         JOptionPane.showMessageDialog(this, "Notification broadcasted.");
         loadNotifications();
+    }
+
+    @Override
+    public void onMaintenanceModeChanged(boolean maintenance) {
+        this.maintenanceMode = maintenance;
+        broadcastButton.setEnabled(!maintenance);
     }
 }

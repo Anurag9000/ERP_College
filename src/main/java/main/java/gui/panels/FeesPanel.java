@@ -4,6 +4,7 @@ import main.java.models.FeeInstallment;
 import main.java.models.PaymentTransaction;
 import main.java.models.Student;
 import main.java.utils.DatabaseUtil;
+import main.java.gui.panels.MaintenanceAware;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 
@@ -27,7 +28,7 @@ import java.util.UUID;
 /**
  * Panel for managing student finance operations.
  */
-public class FeesPanel extends JPanel {
+public class FeesPanel extends JPanel implements MaintenanceAware {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy");
     private static final DateTimeFormatter INPUT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -40,6 +41,7 @@ public class FeesPanel extends JPanel {
     private final JButton configureInstallmentsButton;
     private final JButton refreshButton;
     private final JLabel totalOutstandingLabel;
+    private boolean maintenanceMode;
 
     public FeesPanel() {
         this.tableModel = new DefaultTableModel(new Object[]{
@@ -136,10 +138,7 @@ public class FeesPanel extends JPanel {
     private void setupEventHandlers() {
         feesTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                boolean hasSelection = feesTable.getSelectedRow() != -1;
-                paymentButton.setEnabled(hasSelection);
-                exportStatementButton.setEnabled(hasSelection);
-                configureInstallmentsButton.setEnabled(hasSelection);
+                updateActionButtons();
             }
         });
 
@@ -201,6 +200,7 @@ public class FeesPanel extends JPanel {
         }
 
         totalOutstandingLabel.setText("Total Outstanding: " + formatCurrency(totalOutstanding));
+        updateActionButtons();
     }
 
     private void filterTable() {
@@ -215,6 +215,10 @@ public class FeesPanel extends JPanel {
     }
 
     private void recordPayment() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         Student student = getSelectedStudent();
         if (student == null) {
             return;
@@ -266,6 +270,10 @@ public class FeesPanel extends JPanel {
     }
 
     private void openInstallmentDialog() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         Student student = getSelectedStudent();
         if (student == null) {
             return;
@@ -514,5 +522,18 @@ public class FeesPanel extends JPanel {
             Object value = model.getValueAt(row, column);
             return value == null ? "" : value.toString().trim();
         }
+    }
+
+    @Override
+    public void onMaintenanceModeChanged(boolean maintenance) {
+        this.maintenanceMode = maintenance;
+        updateActionButtons();
+    }
+
+    private void updateActionButtons() {
+        boolean hasSelection = feesTable.getSelectedRow() != -1;
+        paymentButton.setEnabled(hasSelection && !maintenanceMode);
+        configureInstallmentsButton.setEnabled(hasSelection && !maintenanceMode);
+        exportStatementButton.setEnabled(hasSelection);
     }
 }

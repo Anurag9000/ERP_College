@@ -11,7 +11,7 @@ This checklist tracks every requirement from `Documentation/project.pdf` plus th
 - [x] Transcript export (CSV/PDF) and student grade view.
 - [x] Admin can add users, create courses/sections.
 - [x] Admin UI to assign instructors to sections and toggle Maintenance Mode in-app.
-- [ ] Maintenance mode enforcement for *all* write actions (currently only partial guards).
+- [x] Maintenance mode enforcement for *all* write actions (currently only partial guards).
 - [ ] Student drop deadlines strictly enforced.
 - [ ] Timetable rendered on a day/time grid and richer printable layout.
 - [ ] Instructor grade CSV import/export (optional in spec).

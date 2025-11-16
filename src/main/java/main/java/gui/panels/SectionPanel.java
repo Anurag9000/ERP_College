@@ -6,6 +6,7 @@ import main.java.models.Faculty;
 import main.java.models.Section;
 import main.java.models.User;
 import main.java.utils.DatabaseUtil;
+import main.java.gui.panels.MaintenanceAware;
 
 import javax.swing.*;
 import javax.swing.RowFilter;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
 /**
  * Panel for managing course sections and schedule data.
  */
-public class SectionPanel extends JPanel {
+public class SectionPanel extends JPanel implements MaintenanceAware {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private JTable sectionTable;
@@ -34,6 +35,7 @@ public class SectionPanel extends JPanel {
     private JButton assignButton;
     private JButton refreshButton;
     private final User adminUser;
+    private boolean maintenanceMode;
 
     private final String[] columnNames = {
         "Section ID",
@@ -131,6 +133,10 @@ public class SectionPanel extends JPanel {
     }
 
     private void assignInstructor() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         int viewRow = sectionTable.getSelectedRow();
         if (viewRow == -1) {
             JOptionPane.showMessageDialog(this, "Select a section first.");
@@ -194,10 +200,7 @@ public class SectionPanel extends JPanel {
     private void setupHandlers() {
         sectionTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                boolean selected = sectionTable.getSelectedRow() != -1;
-                editButton.setEnabled(selected);
-                deleteButton.setEnabled(selected);
-                assignButton.setEnabled(selected);
+                updateButtonStates();
             }
         });
 
@@ -243,6 +246,7 @@ public class SectionPanel extends JPanel {
             };
             tableModel.addRow(row);
         }
+        updateButtonStates();
     }
 
     private void filterTable() {
@@ -257,6 +261,10 @@ public class SectionPanel extends JPanel {
     }
 
     private void addSection() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         SectionDialog dialog = new SectionDialog(
                 (JFrame) SwingUtilities.getWindowAncestor(this),
                 "Add Section",
@@ -273,6 +281,10 @@ public class SectionPanel extends JPanel {
     }
 
     private void editSection() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         int selectedRow = sectionTable.getSelectedRow();
         if (selectedRow == -1) {
             return;
@@ -301,6 +313,10 @@ public class SectionPanel extends JPanel {
     }
 
     private void deleteSection() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         int selectedRow = sectionTable.getSelectedRow();
         if (selectedRow == -1) {
             return;
@@ -321,5 +337,20 @@ public class SectionPanel extends JPanel {
             loadData();
             JOptionPane.showMessageDialog(this, "Section deleted.");
         }
+    }
+
+    @Override
+    public void onMaintenanceModeChanged(boolean maintenance) {
+        this.maintenanceMode = maintenance;
+        updateButtonStates();
+    }
+
+    private void updateButtonStates() {
+        addButton.setEnabled(!maintenanceMode);
+        boolean hasSelection = sectionTable.getSelectedRow() != -1;
+        boolean allowMutations = hasSelection && !maintenanceMode;
+        editButton.setEnabled(allowMutations);
+        deleteButton.setEnabled(allowMutations);
+        assignButton.setEnabled(allowMutations);
     }
 }

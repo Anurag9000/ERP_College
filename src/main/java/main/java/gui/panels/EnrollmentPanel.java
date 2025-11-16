@@ -8,6 +8,7 @@ import main.java.models.Student;
 import main.java.models.User;
 import main.java.service.EnrollmentService;
 import main.java.utils.DatabaseUtil;
+import main.java.gui.panels.MaintenanceAware;
 
 import javax.swing.*;
 import javax.swing.RowFilter;
@@ -25,7 +26,7 @@ import java.util.Objects;
 /**
  * Panel to help staff manage student registrations, conflicts, and waitlists.
  */
-public class EnrollmentPanel extends JPanel {
+public class EnrollmentPanel extends JPanel implements MaintenanceAware {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
 
     private JComboBox<String> studentCombo;
@@ -37,6 +38,7 @@ public class EnrollmentPanel extends JPanel {
     private JButton registerButton;
     private JButton dropButton;
     private JButton refreshButton;
+    private boolean maintenanceMode;
 
     private final String[] sectionsColumns = {
         "Section",
@@ -156,9 +158,7 @@ public class EnrollmentPanel extends JPanel {
 
         sectionsTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                boolean selected = sectionsTable.getSelectedRow() != -1;
-                registerButton.setEnabled(selected);
-                dropButton.setEnabled(selected);
+                updateButtonStates();
             }
         });
 
@@ -234,6 +234,7 @@ public class EnrollmentPanel extends JPanel {
                     section.getLocation()
             });
         }
+        updateButtonStates();
     }
 
     private Map<String, EnrollmentRecord.Status> buildStatusMap(String studentId) {
@@ -257,6 +258,10 @@ public class EnrollmentPanel extends JPanel {
     }
 
     private void registerSelectedSection() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         int selectedRow = sectionsTable.getSelectedRow();
         if (selectedRow == -1 || studentCombo.getSelectedItem() == null) {
             return;
@@ -281,6 +286,10 @@ public class EnrollmentPanel extends JPanel {
     }
 
     private void dropSelectedSection() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
         int selectedRow = sectionsTable.getSelectedRow();
         if (selectedRow == -1 || studentCombo.getSelectedItem() == null) {
             return;
@@ -308,5 +317,18 @@ public class EnrollmentPanel extends JPanel {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Drop failed",
                     JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    @Override
+    public void onMaintenanceModeChanged(boolean maintenance) {
+        this.maintenanceMode = maintenance;
+        updateButtonStates();
+    }
+
+    private void updateButtonStates() {
+        boolean hasSelection = sectionsTable.getSelectedRow() != -1;
+        boolean allowMutations = hasSelection && !maintenanceMode;
+        registerButton.setEnabled(allowMutations);
+        dropButton.setEnabled(allowMutations);
     }
 }
