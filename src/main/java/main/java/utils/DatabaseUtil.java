@@ -16,6 +16,7 @@ import main.java.data.dao.CourseRelationshipDao;
 import main.java.data.dao.PaymentTransactionDao;
 import main.java.data.dao.FeeInstallmentDao;
 import main.java.data.dao.FeeScheduleTemplateDao;
+import main.java.data.dao.InstructorMessageDao;
 import main.java.data.dao.RegistrationRequestDao;
 import main.java.data.migration.LegacyDataMigrator;
 import main.java.utils.PasswordPolicy;
@@ -71,6 +72,7 @@ public class DatabaseUtil {
     private static final PaymentTransactionDao paymentTransactionDao = new PaymentTransactionDao();
     private static final FeeInstallmentDao feeInstallmentDao = new FeeInstallmentDao();
     private static final RegistrationRequestDao registrationRequestDao = new RegistrationRequestDao();
+    private static final InstructorMessageDao instructorMessageDao = new InstructorMessageDao();
     private static final FeeScheduleTemplateDao feeScheduleTemplateDao = new FeeScheduleTemplateDao();
 
     private static final Map<String, List<String>> coursePrerequisiteCache = new ConcurrentHashMap<>();
@@ -806,6 +808,57 @@ public class DatabaseUtil {
     public static void saveComponentFeedbackEntry(String sectionId, String studentId, String component, String comment) {
         EnrollmentRecord record = findEnrollmentRecord(sectionId, studentId);
         record.putFeedback(component, comment);
+    }
+
+    public static List<InstructorMessageDao.MessageLog> getInstructorMessageLog(String instructorUsername) {
+        if (instructorUsername == null || instructorUsername.isBlank()) {
+            return Collections.emptyList();
+        }
+        return instructorMessageDao.findByInstructor(instructorUsername.trim());
+    }
+
+    public static void sendInstructorMessage(User instructor,
+                                             String sectionId,
+                                             List<String> requestedRecipients,
+                                             String subject,
+                                             String body) {
+        if (instructor == null || !"Instructor".equalsIgnoreCase(instructor.getRole())) {
+            throw new SecurityException("Instructor session required.");
+        }
+        if (subject == null || subject.isBlank()) {
+            throw new IllegalArgumentException("Subject is required.");
+        }
+        if (body == null || body.isBlank()) {
+            throw new IllegalArgumentException("Message body is required.");
+        }
+        Section section = getSection(sectionId);
+        if (section == null) {
+            throw new IllegalArgumentException("Section not found: " + sectionId);
+        }
+        Faculty faculty = findFacultyByUsername(instructor.getUsername());
+        if (faculty == null || !Objects.equals(faculty.getFacultyId(), section.getFacultyId())) {
+            throw new SecurityException("You are not assigned to this section.");
+        }
+        List<String> recipients = resolveSectionRecipients(sectionId, requestedRecipients);
+        if (recipients.isEmpty()) {
+            throw new IllegalStateException("No enrolled students to message.");
+        }
+        String header = "[" + sectionId + "] " + subject.trim();
+        String bodyText = body.trim();
+        for (String studentId : recipients) {
+            NotificationMessage notification = new NotificationMessage(
+                    NotificationMessage.Audience.STUDENT,
+                    studentId,
+                    header + "\n" + bodyText,
+                    "Instructor Message");
+            addNotification(notification);
+        }
+        instructorMessageDao.insert(
+                instructor.getUsername(),
+                sectionId,
+                subject.trim(),
+                bodyText,
+                String.join(",", recipients));
     }
 
     private static PaymentTransaction copyTransaction(PaymentTransaction source) {
@@ -1783,6 +1836,27 @@ public class DatabaseUtil {
                 .filter(rec -> rec.getStudentId().equalsIgnoreCase(studentId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Student " + studentId + " not enrolled in section " + sectionId));
+    }
+
+    private static List<String> resolveSectionRecipients(String sectionId, List<String> requested) {
+        List<String> enrolled = enrollmentDao.findBySection(sectionId).stream()
+                .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .map(EnrollmentRecord::getStudentId)
+                .collect(Collectors.toList());
+        if (requested == null || requested.isEmpty()) {
+            return enrolled;
+        }
+        Set<String> allowed = new LinkedHashSet<>();
+        for (String candidate : requested) {
+            if (candidate == null || candidate.isBlank()) {
+                continue;
+            }
+            String trimmed = candidate.trim();
+            if (enrolled.stream().anyMatch(id -> id.equalsIgnoreCase(trimmed))) {
+                allowed.add(trimmed);
+            }
+        }
+        return new ArrayList<>(allowed);
     }
 }
 

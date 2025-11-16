@@ -1,5 +1,4 @@
 ## Instructor Workspace
-- [ ] Messaging hub to reach enrolled students/sections.
 - [ ] Section planner (room clash/capacity warnings).
 
 ## Admin Console & Operations

@@ -179,6 +179,7 @@ public class MainFrame extends JFrame {
             tabbedPane.addTab("Self Service", createTabIcon("🎓"), studentSelfServicePanel);
         } else if ("Instructor".equalsIgnoreCase(role)) {
             tabbedPane.addTab("Workspace", createTabIcon("📘"), instructorWorkspacePanel);
+            tabbedPane.addTab("Messages", createTabIcon("✉"), new InstructorMessagingPanel(currentUser));
             tabbedPane.addTab("Attendance", createTabIcon("📝"), new InstructorAttendancePanel(currentUser));
         } else {
             tabbedPane.addTab("Dashboard", createTabIcon("📊"), dashboardPanel);
