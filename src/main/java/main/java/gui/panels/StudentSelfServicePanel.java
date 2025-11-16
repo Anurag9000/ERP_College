@@ -42,6 +42,7 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.util.Matrix;
 
 /**
  * Student-facing self-service workspace for catalog, schedule, and grades.
@@ -89,6 +90,8 @@ public class StudentSelfServicePanel extends JPanel {
     private final JLabel gradeAnalyticsLabel;
     private final GpaChartPanel gpaChartPanel;
     private final JButton transcriptPdfButton;
+    private final JButton certificateButton;
+    private final JButton registrarMessageButton;
     private final JButton exportSchedulePdfButton;
     private final JButton changePasswordButton;
     private final DefaultTableModel paymentHistoryModel;
@@ -185,6 +188,8 @@ public class StudentSelfServicePanel extends JPanel {
         exportScheduleButton = new JButton("Export Timetable (.ics)");
         exportSchedulePdfButton = new JButton("Print Timetable (PDF)");
         transcriptPdfButton = new JButton("Download Transcript (PDF)");
+        certificateButton = new JButton("Download Enrollment Certificate");
+        registrarMessageButton = new JButton("Message Registrar");
         changePasswordButton = new JButton("Change Password");
         reminderButton = new JButton("Send Payment Reminder");
         reminderButton.setEnabled(false);
@@ -196,6 +201,12 @@ public class StudentSelfServicePanel extends JPanel {
         transcriptPdfButton.setBackground(primary.darker());
         transcriptPdfButton.setForeground(Color.WHITE);
         transcriptPdfButton.setFocusPainted(false);
+        certificateButton.setBackground(new Color(16, 185, 129));
+        certificateButton.setForeground(Color.WHITE);
+        certificateButton.setFocusPainted(false);
+        registrarMessageButton.setBackground(new Color(249, 115, 22));
+        registrarMessageButton.setForeground(Color.WHITE);
+        registrarMessageButton.setFocusPainted(false);
         transcriptButton.setBackground(primary);
         transcriptButton.setForeground(Color.WHITE);
         transcriptButton.setFocusPainted(false);
@@ -322,6 +333,12 @@ public class StudentSelfServicePanel extends JPanel {
         panel.add(Box.createVerticalStrut(10));
         transcriptPdfButton.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(transcriptPdfButton);
+        panel.add(Box.createVerticalStrut(10));
+        certificateButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(certificateButton);
+        panel.add(Box.createVerticalStrut(10));
+        registrarMessageButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(registrarMessageButton);
         panel.add(Box.createVerticalStrut(10));
         JTextArea info = new JTextArea("""
                 Download a CSV or PDF copy of your course grades for personal reference.
@@ -470,6 +487,8 @@ public class StudentSelfServicePanel extends JPanel {
         dropButton.addActionListener(e -> performDrop());
         transcriptButton.addActionListener(e -> exportTranscript());
         transcriptPdfButton.addActionListener(e -> exportTranscriptPdf());
+        certificateButton.addActionListener(e -> exportCertificatePdf());
+        registrarMessageButton.addActionListener(e -> messageRegistrar());
         exportScheduleButton.addActionListener(e -> exportScheduleIcs());
         exportSchedulePdfButton.addActionListener(e -> exportSchedulePdf());
         changePasswordButton.addActionListener(e -> showChangePasswordDialog());
@@ -1194,6 +1213,7 @@ public class StudentSelfServicePanel extends JPanel {
         try (PDDocument document = new PDDocument()) {
             PDPage page = new PDPage(PDRectangle.LETTER);
             document.addPage(page);
+            applyWatermark(document, page, "UNOFFICIAL COPY");
 
             float margin = 48f;
             float lineHeight = 16f;
@@ -1233,6 +1253,7 @@ public class StudentSelfServicePanel extends JPanel {
                         content.close();
                         page = new PDPage(PDRectangle.LETTER);
                         document.addPage(page);
+                        applyWatermark(document, page, "UNOFFICIAL COPY");
                         yPosition = page.getMediaBox().getHeight() - margin;
                         content = new PDPageContentStream(document, page);
                         content.setLeading(lineHeight);
@@ -1517,6 +1538,108 @@ public class StudentSelfServicePanel extends JPanel {
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "Unable to export transcript PDF: " + ex.getMessage(),
                     "Export Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void exportCertificatePdf() {
+        if (studentProfile == null) {
+            JOptionPane.showMessageDialog(this, "Student profile unavailable.");
+            return;
+        }
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new java.io.File("certificate_" + studentProfile.getStudentId() + ".pdf"));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+        java.io.File file = chooser.getSelectedFile();
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.LETTER);
+            document.addPage(page);
+            applyWatermark(document, page, "CERTIFIED COPY");
+            try (PDPageContentStream content = new PDPageContentStream(document, page)) {
+                float margin = 64f;
+                float y = page.getMediaBox().getHeight() - margin;
+                content.beginText();
+                content.setLeading(24f);
+                content.newLineAtOffset(margin, y);
+                content.setFont(PDType1Font.HELVETICA_BOLD, 22);
+                content.showText("Enrollment Certificate");
+                content.newLine();
+                content.setFont(PDType1Font.HELVETICA, 12);
+                content.newLine();
+                content.showText("This is to certify that " + studentProfile.getFullName()
+                        + " (" + studentProfile.getStudentId() + ")");
+                content.newLine();
+                content.showText("is enrolled in the program: "
+                        + (studentProfile.getCourse() != null ? studentProfile.getCourse() : "Not assigned"));
+                content.newLine();
+                content.showText("Academic standing: "
+                        + (studentProfile.getAcademicStanding() != null ? studentProfile.getAcademicStanding() : "N/A"));
+                content.newLine();
+                content.showText("Credits completed: " + studentProfile.getCreditsCompleted());
+                content.newLine();
+                content.showText("Date: " + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+                content.newLine();
+                content.newLine();
+                content.showText("Registrar: ______________________");
+                content.endText();
+            }
+            document.save(file);
+            JOptionPane.showMessageDialog(this, "Certificate saved to " + file.getAbsolutePath());
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Unable to export certificate: " + ex.getMessage(),
+                    "Export Failed", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void messageRegistrar() {
+        JTextField subjectField = new JTextField();
+        JTextArea bodyArea = new JTextArea(5, 25);
+        bodyArea.setLineWrap(true);
+        bodyArea.setWrapStyleWord(true);
+
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        JPanel form = new JPanel(new GridLayout(0, 1, 6, 6));
+        form.add(new JLabel("Subject:"));
+        form.add(subjectField);
+        panel.add(form, BorderLayout.NORTH);
+        panel.add(new JScrollPane(bodyArea), BorderLayout.CENTER);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Message Registrar",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+        String subject = subjectField.getText().trim();
+        String body = bodyArea.getText().trim();
+        if (subject.isEmpty() || body.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Subject and message are required.");
+            return;
+        }
+        String message = "[" + subject + "] " + body;
+        DatabaseUtil.addNotification(new NotificationMessage(
+                NotificationMessage.Audience.ADMIN,
+                null,
+                studentProfile.getFullName() + ": " + message,
+                "Registrar Message"));
+        JOptionPane.showMessageDialog(this, "Message sent to registrar.");
+    }
+
+    private void applyWatermark(PDDocument document, PDPage page, String text) throws IOException {
+        try (PDPageContentStream watermark = new PDPageContentStream(
+                document,
+                page,
+                PDPageContentStream.AppendMode.APPEND,
+                true,
+                true)) {
+            watermark.beginText();
+            watermark.setFont(PDType1Font.HELVETICA_BOLD, 72);
+            watermark.setNonStrokingColor(new Color(210, 210, 210));
+            float width = page.getMediaBox().getWidth();
+            float height = page.getMediaBox().getHeight();
+            watermark.setTextMatrix(Matrix.getRotateInstance(Math.toRadians(30), width / 4, height / 3));
+            watermark.showText(text);
+            watermark.endText();
         }
     }
 
