@@ -29,6 +29,7 @@ public class MainFrame extends JFrame {
     private EnrollmentPanel enrollmentPanel;
     private AttendancePanel attendancePanel;
     private NotificationsPanel notificationsPanel;
+    private DiagnosticsPanel diagnosticsPanel;
     private UserManagementPanel userManagementPanel;
     private AuditLogPanel auditLogPanel;
     private JPanel studentSelfServicePanel;
@@ -162,6 +163,7 @@ public class MainFrame extends JFrame {
             enrollmentPanel = new EnrollmentPanel(currentUser);
             attendancePanel = new AttendancePanel();
             notificationsPanel = new NotificationsPanel();
+            diagnosticsPanel = new DiagnosticsPanel();
             userManagementPanel = new UserManagementPanel(currentUser);
             auditLogPanel = new AuditLogPanel();
         }
@@ -186,6 +188,7 @@ public class MainFrame extends JFrame {
             tabbedPane.addTab("Fees", createTabIcon("💰"), feesPanel);
             tabbedPane.addTab("Notifications", createTabIcon("🔔"), notificationsPanel);
             tabbedPane.addTab("Maintenance", createTabIcon("🛠"), new MaintenancePanel(currentUser, this::updateMaintenanceBadge));
+            tabbedPane.addTab("Diagnostics", createTabIcon("🩺"), diagnosticsPanel);
         }
     }
 

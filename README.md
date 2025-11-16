@@ -48,6 +48,9 @@ mvn -q -DskipTests exec:java
 - Application state is stored in MariaDB via the DAO layer; legacy `.dat` files can be migrated once via `LegacyDataMigrator`.
 - Default login: **admin / admin123**
 - Detailed platform documentation lives under `docs/`:
-  - `docs/platform/tech_stack.md` — dependency catalogue and architecture notes.
-  - `docs/database/README.md` — schema overview, seeding instructions, rollback playbook.
-  - `docs/diagrams/` — source files for ERD and component diagrams (see doc for formats).
+  - `docs/platform/tech_stack.md` – dependency catalogue and architecture notes.
+  - `docs/database/README.md` – schema overview, seeding instructions, rollback playbook.
+  - `docs/database/dual_db_overview.md` – dual-schema architecture, DDL locations, rollback strategy.
+  - `docs/diagrams/` – source files for ERD and component diagrams (see doc for formats).
+  - `docs/operations/backup_restore.md` – MySQL backup/restore scripts and operational guidance.
+  - `docs/database/legacy_migration.md` – instructions for importing legacy `.dat` data into SQL via `LegacyDataMigrator`.

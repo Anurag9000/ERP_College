@@ -4,19 +4,13 @@ This checklist tracks every requirement from `Documentation/project.pdf` plus th
 
 ## Baseline Specification
 
-- [ ] Optional backup/restore tooling (spec optional but outstanding).
-
 ## Platform & Architecture
-
-- [ ] Document the dual database split (ERDs, full DDL, rollback plan, seed loaders).
 - [ ] Modularise packages (`data/`, `service/`, `ui/`, `api/`) and introduce DI/service locator instead of direct `DatabaseUtil` calls.
-- [ ] Add health checks/configuration diagnostics (datasource ping, config validation).
 
 ## Authentication & Security
 
 ## Data Migration & Repositories
 
-- [ ] Migration tooling/docs to port legacy `.dat` contents into SQL.
 - [ ] Datasource health probes + robust DAO error handling.
 
 ## Student Experience
