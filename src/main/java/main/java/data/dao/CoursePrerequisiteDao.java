@@ -15,6 +15,10 @@ import java.util.List;
 public class CoursePrerequisiteDao extends BaseDao {
     private static final String SELECT_BY_COURSE =
             "SELECT prerequisite_code FROM course_prerequisites WHERE course_code = ? ORDER BY prerequisite_code";
+    private static final String DELETE_BY_COURSE =
+            "DELETE FROM course_prerequisites WHERE course_code = ?";
+    private static final String INSERT =
+            "INSERT INTO course_prerequisites (course_code, prerequisite_code) VALUES (?, ?)";
 
     public CoursePrerequisiteDao() {
         super(DataSourceRegistry.erpDataSource()
@@ -35,5 +39,28 @@ public class CoursePrerequisiteDao extends BaseDao {
             logger.error("Error loading prerequisites for {}: {}", courseCode, ex.getMessage(), ex);
         }
         return prereqs;
+    }
+
+    public void replacePrerequisites(String courseCode, List<String> prerequisites) {
+        try (Connection conn = getConnection();
+             PreparedStatement delete = conn.prepareStatement(DELETE_BY_COURSE);
+             PreparedStatement insert = conn.prepareStatement(INSERT)) {
+            delete.setString(1, courseCode);
+            delete.executeUpdate();
+            if (prerequisites != null) {
+                for (String prereq : prerequisites) {
+                    if (prereq == null || prereq.isBlank()) {
+                        continue;
+                    }
+                    insert.setString(1, courseCode);
+                    insert.setString(2, prereq.trim());
+                    insert.addBatch();
+                }
+                insert.executeBatch();
+            }
+        } catch (SQLException ex) {
+            logger.error("Error saving prerequisites for {}: {}", courseCode, ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to save prerequisites", ex);
+        }
     }
 }

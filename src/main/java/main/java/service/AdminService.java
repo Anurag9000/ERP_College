@@ -86,4 +86,18 @@ public final class AdminService {
     public static List<AuditLogService.AuditEvent> auditTrailForUser(String username) {
         return AuditLogService.recentEventsForUser(username);
     }
+
+    public static void updateCourseRelationships(User actor,
+                                                 String courseId,
+                                                 List<String> prerequisites,
+                                                 List<String> corequisites,
+                                                 List<String> antirequisites) {
+        ensureAdmin(actor);
+        DatabaseUtil.updateCoursePrerequisites(courseId, prerequisites);
+        DatabaseUtil.updateCourseCorequisites(courseId, corequisites);
+        DatabaseUtil.updateCourseAntirequisites(courseId, antirequisites);
+        AuditLogService.log(AuditLogService.EventType.USER_MANAGEMENT,
+                actor.getUsername(),
+                "Updated catalog relationships for " + courseId);
+    }
 }

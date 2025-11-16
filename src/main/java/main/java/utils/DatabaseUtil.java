@@ -1595,6 +1595,42 @@ public class DatabaseUtil {
         return courseAntirequisiteCache.computeIfAbsent(courseId, courseRelationshipDao::findAntirequisites);
     }
 
+    public static void updateCoursePrerequisites(String courseId, List<String> prerequisites) {
+        if (courseId == null || courseId.isBlank()) {
+            throw new IllegalArgumentException("Course code is required.");
+        }
+        coursePrerequisiteDao.replacePrerequisites(courseId.trim(), normalizeCourseList(prerequisites));
+        coursePrerequisiteCache.remove(courseId);
+    }
+
+    public static void updateCourseCorequisites(String courseId, List<String> coreqs) {
+        if (courseId == null || courseId.isBlank()) {
+            throw new IllegalArgumentException("Course code is required.");
+        }
+        courseRelationshipDao.replaceCorequisites(courseId.trim(), normalizeCourseList(coreqs));
+        courseCorequisiteCache.remove(courseId);
+    }
+
+    public static void updateCourseAntirequisites(String courseId, List<String> antireqs) {
+        if (courseId == null || courseId.isBlank()) {
+            throw new IllegalArgumentException("Course code is required.");
+        }
+        courseRelationshipDao.replaceAntirequisites(courseId.trim(), normalizeCourseList(antireqs));
+        courseAntirequisiteCache.remove(courseId);
+    }
+
+    private static List<String> normalizeCourseList(List<String> courses) {
+        if (courses == null) {
+            return Collections.emptyList();
+        }
+        return courses.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
     public static Set<String> getCompletedCourseIds(String studentId) {
         if (studentId == null) {
             return Collections.emptySet();

@@ -26,6 +26,7 @@ public class MainFrame extends JFrame {
     private CoursePanel coursePanel;
     private FeesPanel feesPanel;
     private SectionPanel sectionPanel;
+    private CatalogManagementPanel catalogManagementPanel;
     private SectionPlannerPanel sectionPlannerPanel;
     private EnrollmentPanel enrollmentPanel;
     private AttendancePanel attendancePanel;
@@ -163,6 +164,7 @@ public class MainFrame extends JFrame {
             coursePanel = new CoursePanel();
             feesPanel = new FeesPanel();
             sectionPanel = new SectionPanel(currentUser);
+            catalogManagementPanel = new CatalogManagementPanel(currentUser);
             sectionPlannerPanel = new SectionPlannerPanel();
             enrollmentPanel = new EnrollmentPanel(currentUser);
             attendancePanel = new AttendancePanel();
@@ -189,6 +191,7 @@ public class MainFrame extends JFrame {
             tabbedPane.addTab("Students", createTabIcon("👥"), studentPanel);
             tabbedPane.addTab("Faculty", createTabIcon("👨‍🏫"), facultyPanel);
             tabbedPane.addTab("Courses", createTabIcon("📚"), coursePanel);
+            tabbedPane.addTab("Catalog", createTabIcon("📖"), catalogManagementPanel);
             tabbedPane.addTab("Sections", createTabIcon("🗓️"), sectionPanel);
             tabbedPane.addTab("Planner", createTabIcon("📅"), sectionPlannerPanel);
             tabbedPane.addTab("Enrollment", createTabIcon("✅"), enrollmentPanel);
