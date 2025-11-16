@@ -1,4 +1,3 @@
-- [ ] Fee schedule configuration UI, installment visualization for students, polished reminder messaging.
 - [ ] Notification inbox upgrades (category filters tied to maintenance/system broadcasts).
 
 ## Instructor Workspace

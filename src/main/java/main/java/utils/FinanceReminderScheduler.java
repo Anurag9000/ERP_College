@@ -75,8 +75,12 @@ public final class FinanceReminderScheduler {
                     continue;
                 }
                 double outstanding = Math.max(0.0, student.getTotalFees() - student.getFeesPaid());
+                String label = installment.getDescription() != null && !installment.getDescription().isBlank()
+                        ? installment.getDescription()
+                        : "installment";
                 String message = String.format(Locale.ENGLISH,
-                        "Upcoming installment of \u20B9%,.0f due by %s. Outstanding balance: \u20B9%,.0f.",
+                        "Friendly heads-up: %s of \u20B9%,.0f is due by %s. Balance on record: \u20B9%,.0f.",
+                        label,
                         installment.getAmount(),
                         DATE_FORMATTER.format(due),
                         outstanding);
@@ -113,7 +117,7 @@ public final class FinanceReminderScheduler {
                 ? DATE_FORMATTER.format(next.getDueDate())
                 : "Not scheduled";
         String message = String.format(Locale.ENGLISH,
-                "Daily finance digest: Outstanding balance \u20B9%,.0f. Next due date: %s.",
+                "Daily finance snapshot: \u20B9%,.0f outstanding. Next due date: %s. Reach out if you need support.",
                 outstanding,
                 nextDueText);
         DatabaseUtil.addNotification(new NotificationMessage(

@@ -74,6 +74,7 @@ public class StudentSelfServicePanel extends JPanel {
     private final JTable gradesTable;
     private final JTable paymentHistoryTable;
     private final JTable installmentTable;
+    private final InstallmentTimelinePanel installmentTimelinePanel;
 
     private List<Section> catalogSections = new ArrayList<>();
     private Map<String, EnrollmentRecord.Status> enrollmentStatusBySection = new HashMap<>();
@@ -170,6 +171,7 @@ public class StudentSelfServicePanel extends JPanel {
         paymentHistoryTable.setRowHeight(22);
         installmentTable = new JTable(installmentModel);
         installmentTable.setRowHeight(22);
+        installmentTimelinePanel = new InstallmentTimelinePanel();
         notificationsTable = new JTable(notificationsModel);
         notificationsTable.setRowHeight(22);
 
@@ -406,9 +408,10 @@ public class StudentSelfServicePanel extends JPanel {
         reminderButton.setFocusPainted(false);
         actions.add(reminderButton);
 
-        JPanel tables = new JPanel(new GridLayout(1, 2, 12, 12));
+        JPanel tables = new JPanel(new GridLayout(1, 3, 12, 12));
         tables.add(wrapWithTitledScroll(paymentHistoryTable, "Payment History"));
         tables.add(wrapWithTitledScroll(installmentTable, "Installment Plan"));
+        tables.add(wrapWithTitledPanel(installmentTimelinePanel, "Installment Timeline"));
 
         JPanel content = new JPanel(new BorderLayout(10, 10));
         content.add(grid, BorderLayout.NORTH);
@@ -457,6 +460,13 @@ public class StudentSelfServicePanel extends JPanel {
         return scrollPane;
     }
 
+    private JComponent wrapWithTitledPanel(JComponent component, String title) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder(title));
+        panel.add(component, BorderLayout.CENTER);
+        return panel;
+    }
+
     private JLabel createSummaryValueLabel() {
         JLabel label = new JLabel("-");
         label.setFont(new Font("Arial", Font.BOLD, 16));
@@ -492,6 +502,7 @@ public class StudentSelfServicePanel extends JPanel {
         exportScheduleButton.addActionListener(e -> exportScheduleIcs());
         exportSchedulePdfButton.addActionListener(e -> exportSchedulePdf());
         changePasswordButton.addActionListener(e -> showChangePasswordDialog());
+        reminderButton.addActionListener(e -> sendPaymentReminder());
 
         catalogTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -562,6 +573,7 @@ public class StudentSelfServicePanel extends JPanel {
             gradesModel.setRowCount(0);
             paymentHistoryModel.setRowCount(0);
             installmentModel.setRowCount(0);
+            installmentTimelinePanel.setInstallments(Collections.emptyList());
             notificationsModel.setRowCount(0);
             updateSummary();
             updateFinanceSummary();
@@ -744,6 +756,7 @@ public class StudentSelfServicePanel extends JPanel {
     private void populateFinanceTables() {
         paymentHistoryModel.setRowCount(0);
         installmentModel.setRowCount(0);
+        installmentTimelinePanel.setInstallments(Collections.emptyList());
         if (studentProfile == null) {
             return;
         }
@@ -778,6 +791,7 @@ public class StudentSelfServicePanel extends JPanel {
                     installment.getLastReminderSent() != null ? DATE_FORMATTER.format(installment.getLastReminderSent()) : "-"
             });
         }
+        installmentTimelinePanel.setInstallments(installments);
     }
 
     private void populateNotifications() {
@@ -1702,17 +1716,163 @@ public class StudentSelfServicePanel extends JPanel {
                 ? DATE_FORMATTER.format(nextDueInstallment.getDueDate())
                 : "the upcoming due date";
         String installmentAmount = formatCurrency(nextDueInstallment.getAmount());
+        String installmentLabel = nextDueInstallment.getDescription() != null && !nextDueInstallment.getDescription().isBlank()
+                ? nextDueInstallment.getDescription()
+                : "your next installment";
+        String reminderBody = String.format("Friendly reminder: %s of %s is due by %s. Outstanding balance %s. Reach out if you need assistance.",
+                installmentLabel,
+                installmentAmount,
+                dueLabel,
+                formatCurrency(outstanding));
 
         DatabaseUtil.addNotification(new NotificationMessage(
                 NotificationMessage.Audience.STUDENT,
                 studentProfile.getStudentId(),
-                "Payment reminder: " + installmentAmount + " due by " + dueLabel
-                        + ". Outstanding balance " + formatCurrency(outstanding) + ".",
+                reminderBody,
                 "Finance"));
         DatabaseUtil.markInstallmentReminderSent(studentProfile.getStudentId(), nextDueInstallment.getInstallmentId());
         populateFinanceTables();
         updateFinanceSummary();
         JOptionPane.showMessageDialog(this, "Reminder sent to your notifications inbox.");
+    }
+
+    private final class InstallmentTimelinePanel extends JPanel {
+        private final JPanel entriesPanel;
+
+        InstallmentTimelinePanel() {
+            setLayout(new BorderLayout());
+            setOpaque(false);
+            entriesPanel = new JPanel();
+            entriesPanel.setOpaque(false);
+            entriesPanel.setLayout(new BoxLayout(entriesPanel, BoxLayout.Y_AXIS));
+            JScrollPane scrollPane = new JScrollPane(entriesPanel);
+            scrollPane.setBorder(BorderFactory.createEmptyBorder());
+            scrollPane.getVerticalScrollBar().setUnitIncrement(10);
+            add(scrollPane, BorderLayout.CENTER);
+        }
+
+        void setInstallments(List<FeeInstallment> installments) {
+            entriesPanel.removeAll();
+            if (installments == null || installments.isEmpty()) {
+                JLabel empty = new JLabel("Installment plan will appear here once published.");
+                empty.setForeground(new Color(100, 116, 139));
+                entriesPanel.add(empty);
+            } else {
+                List<FeeInstallment> sorted = new ArrayList<>(installments);
+                sorted.sort(Comparator.comparing(FeeInstallment::getDueDate, Comparator.nullsLast(Comparator.naturalOrder())));
+                LocalDate today = LocalDate.now();
+                for (int i = 0; i < sorted.size(); i++) {
+                    FeeInstallment installment = sorted.get(i);
+                    entriesPanel.add(new TimelineEntry(installment, i == 0, i == sorted.size() - 1, today));
+                    if (i < sorted.size() - 1) {
+                        entriesPanel.add(Box.createVerticalStrut(6));
+                    }
+                }
+            }
+            revalidate();
+            repaint();
+        }
+
+        private final class TimelineEntry extends JPanel {
+            TimelineEntry(FeeInstallment installment, boolean first, boolean last, LocalDate today) {
+                setOpaque(false);
+                setLayout(new BorderLayout(10, 0));
+                Color statusColor = determineColor(installment, today);
+                add(new TimelineMarker(statusColor, !first, !last), BorderLayout.WEST);
+
+                JPanel card = new JPanel();
+                card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+                card.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                        BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+                card.setBackground(Color.WHITE);
+                card.setOpaque(true);
+
+                JLabel title = new JLabel(buildTitle(installment, today));
+                title.setFont(title.getFont().deriveFont(Font.BOLD));
+                JLabel amount = new JLabel(formatCurrency(installment.getAmount()) + " • " + describeLabel(installment));
+                amount.setForeground(new Color(71, 85, 105));
+                JLabel reminder = new JLabel(buildReminderText(installment));
+                reminder.setForeground(new Color(100, 116, 139));
+
+                card.add(title);
+                card.add(Box.createVerticalStrut(4));
+                card.add(amount);
+                card.add(Box.createVerticalStrut(4));
+                card.add(reminder);
+
+                add(card, BorderLayout.CENTER);
+            }
+
+            private String buildTitle(FeeInstallment installment, LocalDate today) {
+                String dueText = installment.getDueDate() != null
+                        ? DATE_FORMATTER.format(installment.getDueDate())
+                        : "Flexible date";
+                String status = installment.getStatus() == FeeInstallment.Status.PAID
+                        ? "Paid"
+                        : installment.isOverdue(today) ? "Overdue" : "Upcoming";
+                return dueText + " • " + status;
+            }
+
+            private String describeLabel(FeeInstallment installment) {
+                return installment.getDescription() != null && !installment.getDescription().isBlank()
+                        ? installment.getDescription()
+                        : "Installment";
+            }
+
+            private String buildReminderText(FeeInstallment installment) {
+                if (installment.getStatus() == FeeInstallment.Status.PAID && installment.getPaidOn() != null) {
+                    return "Cleared on " + DATE_FORMATTER.format(installment.getPaidOn());
+                }
+                if (installment.getLastReminderSent() != null) {
+                    return "Reminder sent on " + DATE_FORMATTER.format(installment.getLastReminderSent());
+                }
+                return "No reminder sent yet";
+            }
+
+            private Color determineColor(FeeInstallment installment, LocalDate today) {
+                if (installment.getStatus() == FeeInstallment.Status.PAID) {
+                    return new Color(34, 197, 94);
+                }
+                if (installment.isOverdue(today)) {
+                    return new Color(220, 38, 38);
+                }
+                return new Color(249, 115, 22);
+            }
+        }
+
+        private final class TimelineMarker extends JComponent {
+            private final Color color;
+            private final boolean drawTop;
+            private final boolean drawBottom;
+
+            TimelineMarker(Color color, boolean drawTop, boolean drawBottom) {
+                this.color = color;
+                this.drawTop = drawTop;
+                this.drawBottom = drawBottom;
+                setOpaque(false);
+                setPreferredSize(new Dimension(24, 60));
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int centerX = getWidth() / 2;
+                int centerY = getHeight() / 2;
+                g2.setColor(new Color(226, 232, 240));
+                if (drawTop) {
+                    g2.fillRect(centerX - 1, 0, 2, centerY);
+                }
+                if (drawBottom) {
+                    g2.fillRect(centerX - 1, centerY, 2, getHeight() - centerY);
+                }
+                g2.setColor(color);
+                g2.fillOval(centerX - 6, centerY - 6, 12, 12);
+                g2.dispose();
+            }
+        }
     }
 
     private String formatCurrency(double amount) {

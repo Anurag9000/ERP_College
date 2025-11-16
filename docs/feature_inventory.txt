@@ -61,7 +61,7 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 - [DONE] Timetable tab with ICS + PDF export (`StudentSelfServicePanel#exportScheduleIcs/#exportSchedulePdf`).
 - [DONE] Grades tab summarising assessments, final marks, and risk alerts via `updateGradeAnalytics`.
 - [DONE] Transcript CSV/PDF exports with custom formatting (`exportTranscript`, `exportTranscriptPdf`).
-- [DONE] Finance tab showing fee summary, payment history, installment plan, and a reminder button tied to `DatabaseUtil.markInstallmentReminderSent`.
+- [DONE] Finance tab showing fee summary, payment history, installment plan, a visual timeline, and a polished reminder flow tied to `DatabaseUtil.markInstallmentReminderSent`.
 - [DONE] Notification inbox enhancements: category filter, unread toggle, mark read/unread, refresh, backed by `NotificationDao`.
 - [DONE] Self-service change password launch button and maintenance warning banner.
 ### Outstanding
@@ -88,7 +88,7 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 - [DONE] Student/Faculty/Course/Section panels with search, CRUD dialogs, and schedule view actions.
 - [DONE] EnrollmentPanel for staff-driven registration/drop, schedule visibility, waitlist counts.
 - [DONE] AttendancePanel for marking attendance and viewing history across sections.
-- [DONE] FeesPanel with searchable roster, payment recording, installment editor dialog, and CSV exports (summary + per-student statements).
+- [DONE] FeesPanel with searchable roster, payment recording, installment editor dialog, CSV exports (summary + per-student statements), and a course-level template tab (CRUD + apply-to-student rollout).
 - [DONE] NotificationsPanel for broadcasting ALL/STUDENT/INSTRUCTOR/ADMIN messages.
 - [DONE] MaintenancePanel for toggling maintenance and invoking callbacks.
 - [DONE] AuditLogPanel for viewing/exporting audit events.

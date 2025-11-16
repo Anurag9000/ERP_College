@@ -1,5 +1,7 @@
 package main.java.gui.panels;
 
+import main.java.data.dao.FeeScheduleTemplateDao;
+import main.java.models.Course;
 import main.java.models.FeeInstallment;
 import main.java.models.PaymentTransaction;
 import main.java.models.Student;
@@ -21,8 +23,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -41,6 +46,14 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
     private final JButton configureInstallmentsButton;
     private final JButton refreshButton;
     private final JLabel totalOutstandingLabel;
+    private final DefaultTableModel templateModel;
+    private final JTable templateTable;
+    private final JComboBox<String> templateCourseSelector;
+    private final JButton addTemplateButton;
+    private final JButton editTemplateButton;
+    private final JButton deleteTemplateButton;
+    private final JButton applyTemplateButton;
+    private final Map<Long, FeeScheduleTemplateDao.TemplateRecord> templateIndex;
     private boolean maintenanceMode;
 
     public FeesPanel() {
@@ -61,8 +74,25 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         this.configureInstallmentsButton = new JButton("Configure Installments");
         this.refreshButton = new JButton("Refresh");
         this.totalOutstandingLabel = new JLabel();
+        this.templateModel = new DefaultTableModel(new Object[]{
+                "ID", "Label", "Amount", "Offset (days)", "Timeline Note"
+        }, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        this.templateTable = new JTable(templateModel);
+        this.templateCourseSelector = new JComboBox<>();
+        this.addTemplateButton = new JButton("Add Template");
+        this.editTemplateButton = new JButton("Edit");
+        this.deleteTemplateButton = new JButton("Delete");
+        this.applyTemplateButton = new JButton("Apply to Student");
+        this.templateIndex = new HashMap<>();
 
         initializeComponents();
+        refreshTemplateCourseOptions();
+        loadTemplatesForSelectedCourse();
         setupLayout();
         setupEventHandlers();
         loadFeesData();
@@ -89,6 +119,24 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
 
         totalOutstandingLabel.setFont(new Font("Arial", Font.BOLD, 14));
         totalOutstandingLabel.setForeground(new Color(220, 38, 38));
+
+        templateTable.setRowHeight(24);
+        templateTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        templateTable.setAutoCreateRowSorter(true);
+        templateTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
+        templateTable.getColumnModel().getColumn(0).setMinWidth(0);
+        templateTable.getColumnModel().getColumn(0).setMaxWidth(0);
+        templateTable.getColumnModel().getColumn(0).setPreferredWidth(0);
+        templateCourseSelector.setPrototypeDisplayValue("PROGRAM-0000 - Long Course Name");
+
+        stylePrimaryButton(addTemplateButton, new Color(34, 197, 94));
+        stylePrimaryButton(editTemplateButton, new Color(59, 130, 246));
+        stylePrimaryButton(deleteTemplateButton, new Color(239, 68, 68));
+        stylePrimaryButton(applyTemplateButton, new Color(234, 179, 8));
+
+        editTemplateButton.setEnabled(false);
+        deleteTemplateButton.setEnabled(false);
+        applyTemplateButton.setEnabled(false);
     }
 
     private void stylePrimaryButton(AbstractButton button, Color color) {
@@ -103,15 +151,24 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JPanel headerPanel = new JPanel(new BorderLayout());
+        JPanel titlePanel = new JPanel(new BorderLayout());
         JLabel titleLabel = new JLabel("Fee Management");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
-        headerPanel.add(titleLabel, BorderLayout.WEST);
+        titlePanel.add(titleLabel, BorderLayout.WEST);
+        add(titlePanel, BorderLayout.NORTH);
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Student Accounts", buildStudentAccountsTab());
+        tabs.addTab("Fee Templates", buildTemplateTab());
+        add(tabs, BorderLayout.CENTER);
+    }
+
+    private JPanel buildStudentAccountsTab() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
 
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         searchPanel.add(new JLabel("Search:"));
         searchPanel.add(searchField);
-        headerPanel.add(searchPanel, BorderLayout.EAST);
 
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         controls.add(paymentButton);
@@ -123,16 +180,29 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         JPanel summaryPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         summaryPanel.add(totalOutstandingLabel);
 
-        JPanel controlRow = new JPanel(new BorderLayout());
-        controlRow.add(controls, BorderLayout.WEST);
-        controlRow.add(summaryPanel, BorderLayout.EAST);
+        JPanel header = new JPanel(new BorderLayout());
+        header.add(searchPanel, BorderLayout.EAST);
+        header.add(controls, BorderLayout.WEST);
+        header.add(summaryPanel, BorderLayout.SOUTH);
 
-        JPanel top = new JPanel(new BorderLayout());
-        top.add(headerPanel, BorderLayout.NORTH);
-        top.add(controlRow, BorderLayout.SOUTH);
+        panel.add(header, BorderLayout.NORTH);
+        panel.add(new JScrollPane(feesTable), BorderLayout.CENTER);
+        return panel;
+    }
 
-        add(top, BorderLayout.NORTH);
-        add(new JScrollPane(feesTable), BorderLayout.CENTER);
+    private JPanel buildTemplateTab() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        controls.add(new JLabel("Course:"));
+        controls.add(templateCourseSelector);
+        controls.add(addTemplateButton);
+        controls.add(editTemplateButton);
+        controls.add(deleteTemplateButton);
+        controls.add(applyTemplateButton);
+
+        panel.add(controls, BorderLayout.NORTH);
+        panel.add(new JScrollPane(templateTable), BorderLayout.CENTER);
+        return panel;
     }
 
     private void setupEventHandlers() {
@@ -165,6 +235,16 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         exportStatementButton.addActionListener(e -> exportStatement());
         exportSummaryButton.addActionListener(e -> exportSummary());
         refreshButton.addActionListener(e -> loadFeesData());
+        templateCourseSelector.addActionListener(e -> loadTemplatesForSelectedCourse());
+        templateTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updateTemplateActions();
+            }
+        });
+        addTemplateButton.addActionListener(e -> handleAddTemplate());
+        editTemplateButton.addActionListener(e -> handleEditTemplate());
+        deleteTemplateButton.addActionListener(e -> handleDeleteTemplate());
+        applyTemplateButton.addActionListener(e -> handleApplyTemplate());
     }
 
     private void loadFeesData() {
@@ -212,6 +292,222 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         } else {
             sorter.setRowFilter(RowFilter.regexFilter("(?i)" + query));
         }
+    }
+
+    private void refreshTemplateCourseOptions() {
+        templateCourseSelector.removeAllItems();
+        templateCourseSelector.addItem("-- Select Course --");
+        List<Course> courseList = new ArrayList<>(DatabaseUtil.getAllCourses());
+        courseList.sort(Comparator.comparing(course -> {
+            String code = course.getCourseId();
+            return code == null ? "" : code.toLowerCase(Locale.ENGLISH);
+        }));
+        for (Course course : courseList) {
+            String code = course.getCourseId();
+            if (code == null || code.isBlank()) {
+                continue;
+            }
+            templateCourseSelector.addItem(code);
+        }
+        templateCourseSelector.setSelectedIndex(0);
+    }
+
+    private void loadTemplatesForSelectedCourse() {
+        templateModel.setRowCount(0);
+        templateIndex.clear();
+        String courseCode = resolveSelectedCourseCode();
+        if (courseCode == null) {
+            updateTemplateActions();
+            return;
+        }
+        List<FeeScheduleTemplateDao.TemplateRecord> records = DatabaseUtil.getFeeScheduleTemplates(courseCode);
+        for (FeeScheduleTemplateDao.TemplateRecord record : records) {
+            templateIndex.put(record.id(), record);
+            templateModel.addRow(new Object[]{
+                    record.id(),
+                    record.label(),
+                    formatCurrency(record.amount()),
+                    record.offsetDays(),
+                    describeOffset(record.offsetDays())
+            });
+        }
+        updateTemplateActions();
+    }
+
+    private String resolveSelectedCourseCode() {
+        Object selected = templateCourseSelector.getSelectedItem();
+        if (selected == null) {
+            return null;
+        }
+        String value = selected.toString();
+        if ("-- Select Course --".equals(value)) {
+            return null;
+        }
+        return value.isBlank() ? null : value;
+    }
+
+    private void updateTemplateActions() {
+        boolean hasCourse = resolveSelectedCourseCode() != null;
+        boolean hasSelection = templateTable.getSelectedRow() != -1;
+        boolean hasTemplates = templateModel.getRowCount() > 0;
+        addTemplateButton.setEnabled(hasCourse && !maintenanceMode);
+        editTemplateButton.setEnabled(hasCourse && hasSelection && !maintenanceMode);
+        deleteTemplateButton.setEnabled(hasCourse && hasSelection && !maintenanceMode);
+        applyTemplateButton.setEnabled(hasCourse && hasTemplates && !maintenanceMode);
+    }
+
+    private void handleAddTemplate() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
+        String courseCode = resolveSelectedCourseCode();
+        if (courseCode == null) {
+            JOptionPane.showMessageDialog(this, "Select a course first.");
+            return;
+        }
+        TemplateEditorDialog dialog = new TemplateEditorDialog(
+                SwingUtilities.getWindowAncestor(this),
+                "New Fee Template",
+                null);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+        if (!dialog.isSaved()) {
+            return;
+        }
+        try {
+            DatabaseUtil.addFeeScheduleTemplate(courseCode,
+                    dialog.getLabelValue(),
+                    dialog.getAmountValue(),
+                    dialog.getOffsetDaysValue());
+            loadTemplatesForSelectedCourse();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to save template", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void handleEditTemplate() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
+        FeeScheduleTemplateDao.TemplateRecord record = getSelectedTemplate();
+        if (record == null) {
+            JOptionPane.showMessageDialog(this, "Select a template first.");
+            return;
+        }
+        TemplateEditorDialog dialog = new TemplateEditorDialog(
+                SwingUtilities.getWindowAncestor(this),
+                "Edit Fee Template",
+                record);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+        if (!dialog.isSaved()) {
+            return;
+        }
+        try {
+            DatabaseUtil.updateFeeScheduleTemplate(record.id(),
+                    resolveSelectedCourseCode(),
+                    dialog.getLabelValue(),
+                    dialog.getAmountValue(),
+                    dialog.getOffsetDaysValue());
+            loadTemplatesForSelectedCourse();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update template", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void handleDeleteTemplate() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
+        FeeScheduleTemplateDao.TemplateRecord record = getSelectedTemplate();
+        if (record == null) {
+            JOptionPane.showMessageDialog(this, "Select a template first.");
+            return;
+        }
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Delete template \"" + record.label() + "\"?",
+                "Delete Template",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+        try {
+            DatabaseUtil.deleteFeeScheduleTemplate(record.id());
+            loadTemplatesForSelectedCourse();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to delete template", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void handleApplyTemplate() {
+        if (maintenanceMode) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return;
+        }
+        String courseCode = resolveSelectedCourseCode();
+        if (courseCode == null) {
+            JOptionPane.showMessageDialog(this, "Select a course first.");
+            return;
+        }
+        if (templateModel.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "Add at least one template installment first.");
+            return;
+        }
+        List<Student> eligible = new ArrayList<>();
+        for (Student student : DatabaseUtil.getAllStudents()) {
+            if (student.getCourse() != null && student.getCourse().equalsIgnoreCase(courseCode)) {
+                eligible.add(student);
+            }
+        }
+        if (eligible.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No students found in " + courseCode + " to apply this template.");
+            return;
+        }
+        eligible.sort(Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER));
+
+        JComboBox<StudentOption> studentCombo = new JComboBox<>();
+        for (Student student : eligible) {
+            studentCombo.addItem(new StudentOption(student.getStudentId(), student.getFullName()));
+        }
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.add(new JLabel("Select student to receive this schedule:"), BorderLayout.NORTH);
+        panel.add(studentCombo, BorderLayout.CENTER);
+
+        int result = JOptionPane.showConfirmDialog(this, panel,
+                "Apply Template to Student", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+        StudentOption selected = (StudentOption) studentCombo.getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        try {
+            DatabaseUtil.applyFeeTemplateToStudent(courseCode, selected.id());
+            JOptionPane.showMessageDialog(this,
+                    "Installment plan applied to " + selected.label() + " (" + selected.id() + ").");
+            loadFeesData();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to apply template", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private FeeScheduleTemplateDao.TemplateRecord getSelectedTemplate() {
+        int viewRow = templateTable.getSelectedRow();
+        if (viewRow < 0) {
+            return null;
+        }
+        int modelRow = templateTable.convertRowIndexToModel(viewRow);
+        Object value = templateModel.getValueAt(modelRow, 0);
+        if (!(value instanceof Number)) {
+            return null;
+        }
+        long templateId = ((Number) value).longValue();
+        return templateIndex.get(templateId);
     }
 
     private void recordPayment() {
@@ -384,8 +680,122 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         return String.format(Locale.ENGLISH, "\u20B9%,.0f", amount);
     }
 
+    private String describeOffset(int offsetDays) {
+        if (offsetDays <= 0) {
+            return "Due on enrollment";
+        }
+        if (offsetDays % 30 == 0) {
+            int months = offsetDays / 30;
+            return "Due ~" + months + (months == 1 ? " month later" : " months later");
+        }
+        if (offsetDays % 7 == 0) {
+            int weeks = offsetDays / 7;
+            return "Due " + weeks + (weeks == 1 ? " week later" : " weeks later");
+        }
+        return "Due in " + offsetDays + " days";
+    }
+
     private String emptyIfNull(String value) {
         return value == null ? "" : value;
+    }
+
+    private final class TemplateEditorDialog extends JDialog {
+        private final JTextField labelField;
+        private final JTextField amountField;
+        private final JSpinner offsetSpinner;
+        private boolean saved = false;
+        private String labelResult;
+        private double amountResult;
+        private int offsetResult;
+
+        TemplateEditorDialog(Window owner, String title, FeeScheduleTemplateDao.TemplateRecord record) {
+            super(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
+            this.labelField = new JTextField(record != null ? record.label() : "", 20);
+            this.amountField = new JTextField(record != null ? String.format(Locale.ENGLISH, "%.2f", record.amount()) : "", 12);
+            this.offsetSpinner = new JSpinner(new SpinnerNumberModel(
+                    record != null ? record.offsetDays() : 0,
+                    0,
+                    1825,
+                    15));
+            buildUi();
+        }
+
+        boolean isSaved() {
+            return saved;
+        }
+
+        String getLabelValue() {
+            return labelResult;
+        }
+
+        double getAmountValue() {
+            return amountResult;
+        }
+
+        int getOffsetDaysValue() {
+            return offsetResult;
+        }
+
+        private void buildUi() {
+            setLayout(new BorderLayout(10, 10));
+            JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
+            form.add(new JLabel("Label:"));
+            form.add(labelField);
+            form.add(new JLabel("Amount (\u20B9):"));
+            form.add(amountField);
+            form.add(new JLabel("Offset (days):"));
+            form.add(offsetSpinner);
+            add(form, BorderLayout.CENTER);
+
+            JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+            JButton saveButton = new JButton("Save");
+            JButton cancelButton = new JButton("Cancel");
+            buttons.add(saveButton);
+            buttons.add(cancelButton);
+            add(buttons, BorderLayout.SOUTH);
+
+            saveButton.addActionListener(this::handleSave);
+            cancelButton.addActionListener(e -> dispose());
+
+            pack();
+            setResizable(false);
+        }
+
+        private void handleSave(ActionEvent event) {
+            String label = labelField.getText().trim();
+            if (label.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Label is required.");
+                return;
+            }
+            double amount;
+            try {
+                amount = Double.parseDouble(amountField.getText().trim());
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Enter a valid numeric amount.");
+                return;
+            }
+            if (amount <= 0) {
+                JOptionPane.showMessageDialog(this, "Amount must be positive.");
+                return;
+            }
+            int offset = ((Number) offsetSpinner.getValue()).intValue();
+            if (offset < 0) {
+                JOptionPane.showMessageDialog(this, "Offset cannot be negative.");
+                return;
+            }
+            this.labelResult = label;
+            this.amountResult = amount;
+            this.offsetResult = offset;
+            this.saved = true;
+            dispose();
+        }
+    }
+
+    private record StudentOption(String id, String label) {
+        @Override
+        public String toString() {
+            return label + " (" + id + ")";
+        }
     }
 
     private final class InstallmentEditorDialog extends JDialog {
@@ -528,6 +938,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
     public void onMaintenanceModeChanged(boolean maintenance) {
         this.maintenanceMode = maintenance;
         updateActionButtons();
+        updateTemplateActions();
     }
 
     private void updateActionButtons() {

@@ -563,6 +563,123 @@ public class DatabaseUtil {
                 .orElse(null);
     }
 
+    public static List<FeeScheduleTemplateDao.TemplateRecord> getFeeScheduleTemplates(String courseCode) {
+        if (courseCode == null || courseCode.isBlank()) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<>(feeScheduleTemplateDao.findByCourse(courseCode));
+    }
+
+    public static FeeScheduleTemplateDao.TemplateRecord addFeeScheduleTemplate(String courseCode,
+                                                                              String label,
+                                                                              double amount,
+                                                                              int offsetDays) {
+        validateTemplateInput(courseCode, label, amount, offsetDays);
+        return feeScheduleTemplateDao.insert(courseCode.trim(), label.trim(), amount, offsetDays);
+    }
+
+    public static void updateFeeScheduleTemplate(long templateId,
+                                                 String courseCode,
+                                                 String label,
+                                                 double amount,
+                                                 int offsetDays) {
+        validateTemplateInput(courseCode, label, amount, offsetDays);
+        feeScheduleTemplateDao.update(templateId, label.trim(), amount, offsetDays);
+    }
+
+    public static void deleteFeeScheduleTemplate(long templateId) {
+        feeScheduleTemplateDao.delete(templateId);
+    }
+
+    public static synchronized void applyFeeTemplateToStudent(String courseCode, String studentId) {
+        Student student = getStudent(studentId);
+        if (student == null) {
+            throw new IllegalArgumentException("Student not found: " + studentId);
+        }
+        String targetCourse = (courseCode != null && !courseCode.isBlank())
+                ? courseCode.trim()
+                : student.getCourse();
+        if (targetCourse == null || targetCourse.isBlank()) {
+            throw new IllegalArgumentException("No course selected for template application.");
+        }
+
+        List<FeeScheduleTemplateDao.TemplateRecord> templates = feeScheduleTemplateDao.findByCourse(targetCourse);
+        if (templates.isEmpty()) {
+            throw new IllegalStateException("No templates configured for " + targetCourse);
+        }
+
+        double outstanding = Math.max(0.0, student.getTotalFees() - student.getFeesPaid());
+        if (outstanding <= 0.0) {
+            throw new IllegalStateException("Student has no outstanding balance.");
+        }
+
+        // Remove un-paid installments so the template can take over.
+        for (FeeInstallment installment : feeInstallmentDao.findByStudent(studentId)) {
+            if (installment.getStatus() != FeeInstallment.Status.PAID) {
+                feeInstallmentDao.delete(installment.getInstallmentId());
+            }
+        }
+
+        LocalDate anchorDate = student.getAdmissionDate() != null ? student.getAdmissionDate() : LocalDate.now();
+        double remaining = outstanding;
+        for (FeeScheduleTemplateDao.TemplateRecord template : templates) {
+            if (remaining <= 0) {
+                break;
+            }
+            double amount = Math.min(template.amount(), remaining);
+            if (amount <= 0) {
+                continue;
+            }
+            LocalDate dueDate = anchorDate.plusDays(Math.max(0, template.offsetDays()));
+            FeeInstallment installment = new FeeInstallment(
+                    UUID.randomUUID().toString(),
+                    studentId,
+                    dueDate,
+                    amount,
+                    FeeInstallment.Status.DUE,
+                    template.label(),
+                    null,
+                    null
+            );
+            feeInstallmentDao.insert(installment);
+            remaining -= amount;
+        }
+
+        if (remaining > 0) {
+            int lastOffset = templates.get(templates.size() - 1).offsetDays();
+            LocalDate fallbackDue = anchorDate.plusDays(Math.max(30, lastOffset + 30));
+            FeeInstallment balanceInstallment = new FeeInstallment(
+                    UUID.randomUUID().toString(),
+                    studentId,
+                    fallbackDue,
+                    remaining,
+                    FeeInstallment.Status.DUE,
+                    "Balance",
+                    null,
+                    null
+            );
+            feeInstallmentDao.insert(balanceInstallment);
+        }
+    }
+
+    private static void validateTemplateInput(String courseCode,
+                                              String label,
+                                              double amount,
+                                              int offsetDays) {
+        if (courseCode == null || courseCode.isBlank()) {
+            throw new IllegalArgumentException("Course is required.");
+        }
+        if (label == null || label.isBlank()) {
+            throw new IllegalArgumentException("Template label is required.");
+        }
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive.");
+        }
+        if (offsetDays < 0) {
+            throw new IllegalArgumentException("Offset days cannot be negative.");
+        }
+    }
+
     private static PaymentTransaction copyTransaction(PaymentTransaction source) {
         return new PaymentTransaction(
                 source.getTransactionId(),
