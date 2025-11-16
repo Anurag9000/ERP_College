@@ -4,17 +4,6 @@ This checklist tracks every requirement from `Documentation/project.pdf` plus th
 
 ## Baseline Specification
 
-- [x] Role-based login launches dashboard (Student, Instructor, Admin).
-- [x] Tables/search for catalog and section lists.
-- [x] Student catalog browse + basic registration/drop UI.
-- [x] Grade entry, weighting, and simple stats for instructors.
-- [x] Transcript export (CSV/PDF) and student grade view.
-- [x] Admin can add users, create courses/sections.
-- [x] Admin UI to assign instructors to sections and toggle Maintenance Mode in-app.
-- [x] Maintenance mode enforcement for *all* write actions (currently only partial guards).
-- [x] Student drop deadlines strictly enforced.
-- [x] Timetable rendered on a day/time grid and richer printable layout.
-- [x] Instructor grade CSV import/export (optional in spec).
 - [ ] Optional backup/restore tooling (spec optional but outstanding).
 
 ## Platform & Architecture
@@ -25,13 +14,8 @@ This checklist tracks every requirement from `Documentation/project.pdf` plus th
 
 ## Authentication & Security
 
-- [x] Student/instructor self-service change password screen.
-- [x] Admin password reset with "must change next login".
-- [x] Extend audit trail (maintenance toggles, enrollment overrides, grade edits) and provide export UI.
-
 ## Data Migration & Repositories
 
-- [x] Move enrollment/grade/attendance/waitlist/settings to DAO-backed persistence.
 - [ ] Migration tooling/docs to port legacy `.dat` contents into SQL.
 - [ ] Datasource health probes + robust DAO error handling.
 
@@ -40,10 +24,8 @@ This checklist tracks every requirement from `Documentation/project.pdf` plus th
 - [ ] Registration workflow enhancements:
   - [ ] Clash detection for time **and** room.
   - [ ] Automated waitlist promotion queue with advisor approvals.
-  - [ ] Hard enforcement of enrollment/drop deadlines.
   - [ ] Full co-/anti-requisite enforcement.
   - [ ] Departmental/advisor approval flow.
-- [ ] Timetable grid visualization + improved printable/PDF output.
 - [ ] GPA/standing analytics with historical trend graphs and probation alerts.
 - [ ] Transcript watermarking, certificate downloads, registrar messaging workflow.
 - [ ] Fee schedule configuration UI, installment visualization for students, polished reminder messaging.
