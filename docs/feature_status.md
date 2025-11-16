@@ -1,5 +1,3 @@
-- [ ] Notification inbox upgrades (category filters tied to maintenance/system broadcasts).
-
 ## Instructor Workspace
 
 - [ ] Attendance CSV import/export, bulk updates, tardiness tracking, analytics dashboard.

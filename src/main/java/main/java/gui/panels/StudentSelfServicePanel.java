@@ -104,6 +104,8 @@ public class StudentSelfServicePanel extends JPanel {
     private final JButton markReadButton;
     private final JButton markUnreadButton;
     private final JButton refreshNotificationsButton;
+    private final JToggleButton maintenanceFilterToggle;
+    private final JToggleButton systemFilterToggle;
     private List<NotificationMessage> notificationsCache = new ArrayList<>();
     private final List<NotificationMessage> filteredNotifications = new ArrayList<>();
     private FeeInstallment nextDueInstallment;
@@ -181,6 +183,10 @@ public class StudentSelfServicePanel extends JPanel {
         markReadButton = new JButton("Mark as Read");
         markUnreadButton = new JButton("Mark as Unread");
         refreshNotificationsButton = new JButton("Refresh");
+        maintenanceFilterToggle = createFilterChip("Maintenance Alerts");
+        systemFilterToggle = createFilterChip("System Broadcasts");
+        maintenanceFilterToggle.setToolTipText("Show only maintenance-related alerts.");
+        systemFilterToggle.setToolTipText("Show only global system broadcasts.");
         markReadButton.setEnabled(false);
         markUnreadButton.setEnabled(false);
 
@@ -428,6 +434,8 @@ public class StudentSelfServicePanel extends JPanel {
         controls.add(new JLabel("Category:"));
         notificationCategoryFilter.setPrototypeDisplayValue("Maintenance Alerts    ");
         controls.add(notificationCategoryFilter);
+        controls.add(maintenanceFilterToggle);
+        controls.add(systemFilterToggle);
         controls.add(unreadOnlyCheck);
         controls.add(markReadButton);
         controls.add(markUnreadButton);
@@ -472,6 +480,29 @@ public class StudentSelfServicePanel extends JPanel {
         label.setFont(new Font("Arial", Font.BOLD, 16));
         label.setForeground(new Color(31, 41, 55));
         return label;
+    }
+
+    private JToggleButton createFilterChip(String text) {
+        JToggleButton toggle = new JToggleButton(text);
+        toggle.setFocusPainted(false);
+        toggle.setMargin(new Insets(4, 8, 4, 8));
+        toggle.setOpaque(true);
+        toggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        toggle.addChangeListener(e -> styleFilterChip(toggle));
+        styleFilterChip(toggle);
+        return toggle;
+    }
+
+    private void styleFilterChip(JToggleButton toggle) {
+        if (toggle.isSelected()) {
+            toggle.setBackground(new Color(59, 130, 246));
+            toggle.setForeground(Color.WHITE);
+            toggle.setBorder(BorderFactory.createLineBorder(new Color(37, 99, 235)));
+        } else {
+            toggle.setBackground(new Color(248, 250, 252));
+            toggle.setForeground(new Color(30, 41, 59));
+            toggle.setBorder(BorderFactory.createLineBorder(new Color(203, 213, 225)));
+        }
     }
 
     private String[] buildDayFilterModel() {
@@ -537,6 +568,8 @@ public class StudentSelfServicePanel extends JPanel {
         openOnlyCheck.addActionListener(e -> applyCatalogFilters());
         notificationCategoryFilter.addActionListener(e -> applyNotificationFilters());
         unreadOnlyCheck.addActionListener(e -> applyNotificationFilters());
+        maintenanceFilterToggle.addActionListener(e -> applyNotificationFilters());
+        systemFilterToggle.addActionListener(e -> applyNotificationFilters());
         markReadButton.addActionListener(e -> markSelectedNotification(true));
         markUnreadButton.addActionListener(e -> markSelectedNotification(false));
         refreshNotificationsButton.addActionListener(e -> populateNotifications());
@@ -800,6 +833,10 @@ public class StudentSelfServicePanel extends JPanel {
         if (studentProfile == null) {
             notificationCategoryFilter.setModel(new DefaultComboBoxModel<>(new String[]{"All"}));
             unreadOnlyCheck.setSelected(false);
+            maintenanceFilterToggle.setEnabled(false);
+            systemFilterToggle.setEnabled(false);
+            maintenanceFilterToggle.setSelected(false);
+            systemFilterToggle.setSelected(false);
             updateNotificationActions();
             return;
         }
@@ -807,6 +844,8 @@ public class StudentSelfServicePanel extends JPanel {
         notificationsCache = DatabaseUtil.getNotificationsForStudent(studentProfile.getStudentId());
         LinkedHashSet<String> categories = new LinkedHashSet<>();
         categories.add("All");
+        categories.add("Maintenance Alerts");
+        categories.add("System Broadcasts");
         for (NotificationMessage message : notificationsCache) {
             categories.add(normalizeCategory(message.getCategory()));
         }
@@ -817,6 +856,8 @@ public class StudentSelfServicePanel extends JPanel {
         } else {
             notificationCategoryFilter.setSelectedIndex(0);
         }
+        maintenanceFilterToggle.setEnabled(true);
+        systemFilterToggle.setEnabled(true);
         applyNotificationFilters();
     }
 
@@ -833,9 +874,26 @@ public class StudentSelfServicePanel extends JPanel {
             selectedCategory = "All";
         }
         boolean unreadOnly = unreadOnlyCheck.isSelected();
+        boolean maintenanceCategorySelected = "Maintenance Alerts".equalsIgnoreCase(selectedCategory);
+        boolean systemCategorySelected = "System Broadcasts".equalsIgnoreCase(selectedCategory);
+        boolean maintenanceChip = maintenanceFilterToggle.isEnabled() && maintenanceFilterToggle.isSelected();
+        boolean systemChip = systemFilterToggle.isEnabled() && systemFilterToggle.isSelected();
         for (NotificationMessage message : notificationsCache) {
             String category = normalizeCategory(message.getCategory());
-            if (!"All".equalsIgnoreCase(selectedCategory) && !category.equalsIgnoreCase(selectedCategory)) {
+            String categoryKey = categoryKey(message.getCategory());
+            if (maintenanceCategorySelected && !isMaintenanceCategory(categoryKey)) {
+                continue;
+            } else if (systemCategorySelected && !isSystemCategory(categoryKey)) {
+                continue;
+            } else if (!"All".equalsIgnoreCase(selectedCategory)
+                    && !maintenanceCategorySelected
+                    && !systemCategorySelected
+                    && !category.equalsIgnoreCase(selectedCategory)) {
+                continue;
+            }
+            if ((maintenanceChip || systemChip)
+                    && !(maintenanceChip && isMaintenanceCategory(categoryKey)
+                    || systemChip && isSystemCategory(categoryKey))) {
                 continue;
             }
             if (unreadOnly && message.isRead()) {
@@ -909,6 +967,21 @@ public class StudentSelfServicePanel extends JPanel {
             builder.append(capitalize(parts[i]));
         }
         return builder.toString();
+    }
+
+    private String categoryKey(String category) {
+        if (category == null) {
+            return "general";
+        }
+        return category.trim().toLowerCase(Locale.ENGLISH);
+    }
+
+    private boolean isMaintenanceCategory(String categoryKey) {
+        return categoryKey.contains("maintenance");
+    }
+
+    private boolean isSystemCategory(String categoryKey) {
+        return categoryKey.contains("system") || categoryKey.contains("platform");
     }
 
     private Map<String, EnrollmentRecord.Status> buildStatusMap() {

@@ -116,7 +116,16 @@ public class NotificationsPanel extends JPanel implements MaintenanceAware {
             JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
             return;
         }
-        JTextField categoryField = new JTextField("General");
+        JComboBox<String> categorySelector = new JComboBox<>(new String[]{
+                "Maintenance",
+                "System",
+                "Finance",
+                "Registrar",
+                "Academic",
+                "General"
+        });
+        categorySelector.setEditable(true);
+        categorySelector.setSelectedItem("General");
         JTextArea messageArea = new JTextArea(4, 25);
         messageArea.setLineWrap(true);
         messageArea.setWrapStyleWord(true);
@@ -124,7 +133,7 @@ public class NotificationsPanel extends JPanel implements MaintenanceAware {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
         JPanel top = new JPanel(new GridLayout(2, 1, 6, 6));
         top.add(new JLabel("Category:"));
-        top.add(categoryField);
+        top.add(categorySelector);
         panel.add(top, BorderLayout.NORTH);
         panel.add(new JScrollPane(messageArea), BorderLayout.CENTER);
 
@@ -145,7 +154,11 @@ public class NotificationsPanel extends JPanel implements MaintenanceAware {
             return;
         }
 
-        String category = categoryField.getText().trim().isEmpty() ? "General" : categoryField.getText().trim();
+        Object selectedCategory = categorySelector.getSelectedItem();
+        String category = selectedCategory != null ? selectedCategory.toString().trim() : "";
+        if (category.isEmpty()) {
+            category = "General";
+        }
         NotificationMessage notification = new NotificationMessage(
                 NotificationMessage.Audience.ALL,
                 null,

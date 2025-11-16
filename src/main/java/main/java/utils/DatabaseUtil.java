@@ -1519,7 +1519,7 @@ public class DatabaseUtil {
                 NotificationMessage.Audience.ALL,
                 null,
                 "Maintenance mode is now " + (maintenanceOn ? "ON" : "OFF") + ".",
-                "System"));
+                "Maintenance"));
         AuditLogService.log(AuditLogService.EventType.MAINTENANCE_TOGGLE,
                 "system",
                 "Maintenance mode set to " + maintenanceOn);
