@@ -33,6 +33,7 @@ public class MainFrame extends JFrame {
     private JPanel studentSelfServicePanel;
     private JPanel instructorWorkspacePanel;
     private JLabel maintenanceLabel;
+    private JLabel sessionCountdownLabel;
     private Timer sessionTimer;
     private long sessionTimeoutMillis;
     private long lastActivity;
@@ -127,6 +128,12 @@ public class MainFrame extends JFrame {
         JLabel statusLabel = new JLabel(" Ready");
         statusLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         statusBar.add(statusLabel, BorderLayout.WEST);
+
+        sessionCountdownLabel = new JLabel("");
+        sessionCountdownLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        sessionCountdownLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        sessionCountdownLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+        statusBar.add(sessionCountdownLabel, BorderLayout.CENTER);
         
         JLabel timeLabel = new JLabel(java.time.LocalDateTime.now().toString());
         timeLabel.setFont(new Font("Arial", Font.PLAIN, 11));

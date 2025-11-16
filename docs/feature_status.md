@@ -27,7 +27,6 @@ This checklist tracks every requirement from `Documentation/project.pdf` plus th
 
 - [x] Student/instructor self-service change password screen.
 - [x] Admin password reset with “must change next login”.
-- [ ] Session inactivity timeout with auto-logoff banner.
 - [ ] Extend audit trail (maintenance toggles, enrollment overrides, grade edits) and provide export UI.
 
 ## Data Migration & Repositories
