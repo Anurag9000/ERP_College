@@ -258,8 +258,7 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
     }
 
     private void registerSelectedSection() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         int selectedRow = sectionsTable.getSelectedRow();
@@ -286,8 +285,7 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
     }
 
     private void dropSelectedSection() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         int selectedRow = sectionsTable.getSelectedRow();
@@ -327,8 +325,24 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
 
     private void updateButtonStates() {
         boolean hasSelection = sectionsTable.getSelectedRow() != -1;
-        boolean allowMutations = hasSelection && !maintenanceMode;
+        boolean allowMutations = hasSelection && !isMaintenanceLocked();
         registerButton.setEnabled(allowMutations);
         dropButton.setEnabled(allowMutations);
+    }
+
+    private boolean blockIfMaintenance() {
+        if (isMaintenanceLocked()) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isMaintenanceLocked() {
+        boolean maintenance = maintenanceMode || DatabaseUtil.isMaintenanceMode();
+        if (maintenanceMode != maintenance) {
+            maintenanceMode = maintenance;
+        }
+        return maintenance;
     }
 }

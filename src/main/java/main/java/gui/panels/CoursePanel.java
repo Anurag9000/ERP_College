@@ -177,8 +177,7 @@ public class CoursePanel extends JPanel implements MaintenanceAware {
     }
     
     private void addCourse() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         Course edited = showCourseDialog(null);
@@ -190,8 +189,7 @@ public class CoursePanel extends JPanel implements MaintenanceAware {
     }
     
     private void editCourse() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         int selectedRow = courseTable.getSelectedRow();
@@ -214,8 +212,7 @@ public class CoursePanel extends JPanel implements MaintenanceAware {
     }
     
     private void deleteCourse() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         int selectedRow = courseTable.getSelectedRow();
@@ -247,10 +244,27 @@ public class CoursePanel extends JPanel implements MaintenanceAware {
     }
 
     private void updateButtonStates() {
-        addButton.setEnabled(!maintenanceMode);
+        boolean maintenance = isMaintenanceLocked();
+        addButton.setEnabled(!maintenance);
         boolean hasSelection = courseTable.getSelectedRow() != -1;
-        editButton.setEnabled(hasSelection && !maintenanceMode);
-        deleteButton.setEnabled(hasSelection && !maintenanceMode);
+        editButton.setEnabled(hasSelection && !maintenance);
+        deleteButton.setEnabled(hasSelection && !maintenance);
+    }
+
+    private boolean blockIfMaintenance() {
+        if (isMaintenanceLocked()) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isMaintenanceLocked() {
+        boolean maintenance = maintenanceMode || DatabaseUtil.isMaintenanceMode();
+        if (maintenanceMode != maintenance) {
+            maintenanceMode = maintenance;
+        }
+        return maintenance;
     }
 
     private Course showCourseDialog(Course course) {

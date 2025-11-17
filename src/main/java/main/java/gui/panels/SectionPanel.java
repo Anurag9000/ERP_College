@@ -133,8 +133,7 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
     }
 
     private void assignInstructor() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         int viewRow = sectionTable.getSelectedRow();
@@ -261,8 +260,7 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
     }
 
     private void addSection() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         SectionDialog dialog = new SectionDialog(
@@ -286,8 +284,7 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
     }
 
     private void editSection() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         int selectedRow = sectionTable.getSelectedRow();
@@ -323,8 +320,7 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
     }
 
     private void deleteSection() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         int selectedRow = sectionTable.getSelectedRow();
@@ -356,11 +352,28 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
     }
 
     private void updateButtonStates() {
-        addButton.setEnabled(!maintenanceMode);
+        boolean maintenance = isMaintenanceLocked();
+        addButton.setEnabled(!maintenance);
         boolean hasSelection = sectionTable.getSelectedRow() != -1;
-        boolean allowMutations = hasSelection && !maintenanceMode;
+        boolean allowMutations = hasSelection && !maintenance;
         editButton.setEnabled(allowMutations);
         deleteButton.setEnabled(allowMutations);
         assignButton.setEnabled(allowMutations);
+    }
+
+    private boolean blockIfMaintenance() {
+        if (isMaintenanceLocked()) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isMaintenanceLocked() {
+        boolean maintenance = maintenanceMode || DatabaseUtil.isMaintenanceMode();
+        if (maintenanceMode != maintenance) {
+            maintenanceMode = maintenance;
+        }
+        return maintenance;
     }
 }

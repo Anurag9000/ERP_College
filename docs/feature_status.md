@@ -7,7 +7,6 @@
 
 ## Maintenance & Notifications
 
-- [ ] Central maintenance guard covering every write path plus future scheduling flows.
 - [ ] Notification centre enhancements: targeted broadcasts, email/SMS stubs, digest configuration, admin history view.
 
 ## Analytics & Degree Planning (Enhancements)
@@ -42,7 +41,6 @@
 
 - [ ] Public API surface for integrations/mobile apps.
 - [ ] CSV/XLS importers for students/courses/enrollments/grades/attendance with validation & rollback.
-- [ ] Additional exports (gradebooks, schedules, instructor financial statements).
 - [ ] Advisor approval workflow tied into registration UI + backend.
 
 ## Student-Centric Calendar & UX Backlog

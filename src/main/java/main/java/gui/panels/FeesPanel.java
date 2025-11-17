@@ -350,15 +350,15 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         boolean hasCourse = resolveSelectedCourseCode() != null;
         boolean hasSelection = templateTable.getSelectedRow() != -1;
         boolean hasTemplates = templateModel.getRowCount() > 0;
-        addTemplateButton.setEnabled(hasCourse && !maintenanceMode);
-        editTemplateButton.setEnabled(hasCourse && hasSelection && !maintenanceMode);
-        deleteTemplateButton.setEnabled(hasCourse && hasSelection && !maintenanceMode);
-        applyTemplateButton.setEnabled(hasCourse && hasTemplates && !maintenanceMode);
+        boolean maintenance = isMaintenanceLocked();
+        addTemplateButton.setEnabled(hasCourse && !maintenance);
+        editTemplateButton.setEnabled(hasCourse && hasSelection && !maintenance);
+        deleteTemplateButton.setEnabled(hasCourse && hasSelection && !maintenance);
+        applyTemplateButton.setEnabled(hasCourse && hasTemplates && !maintenance);
     }
 
     private void handleAddTemplate() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         String courseCode = resolveSelectedCourseCode();
@@ -387,8 +387,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
     }
 
     private void handleEditTemplate() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         FeeScheduleTemplateDao.TemplateRecord record = getSelectedTemplate();
@@ -418,8 +417,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
     }
 
     private void handleDeleteTemplate() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         FeeScheduleTemplateDao.TemplateRecord record = getSelectedTemplate();
@@ -444,8 +442,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
     }
 
     private void handleApplyTemplate() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         String courseCode = resolveSelectedCourseCode();
@@ -511,8 +508,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
     }
 
     private void recordPayment() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         Student student = getSelectedStudent();
@@ -566,8 +562,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
     }
 
     private void openInstallmentDialog() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         Student student = getSelectedStudent();
@@ -943,8 +938,25 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
 
     private void updateActionButtons() {
         boolean hasSelection = feesTable.getSelectedRow() != -1;
-        paymentButton.setEnabled(hasSelection && !maintenanceMode);
-        configureInstallmentsButton.setEnabled(hasSelection && !maintenanceMode);
+        boolean maintenance = isMaintenanceLocked();
+        paymentButton.setEnabled(hasSelection && !maintenance);
+        configureInstallmentsButton.setEnabled(hasSelection && !maintenance);
         exportStatementButton.setEnabled(hasSelection);
+    }
+
+    private boolean blockIfMaintenance() {
+        if (isMaintenanceLocked()) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isMaintenanceLocked() {
+        boolean maintenance = maintenanceMode || DatabaseUtil.isMaintenanceMode();
+        if (maintenanceMode != maintenance) {
+            maintenanceMode = maintenance;
+        }
+        return maintenance;
     }
 }

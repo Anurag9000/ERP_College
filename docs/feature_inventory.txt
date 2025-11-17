@@ -16,10 +16,10 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 - [DONE] Transcript export to CSV/PDF from `StudentSelfServicePanel#exportTranscript*`.
 - [DONE] Admin CRUD for users/students/faculty/courses/sections (`UserManagementPanel.java`, `StudentPanel.java`, `FacultyPanel.java`, `CoursePanel.java`, `SectionPanel.java`) plus staff-driven enrollment oversight (`EnrollmentPanel.java`).
 - [DONE] Admin UI to assign instructors to sections (`gui/dialogs/SectionDialog.java`) and a maintenance control center for immediate toggles + scheduled windows (`MaintenancePanel.java`, `AdminService`, `DatabaseUtil`).
+- [DONE] Maintenance guard enforcement across student/instructor/admin workspaces via `MaintenanceAware` gating.
 - [DONE] Student drop/enroll deadlines enforced (`EnrollmentService.java` validates section deadlines before write).
 - [DONE] Waitlist management with automatic promotion and notifications (`DatabaseUtil#registerStudentToSection` / `#dropStudentFromSection`).
 ### Outstanding
-- [PARTIAL] Maintenance mode enforcement: StudentSelfServicePanel, EnrollmentService, InstructorWorkspacePanel, and InstructorAttendancePanel block writes, but admin CRUD panels still bypass the guard.
 - [PARTIAL] Timetable day/time grid + rich printable layout: students can export table listings to ICS/PDF, but there is no calendar-grid visualization or admin publish flow.
 - [TODO] Instructor grade CSV import/export hooks.
 - [TODO] Optional backup/restore automation beyond the manual steps documented in `docs/database/README.md`.
@@ -105,7 +105,6 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 - [DONE] Maintenance window scheduler backed by Flyway migrations, DAO/service helpers, auto notifications, and countdown UI (`MaintenanceWindowDao`, `DatabaseUtil`, `MaintenancePanel`).
 - [DONE] Notification centre with broadcast UI (`NotificationsPanel`) and student inbox filters (categories, unread toggles, mark read/unread).
 ### Outstanding
-- [PARTIAL] Maintenance guard coverage for every write path (admin CRUD surfaces still active and bypass the guard).
 - [PARTIAL] Notification centre enhancements: no email/SMS stubs, digest configuration UI, or historical insights for admins.
 
 ## Analytics & Degree Planning

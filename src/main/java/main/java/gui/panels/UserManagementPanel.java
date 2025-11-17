@@ -80,8 +80,7 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
     }
 
     private void addUser() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         JTextField usernameField = new JTextField();
@@ -120,8 +119,7 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
     }
 
     private void editUser() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         User user = getSelectedUser();
@@ -161,8 +159,7 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
     }
 
     private void resetPassword() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         int row = userTable.getSelectedRow();
@@ -184,8 +181,7 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
     }
 
     private void toggleUserStatus() {
-        if (maintenanceMode) {
-            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+        if (blockIfMaintenance()) {
             return;
         }
         int row = userTable.getSelectedRow();
@@ -237,10 +233,31 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
     @Override
     public void onMaintenanceModeChanged(boolean maintenance) {
         this.maintenanceMode = maintenance;
+        applyButtonStates();
+        auditButton.setEnabled(true);
+    }
+
+    private void applyButtonStates() {
+        boolean maintenance = isMaintenanceLocked();
         addButton.setEnabled(!maintenance);
         editButton.setEnabled(!maintenance);
         resetPasswordButton.setEnabled(!maintenance);
         toggleStatusButton.setEnabled(!maintenance);
-        auditButton.setEnabled(true);
+    }
+
+    private boolean blockIfMaintenance() {
+        if (isMaintenanceLocked()) {
+            JOptionPane.showMessageDialog(this, "Changes are disabled during maintenance mode.");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isMaintenanceLocked() {
+        boolean maintenance = maintenanceMode || DatabaseUtil.isMaintenanceMode();
+        if (maintenanceMode != maintenance) {
+            maintenanceMode = maintenance;
+        }
+        return maintenance;
     }
 }
