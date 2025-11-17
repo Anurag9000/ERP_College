@@ -1,13 +1,17 @@
 package main.java.service;
 
+import main.java.models.EnrollmentRecord;
 import main.java.models.Faculty;
+import main.java.models.MaintenanceWindow;
 import main.java.models.Student;
 import main.java.models.User;
 import main.java.utils.DatabaseUtil;
 import main.java.utils.AuditLogService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Admin-only helper operations (user provisioning, settings, assignments).
@@ -56,7 +60,7 @@ public final class AdminService {
 
     public static void toggleMaintenance(User actor, boolean maintenanceOn) {
         ensureAdmin(actor);
-        DatabaseUtil.setMaintenanceMode(maintenanceOn);
+        DatabaseUtil.setMaintenanceMode(actor, maintenanceOn);
     }
 
     public static void updateUserProfile(User actor, String username, String fullName, String email) {
@@ -99,5 +103,60 @@ public final class AdminService {
         AuditLogService.log(AuditLogService.EventType.USER_MANAGEMENT,
                 actor.getUsername(),
                 "Updated catalog relationships for " + courseId);
+    }
+
+    public static EnrollmentRecord overrideEnroll(User actor,
+                                                  String studentId,
+                                                  String sectionId,
+                                                  boolean ignoreCapacity,
+                                                  boolean ignoreConflicts,
+                                                  boolean ignoreRequisites) {
+        ensureAdmin(actor);
+        return DatabaseUtil.overrideEnrollStudent(actor, studentId, sectionId,
+                ignoreCapacity, ignoreConflicts, ignoreRequisites);
+    }
+
+    public static void updateSectionDeadlines(User actor,
+                                              String sectionId,
+                                              LocalDate enrollmentDeadline,
+                                              LocalDate dropDeadline) {
+        ensureAdmin(actor);
+        DatabaseUtil.updateSectionDeadlines(sectionId, enrollmentDeadline, dropDeadline);
+        AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE,
+                actor.getUsername(),
+                "Updated deadlines for " + sectionId);
+    }
+
+    public static void promoteWaitlisted(User actor, String sectionId, String studentId) {
+        ensureAdmin(actor);
+        DatabaseUtil.promoteWaitlistedStudent(actor, sectionId, studentId);
+    }
+
+    public static void removeWaitlistEntry(User actor, String sectionId, String studentId) {
+        ensureAdmin(actor);
+        DatabaseUtil.removeWaitlistEntry(actor, sectionId, studentId);
+    }
+
+    public static MaintenanceWindow scheduleMaintenanceWindow(User actor,
+                                                              LocalDateTime start,
+                                                              LocalDateTime end,
+                                                              String message) {
+        ensureAdmin(actor);
+        return DatabaseUtil.scheduleMaintenanceWindow(actor, start, end, message);
+    }
+
+    public static void cancelMaintenanceWindow(User actor, long windowId) {
+        ensureAdmin(actor);
+        DatabaseUtil.cancelMaintenanceWindow(actor, windowId);
+    }
+
+    public static List<MaintenanceWindow> getMaintenanceWindows(User actor) {
+        ensureAdmin(actor);
+        return DatabaseUtil.getMaintenanceWindows();
+    }
+
+    public static Optional<MaintenanceWindow> getNextMaintenanceWindow(User actor) {
+        ensureAdmin(actor);
+        return DatabaseUtil.getNextMaintenanceWindow();
     }
 }

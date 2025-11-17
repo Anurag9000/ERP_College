@@ -16,6 +16,7 @@ import main.java.data.dao.CourseRelationshipDao;
 import main.java.data.dao.PaymentTransactionDao;
 import main.java.data.dao.FeeInstallmentDao;
 import main.java.data.dao.FeeScheduleTemplateDao;
+import main.java.data.dao.MaintenanceWindowDao;
 import main.java.data.dao.InstructorMessageDao;
 import main.java.data.dao.RegistrationRequestDao;
 import main.java.data.migration.LegacyDataMigrator;
@@ -23,6 +24,8 @@ import main.java.utils.PasswordPolicy;
 import main.java.utils.AuditLogService;
 
 import main.java.models.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.sql.Connection;
 import java.sql.Date;
@@ -30,17 +33,25 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
  * Database utility facade exposing high-level operations backed by the DAO layer.
  */
 public class DatabaseUtil {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseUtil.class);
     private static final String DATA_DIR = "data/";
     private static final String STUDENTS_FILE = DATA_DIR + "students.dat";
     private static final String FACULTY_FILE = DATA_DIR + "faculty.dat";
@@ -74,11 +85,25 @@ public class DatabaseUtil {
     private static final RegistrationRequestDao registrationRequestDao = new RegistrationRequestDao();
     private static final InstructorMessageDao instructorMessageDao = new InstructorMessageDao();
     private static final FeeScheduleTemplateDao feeScheduleTemplateDao = new FeeScheduleTemplateDao();
+    private static final MaintenanceWindowDao maintenanceWindowDao = new MaintenanceWindowDao();
 
     private static final Map<String, List<String>> coursePrerequisiteCache = new ConcurrentHashMap<>();
     private static final Map<String, List<String>> courseCorequisiteCache = new ConcurrentHashMap<>();
     private static final Map<String, List<String>> courseAntirequisiteCache = new ConcurrentHashMap<>();
     private static final double PASSING_GRADE_THRESHOLD = 40.0;
+    private static final List<MaintenanceWindow> maintenanceWindowCache = new CopyOnWriteArrayList<>();
+    private static final ScheduledExecutorService maintenanceExecutor =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread thread = new Thread(r, "maintenance-scheduler");
+                thread.setDaemon(true);
+                return thread;
+            });
+    private static final AtomicBoolean maintenanceSchedulerStarted = new AtomicBoolean(false);
+    private static volatile long lastMaintenanceRefresh = 0L;
+    private static final long MAINTENANCE_REFRESH_INTERVAL_MS = 30_000L;
+    private static final String MAINTENANCE_ORIGIN_KEY = "maintenance_origin";
+    private static final String MAINTENANCE_WINDOW_KEY = "maintenance_window_id";
+    private static final DateTimeFormatter HUMAN_DATE_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm");
 
     private static int parseIntConfig(String key, int defaultValue) {
         String value = ConfigLoader.get(key);
@@ -94,6 +119,12 @@ public class DatabaseUtil {
 
     public static double getPassingGradeThreshold() {
         return PASSING_GRADE_THRESHOLD;
+    }
+
+    private static void ensureSettingDefault(String key, String defaultValue) {
+        if (settings.putIfAbsent(key, defaultValue) == null) {
+            settingsDao.upsert(key, defaultValue);
+        }
     }
 
     private static void seedFinanceData(Student... sampleStudents) {
@@ -165,6 +196,9 @@ public class DatabaseUtil {
         
         // Load existing data or create sample data
         loadData();
+        refreshMaintenanceWindowCache();
+        evaluateMaintenanceSchedule();
+        startMaintenanceScheduler();
         try {
             LegacyDataMigrator.defaultMigrator().migrateAll();
         } catch (Exception ex) {
@@ -182,9 +216,9 @@ public class DatabaseUtil {
         if (settings == null) {
             settings = new ConcurrentHashMap<>();
         }
-        if (settings.putIfAbsent("maintenance", "false") == null) {
-            settingsDao.upsert("maintenance", "false");
-        }
+        ensureSettingDefault("maintenance", "false");
+        ensureSettingDefault(MAINTENANCE_ORIGIN_KEY, "manual");
+        ensureSettingDefault(MAINTENANCE_WINDOW_KEY, "");
 
         refreshCourseCache();
         refreshStudentCache();
@@ -1076,6 +1110,25 @@ public class DatabaseUtil {
         sections.put(section.getSectionId(), section);
     }
 
+    public static void updateSectionDeadlines(String sectionId, LocalDate enrollmentDeadline, LocalDate dropDeadline) {
+        Section section = getSection(sectionId);
+        if (section == null) {
+            throw new IllegalArgumentException("Section not found: " + sectionId);
+        }
+        boolean changed = false;
+        if (enrollmentDeadline != null) {
+            section.setEnrollmentDeadline(enrollmentDeadline);
+            changed = true;
+        }
+        if (dropDeadline != null) {
+            section.setDropDeadline(dropDeadline);
+            changed = true;
+        }
+        if (changed) {
+            updateSection(section);
+        }
+    }
+
     public static void deleteSection(String sectionId) {
         sectionDao.delete(sectionId);
         sections.remove(sectionId);
@@ -1318,6 +1371,82 @@ public class DatabaseUtil {
                 String.format("Dropped %s from %s", studentId, section.getTitle()));
     }
 
+    public static synchronized EnrollmentRecord overrideEnrollStudent(User admin,
+                                                                      String studentId,
+                                                                      String sectionId,
+                                                                      boolean ignoreCapacity,
+                                                                      boolean ignoreConflicts,
+                                                                      boolean ignoreRequisites) {
+        ensureAdmin(admin);
+        Section section = getSection(sectionId);
+        if (section == null) {
+            throw new IllegalArgumentException("Section not found: " + sectionId);
+        }
+        Student student = getStudent(studentId);
+        if (student == null) {
+            throw new IllegalArgumentException("Student not found: " + studentId);
+        }
+        if (!ignoreRequisites) {
+            List<String> missingPrereqs = getMissingPrerequisites(studentId, section.getCourseId());
+            if (!missingPrereqs.isEmpty()) {
+                throw new IllegalStateException("Missing prerequisite(s): " + String.join(", ", missingPrereqs));
+            }
+            List<String> missingCoreqs = getMissingCorequisites(studentId, section.getCourseId());
+            if (!missingCoreqs.isEmpty()) {
+                throw new IllegalStateException("Missing co-requisite(s): " + String.join(", ", missingCoreqs));
+            }
+            List<String> conflicts = getAntirequisiteConflicts(studentId, section.getCourseId());
+            if (!conflicts.isEmpty()) {
+                throw new IllegalStateException("Conflicts with anti-requisite(s): " + String.join(", ", conflicts));
+            }
+        }
+        if (!ignoreConflicts && hasScheduleConflict(studentId, section)) {
+            throw new IllegalStateException("Schedule conflict detected. Enable overrides to bypass.");
+        }
+        List<EnrollmentRecord> existing = enrollmentDao.findBySection(sectionId);
+        boolean already = existing.stream()
+                .anyMatch(rec -> rec.getStudentId().equals(studentId)
+                        && rec.getStatus() != EnrollmentRecord.Status.DROPPED);
+        if (already) {
+            throw new IllegalStateException("Student already enrolled or waitlisted for this section.");
+        }
+        long enrolledCount = existing.stream()
+                .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .count();
+        boolean seatAvailable = enrolledCount < section.getCapacity();
+        boolean enrollNow = seatAvailable || ignoreCapacity;
+        EnrollmentRecord.Status status = enrollNow ? EnrollmentRecord.Status.ENROLLED : EnrollmentRecord.Status.WAITLISTED;
+        EnrollmentRecord record = new EnrollmentRecord(studentId, sectionId, status);
+        enrollmentDao.insert(record);
+
+        if (status == EnrollmentRecord.Status.ENROLLED) {
+            Course course = getCourse(section.getCourseId());
+            if (course != null) {
+                course.setAvailableSeats(Math.max(0, course.getAvailableSeats() - 1));
+                updateCourse(course);
+            }
+            addNotification(new NotificationMessage(
+                    NotificationMessage.Audience.STUDENT,
+                    studentId,
+                    "You were force-enrolled into " + section.getTitle() + " (" + section.getSectionId() + ").",
+                    "Registration"));
+            refreshStudentEnrollmentMetrics(studentId);
+        } else {
+            int position = waitlistDao.findEntries(sectionId).size() + 1;
+            waitlistDao.insert(sectionId, studentId, position, true);
+            addNotification(new NotificationMessage(
+                    NotificationMessage.Audience.STUDENT,
+                    studentId,
+                    "You were added to the waitlist for " + section.getTitle() + " (" + section.getSectionId() + ").",
+                    "Registration"));
+        }
+
+        AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE,
+                admin.getUsername(),
+                String.format("Override enroll %s into %s (status %s)", studentId, sectionId, status));
+        return record;
+    }
+
     private static boolean promoteApprovedWaitlistedIfPossible(Section section, List<EnrollmentRecord> sectionEnrollments) {
         List<WaitlistDao.WaitlistEntry> waitlist = waitlistDao.findEntries(section.getSectionId());
         if (waitlist.isEmpty()) {
@@ -1484,6 +1613,46 @@ public class DatabaseUtil {
     }
 
     public record WaitlistSnapshot(String studentId, String studentName, int position, boolean approved) {
+    }
+
+    public static synchronized void promoteWaitlistedStudent(User admin, String sectionId, String studentId) {
+        ensureAdmin(admin);
+        Section section = getSection(sectionId);
+        if (section == null) {
+            throw new IllegalArgumentException("Section not found: " + sectionId);
+        }
+        List<EnrollmentRecord> enrollments = enrollmentDao.findBySection(sectionId);
+        EnrollmentRecord record = enrollments.stream()
+                .filter(rec -> rec.getStudentId().equals(studentId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Student not on waitlist."));
+        record.setStatus(EnrollmentRecord.Status.ENROLLED);
+        enrollmentDao.updateStatus(record);
+        waitlistDao.delete(sectionId, studentId);
+        addNotification(new NotificationMessage(
+                NotificationMessage.Audience.STUDENT,
+                studentId,
+                "You were promoted from the waitlist to " + sectionId + ".",
+                "Registration"));
+        refreshStudentEnrollmentMetrics(studentId);
+        AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE,
+                admin.getUsername(),
+                "Promoted " + studentId + " into " + sectionId);
+    }
+
+    public static synchronized void removeWaitlistEntry(User admin, String sectionId, String studentId) {
+        ensureAdmin(admin);
+        waitlistDao.delete(sectionId, studentId);
+        enrollmentDao.findBySection(sectionId).stream()
+                .filter(rec -> rec.getStudentId().equals(studentId))
+                .findFirst()
+                .ifPresent(rec -> {
+                    rec.setStatus(EnrollmentRecord.Status.DROPPED);
+                    enrollmentDao.updateStatus(rec);
+                });
+        AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE,
+                admin.getUsername(),
+                "Removed " + studentId + " from waitlist for " + sectionId);
     }
 
     // Registration request operations
@@ -1807,21 +1976,268 @@ public class DatabaseUtil {
     }
 
     public static boolean isMaintenanceMode() {
+        evaluateMaintenanceSchedule();
         return Boolean.parseBoolean(settings.getOrDefault("maintenance", "false"));
     }
 
     public static void setMaintenanceMode(boolean maintenanceOn) {
-        String value = Boolean.toString(maintenanceOn);
-        settings.put("maintenance", value);
-        settingsDao.upsert("maintenance", value);
+        handleMaintenanceToggle(maintenanceOn, "manual", null, null, "system");
+    }
+
+    public static void setMaintenanceMode(User actor, boolean maintenanceOn) {
+        String auditActor = actor != null ? actor.getUsername() : "system";
+        handleMaintenanceToggle(maintenanceOn, "manual", null, null, auditActor);
+    }
+
+    public static List<MaintenanceWindow> getMaintenanceWindows() {
+        refreshMaintenanceWindowCacheIfStale();
+        List<MaintenanceWindow> copy = new ArrayList<>(maintenanceWindowCache);
+        copy.sort(Comparator.comparing(MaintenanceWindow::getStartAt));
+        return Collections.unmodifiableList(copy);
+    }
+
+    public static Optional<MaintenanceWindow> getNextMaintenanceWindow() {
+        refreshMaintenanceWindowCacheIfStale();
+        LocalDateTime now = LocalDateTime.now();
+        return maintenanceWindowCache.stream()
+                .filter(window -> window.getStatus() != MaintenanceWindow.Status.CANCELLED
+                        && window.getStatus() != MaintenanceWindow.Status.COMPLETED)
+                .filter(window -> window.isActive(now) || window.getStartAt().isAfter(now))
+                .min(Comparator.comparing(MaintenanceWindow::getStartAt));
+    }
+
+    public static MaintenanceWindow scheduleMaintenanceWindow(User actor,
+                                                              LocalDateTime start,
+                                                              LocalDateTime end,
+                                                              String message) {
+        Objects.requireNonNull(actor, "actor is required");
+        Objects.requireNonNull(start, "start is required");
+        Objects.requireNonNull(end, "end is required");
+        if (!end.isAfter(start)) {
+            throw new IllegalArgumentException("End time must be after start time.");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        MaintenanceWindow.Status status = now.isBefore(start)
+                ? MaintenanceWindow.Status.SCHEDULED
+                : MaintenanceWindow.Status.ACTIVE;
+        String safeMessage = (message == null || message.isBlank())
+                ? "Scheduled infrastructure maintenance"
+                : message.trim();
+
+        MaintenanceWindow window = maintenanceWindowDao.insert(start, end, safeMessage, status, actor.getUsername())
+                .orElseThrow(() -> new IllegalStateException("Unable to persist maintenance window"));
+
+        maintenanceWindowCache.add(window);
+        maintenanceWindowCache.sort(Comparator.comparing(MaintenanceWindow::getStartAt));
+        lastMaintenanceRefresh = System.currentTimeMillis();
+
+        if (status == MaintenanceWindow.Status.SCHEDULED) {
+            String body = String.format(
+                    "Maintenance scheduled on %s for %d minutes. %s",
+                    HUMAN_DATE_FORMAT.format(start),
+                    Duration.between(start, end).toMinutes(),
+                    safeMessage);
+            addNotification(new NotificationMessage(
+                    NotificationMessage.Audience.ALL,
+                    null,
+                    body,
+                    "Maintenance"));
+            AuditLogService.log(AuditLogService.EventType.MAINTENANCE_TOGGLE,
+                    actor.getUsername(),
+                    "Scheduled maintenance window #" + window.getId() + " " + describeWindow(window));
+        } else {
+            announceWindowStart(window);
+        }
+
+        evaluateMaintenanceSchedule();
+        return window;
+    }
+
+    public static void cancelMaintenanceWindow(User actor, long windowId) {
+        Objects.requireNonNull(actor, "actor is required");
+        refreshMaintenanceWindowCacheIfStale();
+        MaintenanceWindow window = maintenanceWindowCache.stream()
+                .filter(w -> w.getId() == windowId)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Maintenance window not found"));
+        if (window.getStatus() == MaintenanceWindow.Status.COMPLETED
+                || window.getStatus() == MaintenanceWindow.Status.CANCELLED) {
+            throw new IllegalStateException("Window has already finished.");
+        }
+        maintenanceWindowDao.updateStatus(windowId, MaintenanceWindow.Status.CANCELLED);
+        replaceWindowInCache(window.withStatus(MaintenanceWindow.Status.CANCELLED));
         addNotification(new NotificationMessage(
                 NotificationMessage.Audience.ALL,
                 null,
-                "Maintenance mode is now " + (maintenanceOn ? "ON" : "OFF") + ".",
+                String.format("Maintenance window starting %s was cancelled by %s.",
+                        HUMAN_DATE_FORMAT.format(window.getStartAt()),
+                        actor.getFullName()),
                 "Maintenance"));
         AuditLogService.log(AuditLogService.EventType.MAINTENANCE_TOGGLE,
-                "system",
-                "Maintenance mode set to " + maintenanceOn);
+                actor.getUsername(),
+                "Cancelled maintenance window #" + windowId);
+        evaluateMaintenanceSchedule();
+    }
+
+    private static void startMaintenanceScheduler() {
+        if (maintenanceSchedulerStarted.compareAndSet(false, true)) {
+            maintenanceExecutor.scheduleAtFixedRate(() -> {
+                try {
+                    refreshMaintenanceWindowCacheIfStale();
+                    evaluateMaintenanceSchedule();
+                } catch (Exception ex) {
+                    LOGGER.error("Maintenance scheduler tick failed: {}", ex.getMessage(), ex);
+                }
+            }, 30, 30, TimeUnit.SECONDS);
+        }
+    }
+
+    private static synchronized void refreshMaintenanceWindowCache() {
+        List<MaintenanceWindow> windows = maintenanceWindowDao.findAll();
+        windows.sort(Comparator.comparing(MaintenanceWindow::getStartAt));
+        maintenanceWindowCache.clear();
+        maintenanceWindowCache.addAll(windows);
+        lastMaintenanceRefresh = System.currentTimeMillis();
+    }
+
+    private static void refreshMaintenanceWindowCacheIfStale() {
+        if (System.currentTimeMillis() - lastMaintenanceRefresh > MAINTENANCE_REFRESH_INTERVAL_MS) {
+            refreshMaintenanceWindowCache();
+        }
+    }
+
+    private static void replaceWindowInCache(MaintenanceWindow updated) {
+        for (int i = 0; i < maintenanceWindowCache.size(); i++) {
+            if (maintenanceWindowCache.get(i).getId() == updated.getId()) {
+                maintenanceWindowCache.set(i, updated);
+                return;
+            }
+        }
+        maintenanceWindowCache.add(updated);
+        maintenanceWindowCache.sort(Comparator.comparing(MaintenanceWindow::getStartAt));
+    }
+
+    private static void evaluateMaintenanceSchedule() {
+        refreshMaintenanceWindowCacheIfStale();
+        LocalDateTime now = LocalDateTime.now();
+        boolean hasActive = false;
+        MaintenanceWindow activeWindow = null;
+
+        for (MaintenanceWindow window : new ArrayList<>(maintenanceWindowCache)) {
+            if (window.getStatus() == MaintenanceWindow.Status.CANCELLED
+                    || window.getStatus() == MaintenanceWindow.Status.COMPLETED) {
+                continue;
+            }
+            if (window.getStatus() == MaintenanceWindow.Status.SCHEDULED && !now.isBefore(window.getStartAt())) {
+                maintenanceWindowDao.updateStatus(window.getId(), MaintenanceWindow.Status.ACTIVE);
+                window = window.withStatus(MaintenanceWindow.Status.ACTIVE);
+                replaceWindowInCache(window);
+                announceWindowStart(window);
+                hasActive = true;
+                activeWindow = window;
+                continue;
+            }
+            if (window.getStatus() == MaintenanceWindow.Status.ACTIVE) {
+                if (now.isAfter(window.getEndAt())) {
+                    maintenanceWindowDao.updateStatus(window.getId(), MaintenanceWindow.Status.COMPLETED);
+                    replaceWindowInCache(window.withStatus(MaintenanceWindow.Status.COMPLETED));
+                    announceWindowEnd(window);
+                } else {
+                    hasActive = true;
+                    activeWindow = window;
+                }
+            }
+        }
+
+        if (!hasActive) {
+            handleScheduledCompletionFallback();
+        } else if (activeWindow != null) {
+            String trackedWindowId = settings.getOrDefault(MAINTENANCE_WINDOW_KEY, "");
+            if (!trackedWindowId.equals(Long.toString(activeWindow.getId()))) {
+                setMaintenanceModeForWindow(true, activeWindow,
+                        activeWindow.getMessage() + " window active until "
+                                + HUMAN_DATE_FORMAT.format(activeWindow.getEndAt()) + ".");
+            }
+        }
+    }
+
+    private static void handleScheduledCompletionFallback() {
+        boolean maintenanceOn = Boolean.parseBoolean(settings.getOrDefault("maintenance", "false"));
+        boolean controlledBySchedule = "scheduled".equals(settings.getOrDefault(MAINTENANCE_ORIGIN_KEY, "manual"));
+        if (maintenanceOn && controlledBySchedule) {
+            handleMaintenanceToggle(false, "scheduled", null,
+                    "Scheduled maintenance window complete. Services restored.",
+                    "system");
+        }
+    }
+
+    private static void announceWindowStart(MaintenanceWindow window) {
+        String summary = window.getMessage() + " window active until "
+                + HUMAN_DATE_FORMAT.format(window.getEndAt()) + ".";
+        setMaintenanceModeForWindow(true, window, summary);
+    }
+
+    private static void announceWindowEnd(MaintenanceWindow window) {
+        addNotification(new NotificationMessage(
+                NotificationMessage.Audience.ALL,
+                null,
+                String.format("Maintenance window from %s to %s has concluded.",
+                        HUMAN_DATE_FORMAT.format(window.getStartAt()),
+                        HUMAN_DATE_FORMAT.format(window.getEndAt())),
+                "Maintenance"));
+        String trackedWindowId = settings.getOrDefault(MAINTENANCE_WINDOW_KEY, "");
+        if (trackedWindowId.equals(Long.toString(window.getId()))) {
+            setMaintenanceModeForWindow(false, window,
+                    "Scheduled maintenance window complete. Services restored.");
+        }
+    }
+
+    private static String describeWindow(MaintenanceWindow window) {
+        return "from " + HUMAN_DATE_FORMAT.format(window.getStartAt()) +
+                " to " + HUMAN_DATE_FORMAT.format(window.getEndAt());
+    }
+
+    private static void setMaintenanceModeForWindow(boolean maintenanceOn,
+                                                    MaintenanceWindow window,
+                                                    String message) {
+        handleMaintenanceToggle(maintenanceOn, "scheduled", window, message, "system");
+    }
+
+    private static void handleMaintenanceToggle(boolean maintenanceOn,
+                                                String origin,
+                                                MaintenanceWindow windowContext,
+                                                String notificationMessage,
+                                                String auditActor) {
+        String value = Boolean.toString(maintenanceOn);
+        settings.put("maintenance", value);
+        settingsDao.upsert("maintenance", value);
+        settings.put(MAINTENANCE_ORIGIN_KEY, origin);
+        settingsDao.upsert(MAINTENANCE_ORIGIN_KEY, origin);
+        if (windowContext != null && maintenanceOn) {
+            String windowId = Long.toString(windowContext.getId());
+            settings.put(MAINTENANCE_WINDOW_KEY, windowId);
+            settingsDao.upsert(MAINTENANCE_WINDOW_KEY, windowId);
+        } else if (!maintenanceOn) {
+            settings.put(MAINTENANCE_WINDOW_KEY, "");
+            settingsDao.upsert(MAINTENANCE_WINDOW_KEY, "");
+        }
+
+        String body = notificationMessage != null
+                ? notificationMessage
+                : "Maintenance mode is now " + (maintenanceOn ? "ON" : "OFF") + ".";
+        addNotification(new NotificationMessage(
+                NotificationMessage.Audience.ALL,
+                null,
+                body,
+                "Maintenance"));
+
+        String auditMessage = "Maintenance mode set to " + maintenanceOn + " via " + origin;
+        if (windowContext != null) {
+            auditMessage += " (#" + windowContext.getId() + ")";
+        }
+        AuditLogService.log(AuditLogService.EventType.MAINTENANCE_TOGGLE,
+                auditActor,
+                auditMessage);
     }
 
     public static boolean isUserLocked(String username) {

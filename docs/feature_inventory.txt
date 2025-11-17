@@ -15,7 +15,7 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 - [DONE] Instructor grade entry, assessment weight editing, stats, and maintenance awareness in `gui/panels/InstructorWorkspacePanel.java` + `service/GradebookService.java`.
 - [DONE] Transcript export to CSV/PDF from `StudentSelfServicePanel#exportTranscript*`.
 - [DONE] Admin CRUD for users/students/faculty/courses/sections (`UserManagementPanel.java`, `StudentPanel.java`, `FacultyPanel.java`, `CoursePanel.java`, `SectionPanel.java`) plus staff-driven enrollment oversight (`EnrollmentPanel.java`).
-- [DONE] Admin UI to assign instructors to sections (`gui/dialogs/SectionDialog.java`) and toggle maintenance in-app (`MaintenancePanel.java` + `AdminService.toggleMaintenance`).
+- [DONE] Admin UI to assign instructors to sections (`gui/dialogs/SectionDialog.java`) and a maintenance control center for immediate toggles + scheduled windows (`MaintenancePanel.java`, `AdminService`, `DatabaseUtil`).
 - [DONE] Student drop/enroll deadlines enforced (`EnrollmentService.java` validates section deadlines before write).
 - [DONE] Waitlist management with automatic promotion and notifications (`DatabaseUtil#registerStudentToSection` / `#dropStudentFromSection`).
 ### Outstanding
@@ -87,13 +87,13 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 - [DONE] AttendancePanel for marking attendance and viewing history across sections.
 - [DONE] FeesPanel with searchable roster, payment recording, installment editor dialog, CSV exports (summary + per-student statements), and a course-level template tab (CRUD + apply-to-student rollout).
 - [DONE] NotificationsPanel for broadcasting ALL/STUDENT/INSTRUCTOR/ADMIN messages.
-- [DONE] MaintenancePanel for toggling maintenance and invoking callbacks.
+- [DONE] MaintenancePanel now manages instant toggles plus scheduled maintenance windows with countdown banners.
 - [DONE] AuditLogPanel for viewing/exporting audit events.
 - [DONE] UserManagementPanel now supports editing profiles/roles, suspend/reactivate toggles, and per-user audit trail viewing.
 ### Outstanding
 - [PARTIAL] Catalog management depth: no dedicated UI for prerequisites, room inventory, or capacity planning beyond manual fields.
 - [PARTIAL] Enrollment oversight (approvals, overrides, extensions) beyond manual register/drop in EnrollmentPanel.
-- [PARTIAL] Maintenance scheduler: only immediate toggles exist; no future windows or countdown banners.
+- [DONE] Maintenance scheduler with DAO-backed window table, auto notifications, countdown banners, and auto toggles (`DatabaseUtil`, `MaintenanceWindowDao`, `MaintenancePanel`).
 - [TODO] Data governance (backup/restore wrappers, archival, anonymisation scripts).
 - [PARTIAL] Reporting suite: dashboard metrics exist, but there are no drill-down reports for waitlists, attendance compliance, or financial arrears.
 - [TODO] Bulk CSV/XLS import/export for master data (current exports are limited to finance/audit tables).
@@ -102,9 +102,10 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 ### Delivered
 - [DONE] Central maintenance flag persisted via `SettingsDao`, toggled through `AdminService`, and surfaced through automatic ALL-audience notifications plus MainFrame and StudentSelfServicePanel banners.
 - [DONE] Finance reminder scheduler that inspects installments and issues notifications/digests every hour (`utils/FinanceReminderScheduler.java`).
+- [DONE] Maintenance window scheduler backed by Flyway migrations, DAO/service helpers, auto notifications, and countdown UI (`MaintenanceWindowDao`, `DatabaseUtil`, `MaintenancePanel`).
 - [DONE] Notification centre with broadcast UI (`NotificationsPanel`) and student inbox filters (categories, unread toggles, mark read/unread).
 ### Outstanding
-- [PARTIAL] Maintenance guard coverage for every write path (admin CRUD surfaces still active; no scheduler for future windows).
+- [PARTIAL] Maintenance guard coverage for every write path (admin CRUD surfaces still active and bypass the guard).
 - [PARTIAL] Notification centre enhancements: no email/SMS stubs, digest configuration UI, or historical insights for admins.
 
 ## Analytics & Degree Planning

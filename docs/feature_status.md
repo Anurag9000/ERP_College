@@ -1,9 +1,6 @@
 ## Instructor Workspace
 
 ## Admin Console & Operations
-- [ ] Catalog management for courses/sections/rooms/prereqs/capacity planning.
-- [ ] Enrollment oversight tools (approvals, overrides, extensions, waitlist management).
-- [ ] Maintenance scheduler (immediate + future windows, countdown banner, auto notifications).
 - [ ] Data governance: backup/restore wrappers, archival, anonymisation scripts + docs.
 - [ ] Reporting suite (enrollment trends, waitlist pressure, attendance compliance, financial arrears).
 - [ ] Bulk CSV/XLS import/export for students, instructors, courses, enrollments.
