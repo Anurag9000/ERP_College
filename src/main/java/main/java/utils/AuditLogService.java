@@ -31,7 +31,8 @@ public final class AuditLogService {
         SECTION_ASSIGNMENT,
         GRADE_EDIT,
         FINANCE_PAYMENT,
-        USER_MANAGEMENT
+        USER_MANAGEMENT,
+        NOTIFICATION_BROADCAST
     }
 
     public static final class AuditEvent {

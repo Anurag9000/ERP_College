@@ -15,93 +15,120 @@ public class LoginFrame extends JFrame {
     private JPasswordField passwordField;
     private JButton loginButton;
     private JLabel statusLabel;
-    
+
     public LoginFrame() {
         initializeComponents();
         setupLayout();
         setupEventHandlers();
-        
+
         setTitle("College ERP System - Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400, 300);
         setLocationRelativeTo(null);
         setResizable(false);
     }
-    
+
     private void initializeComponents() {
         usernameField = new JTextField(20);
         passwordField = new JPasswordField(20);
         loginButton = new JButton("Login");
         statusLabel = new JLabel(" ");
-        
+
         // Styling
         loginButton.setBackground(new Color(37, 99, 235));
         loginButton.setForeground(Color.WHITE);
         loginButton.setFocusPainted(false);
         loginButton.setBorderPainted(false);
         loginButton.setOpaque(true);
-        
+
         statusLabel.setForeground(Color.RED);
         statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
     }
-    
+
     private void setupLayout() {
         setLayout(new BorderLayout());
-        
+
         // Header panel
         JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(new Color(37, 99, 235));
-        headerPanel.setPreferredSize(new Dimension(0, 60));
+        headerPanel.setBackground(main.java.gui.style.PastelTheme.PASTEL_BLUE_DARK);
+        headerPanel.setPreferredSize(new Dimension(0, 80));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+
         JLabel titleLabel = new JLabel("College ERP System");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        titleLabel.setFont(main.java.gui.style.PastelTheme.HEADER_FONT);
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         headerPanel.add(titleLabel);
-        
+
         // Login panel
-        JPanel loginPanel = new JPanel(new GridBagLayout());
-        loginPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
-        loginPanel.setBackground(Color.WHITE);
-        
+        // Use a wrapper to center the card
+        JPanel wrapper = new JPanel(new GridBagLayout());
+        wrapper.setBackground(main.java.gui.style.PastelTheme.PASTEL_BG);
+
+        main.java.gui.components.JCard loginCard = new main.java.gui.components.JCard(new GridBagLayout());
+        // loginCard styling is auto-applied by JCard constructor
+
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8);
-        
+        gbc.insets = new Insets(12, 12, 12, 12);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
         // Username
-        gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.EAST;
-        loginPanel.add(new JLabel("Username:"), gbc);
-        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
-        loginPanel.add(usernameField, gbc);
-        
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        JLabel userLbl = new JLabel("Username");
+        userLbl.setFont(main.java.gui.style.PastelTheme.CARD_TITLE_FONT);
+        userLbl.setForeground(main.java.gui.style.PastelTheme.TEXT_SECONDARY);
+        loginCard.add(userLbl, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        usernameField.setFont(main.java.gui.style.PastelTheme.BODY_FONT);
+        // Add a bit of padding to text field
+        loginCard.add(usernameField, gbc);
+
         // Password
-        gbc.gridx = 0; gbc.gridy = 1; gbc.anchor = GridBagConstraints.EAST; gbc.fill = GridBagConstraints.NONE;
-        loginPanel.add(new JLabel("Password:"), gbc);
-        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
-        loginPanel.add(passwordField, gbc);
-        
-        // Login button
-        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(16, 8, 8, 8);
-        loginPanel.add(loginButton, gbc);
-        
-        // Status label
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        JLabel passLbl = new JLabel("Password");
+        passLbl.setFont(main.java.gui.style.PastelTheme.CARD_TITLE_FONT);
+        passLbl.setForeground(main.java.gui.style.PastelTheme.TEXT_SECONDARY);
+        loginCard.add(passLbl, gbc);
+
+        gbc.gridx = 0;
         gbc.gridy = 3;
+        passwordField.setFont(main.java.gui.style.PastelTheme.BODY_FONT);
+        loginCard.add(passwordField, gbc);
+
+        // Login button
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.insets = new Insets(24, 12, 12, 12);
+        main.java.gui.style.PastelTheme.styleButtonPrimary(loginButton);
+        loginCard.add(loginButton, gbc);
+
+        // Status label
+        gbc.gridx = 0;
+        gbc.gridy = 5;
         gbc.insets = new Insets(8, 8, 8, 8);
-        loginPanel.add(statusLabel, gbc);
-        
+        statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        loginCard.add(statusLabel, gbc);
+
+        wrapper.add(loginCard);
+
         add(headerPanel, BorderLayout.NORTH);
-        add(loginPanel, BorderLayout.CENTER);
-        
+        add(wrapper, BorderLayout.CENTER);
+
         // Footer
         JPanel footerPanel = new JPanel();
-        footerPanel.setBackground(new Color(243, 244, 246));
+        footerPanel.setBackground(main.java.gui.style.PastelTheme.PASTEL_BG);
         footerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         JLabel infoLabel = new JLabel("Default: admin / admin123");
-        infoLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        infoLabel.setForeground(new Color(107, 114, 128));
+        infoLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        infoLabel.setForeground(main.java.gui.style.PastelTheme.TEXT_SECONDARY);
         footerPanel.add(infoLabel);
         add(footerPanel, BorderLayout.SOUTH);
     }
-    
+
     private void setupEventHandlers() {
         ActionListener loginAction = new ActionListener() {
             @Override
@@ -109,23 +136,23 @@ public class LoginFrame extends JFrame {
                 performLogin();
             }
         };
-        
+
         loginButton.addActionListener(loginAction);
         passwordField.addActionListener(loginAction);
-        
+
         // Set default focus
         SwingUtilities.invokeLater(() -> usernameField.requestFocus());
     }
-    
+
     private void performLogin() {
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
-        
+
         if (username.isEmpty() || password.isEmpty()) {
             statusLabel.setText("Please enter username and password");
             return;
         }
-        
+
         User user = DatabaseUtil.authenticateUser(username, password);
         if (user != null) {
             // Login successful

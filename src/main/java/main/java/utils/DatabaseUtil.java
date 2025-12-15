@@ -17,11 +17,13 @@ import main.java.data.dao.PaymentTransactionDao;
 import main.java.data.dao.FeeInstallmentDao;
 import main.java.data.dao.FeeScheduleTemplateDao;
 import main.java.data.dao.MaintenanceWindowDao;
+import main.java.data.dao.NotificationPreferenceDao;
 import main.java.data.dao.InstructorMessageDao;
 import main.java.data.dao.RegistrationRequestDao;
 import main.java.data.migration.LegacyDataMigrator;
 import main.java.utils.PasswordPolicy;
 import main.java.utils.AuditLogService;
+import main.java.service.NotificationDeliveryService;
 
 import main.java.models.*;
 import org.slf4j.Logger;
@@ -1551,6 +1553,73 @@ public class DatabaseUtil {
         notificationDao.markRead(notificationId, read);
     }
 
+    public static List<NotificationMessage> getNotificationsForAdmin(NotificationMessage.Audience audience,
+                                                                      LocalDateTime from,
+                                                                      LocalDateTime to,
+                                                                      String category) {
+        return notificationDao.findAdminHistory(audience, from, to, category);
+    }
+
+    public static NotificationPreference getNotificationPreference(String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("User id is required");
+        }
+        return notificationPreferenceDao.findByUserId(userId)
+                .orElse(NotificationPreference.defaultPreference(userId));
+    }
+
+    public static NotificationPreference saveNotificationPreference(NotificationPreference preference) {
+        if (preference == null || preference.getUserId() == null || preference.getUserId().isBlank()) {
+            throw new IllegalArgumentException("Preference with user id is required");
+        }
+        NotificationPreference persisted = notificationPreferenceDao.upsert(preference);
+        return persisted != null ? persisted : preference;
+    }
+
+    public static void broadcastNotification(User actor, NotificationRequest request) {
+        ensureAdmin(actor);
+        Objects.requireNonNull(request, "Notification request is required.");
+        String message = request.getMessage().trim();
+        if (message.isEmpty()) {
+            throw new IllegalArgumentException("Message cannot be empty.");
+        }
+        List<ContactRecipient> contacts = new ArrayList<>();
+        switch (request.getTargetType()) {
+            case ALL -> {
+                addNotification(new NotificationMessage(NotificationMessage.Audience.ALL, null, message, request.getCategory()));
+                contacts.addAll(collectContactsForAudience(NotificationMessage.Audience.ALL));
+            }
+            case STUDENTS -> {
+                addNotification(new NotificationMessage(NotificationMessage.Audience.STUDENT, null, message, request.getCategory()));
+                contacts.addAll(collectContactsForAudience(NotificationMessage.Audience.STUDENT));
+            }
+            case INSTRUCTORS -> {
+                addNotification(new NotificationMessage(NotificationMessage.Audience.INSTRUCTOR, null, message, request.getCategory()));
+                contacts.addAll(collectContactsForAudience(NotificationMessage.Audience.INSTRUCTOR));
+            }
+            case ADMINS -> {
+                addNotification(new NotificationMessage(NotificationMessage.Audience.ADMIN, null, message, request.getCategory()));
+                contacts.addAll(collectContactsForAudience(NotificationMessage.Audience.ADMIN));
+            }
+            case USER -> {
+                contacts.add(broadcastToUser(request, message));
+            }
+            case STUDENT_DEPARTMENT -> {
+                contacts.addAll(broadcastToStudentDepartment(request, message));
+            }
+            case INSTRUCTOR_DEPARTMENT -> {
+                contacts.addAll(broadcastToInstructorDepartment(request, message));
+            }
+            default -> throw new IllegalArgumentException("Unsupported target type.");
+        }
+        if ((request.isEmailChannel() || request.isSmsChannel()) && !contacts.isEmpty()) {
+            deliverNotificationStubs(contacts, request, message);
+        }
+        AuditLogService.log(AuditLogService.EventType.NOTIFICATION_BROADCAST,
+                actor.getUsername(),
+                "Broadcast " + request.getTargetType() + " [" + request.getCategory() + "]");
+    }
+
     public static Map<String, Long> getWaitlistCountsByCourse() {
         return sections.values().stream()
                 .collect(Collectors.groupingBy(
@@ -2400,7 +2469,166 @@ public class DatabaseUtil {
         }
         return new ArrayList<>(allowed);
     }
+
+    private static ContactRecipient broadcastToUser(NotificationRequest request, String message) {
+        String username = request.getTargetValue();
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Enter a username to target.");
+        }
+        User user = getUser(username.trim());
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + username);
+        }
+        String targetId = resolveUserTargetId(user);
+        addNotification(new NotificationMessage(NotificationMessage.Audience.USER, targetId, message, request.getCategory()));
+        Student student = findStudentByUsername(user.getUsername());
+        if (student != null) {
+            return contactFromStudent(student);
+        }
+        Faculty faculty = findFacultyByUsername(user.getUsername());
+        if (faculty != null) {
+            return contactFromFaculty(faculty);
+        }
+        return contactFromUser(user);
+    }
+
+    private static List<ContactRecipient> broadcastToStudentDepartment(NotificationRequest request, String message) {
+        String department = normalizeDepartment(request.getTargetValue());
+        if (department.isEmpty()) {
+            throw new IllegalArgumentException("Select a student department.");
+        }
+        List<ContactRecipient> contacts = new ArrayList<>();
+        for (Student student : getAllStudents()) {
+            if (department.equals(normalizeDepartment(student.getDepartment()))) {
+                addNotification(new NotificationMessage(NotificationMessage.Audience.USER,
+                        student.getStudentId(), message, request.getCategory()));
+                contacts.add(contactFromStudent(student));
+            }
+        }
+        if (contacts.isEmpty()) {
+            throw new IllegalStateException("No students found for department " + request.getTargetValue());
+        }
+        return contacts;
+    }
+
+    private static List<ContactRecipient> broadcastToInstructorDepartment(NotificationRequest request, String message) {
+        String department = normalizeDepartment(request.getTargetValue());
+        if (department.isEmpty()) {
+            throw new IllegalArgumentException("Select an instructor department.");
+        }
+        List<ContactRecipient> contacts = new ArrayList<>();
+        for (Faculty faculty : getAllFaculty()) {
+            if (department.equals(normalizeDepartment(faculty.getDepartment()))) {
+                addNotification(new NotificationMessage(NotificationMessage.Audience.USER,
+                        faculty.getFacultyId(), message, request.getCategory()));
+                contacts.add(contactFromFaculty(faculty));
+            }
+        }
+        if (contacts.isEmpty()) {
+            throw new IllegalStateException("No instructors found for department " + request.getTargetValue());
+        }
+        return contacts;
+    }
+
+    private static List<ContactRecipient> collectContactsForAudience(NotificationMessage.Audience audience) {
+        List<ContactRecipient> contacts = new ArrayList<>();
+        if (audience == NotificationMessage.Audience.ALL || audience == NotificationMessage.Audience.STUDENT) {
+            for (Student student : getAllStudents()) {
+                contacts.add(contactFromStudent(student));
+            }
+        }
+        if (audience == NotificationMessage.Audience.ALL || audience == NotificationMessage.Audience.INSTRUCTOR) {
+            for (Faculty faculty : getAllFaculty()) {
+                contacts.add(contactFromFaculty(faculty));
+            }
+        }
+        if (audience == NotificationMessage.Audience.ALL || audience == NotificationMessage.Audience.ADMIN) {
+            for (User user : getAllUsers()) {
+                if ("Admin".equalsIgnoreCase(user.getRole())) {
+                    contacts.add(contactFromUser(user));
+                }
+            }
+        }
+        return contacts;
+    }
+
+    private static void deliverNotificationStubs(List<ContactRecipient> contacts,
+                                                 NotificationRequest request,
+                                                 String message) {
+        Set<String> emailed = new HashSet<>();
+        Set<String> texted = new HashSet<>();
+        for (ContactRecipient recipient : contacts) {
+            if (request.isEmailChannel() && recipient.email() != null) {
+                String emailKey = recipient.email().toLowerCase(Locale.ENGLISH);
+                if (emailed.add(emailKey)) {
+                    NotificationDeliveryService.sendEmailStub(recipient.email(), request.getCategory(), message);
+                }
+            }
+            if (request.isSmsChannel() && recipient.phone() != null) {
+                if (texted.add(recipient.phone())) {
+                    NotificationDeliveryService.sendSmsStub(recipient.phone(), message);
+                }
+            }
+        }
+    }
+
+    private static ContactRecipient contactFromStudent(Student student) {
+        String name = student.getFullName() != null ? student.getFullName() : student.getStudentId();
+        return new ContactRecipient(name, student.getEmail(), student.getPhone());
+    }
+
+    private static ContactRecipient contactFromFaculty(Faculty faculty) {
+        String name = faculty.getFullName() != null ? faculty.getFullName() : faculty.getFacultyId();
+        return new ContactRecipient(name, faculty.getEmail(), faculty.getPhone());
+    }
+
+    private static ContactRecipient contactFromUser(User user) {
+        String name = user.getFullName() != null ? user.getFullName() : user.getUsername();
+        return new ContactRecipient(name, user.getEmail(), null);
+    }
+
+    private static Student findStudentByUsername(String username) {
+        if (username == null) {
+            return null;
+        }
+        return getAllStudents().stream()
+                .filter(student -> username.equalsIgnoreCase(student.getUsername()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static Faculty findFacultyByUsername(String username) {
+        if (username == null) {
+            return null;
+        }
+        return getAllFaculty().stream()
+                .filter(faculty -> username.equalsIgnoreCase(faculty.getUsername()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static String resolveUserTargetId(User user) {
+        Student student = findStudentByUsername(user.getUsername());
+        if (student != null) {
+            return student.getStudentId();
+        }
+        Faculty faculty = findFacultyByUsername(user.getUsername());
+        if (faculty != null) {
+            return faculty.getFacultyId();
+        }
+        return user.getUsername();
+    }
+
+    private static String normalizeDepartment(String department) {
+        return department == null ? "" : department.trim().toLowerCase(Locale.ENGLISH);
+    }
+
+    private record ContactRecipient(String name, String email, String phone) {
+    }
 }
+
+
+
 
 
 

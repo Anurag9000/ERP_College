@@ -44,8 +44,8 @@ public class Section implements Serializable {
     }
 
     public Section(String sectionId, String courseId, String title, String facultyId,
-                   DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime,
-                   String location, int capacity) {
+            DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime,
+            String location, int capacity) {
         this.sectionId = sectionId;
         this.courseId = courseId;
         this.title = title;
@@ -95,7 +95,7 @@ public class Section implements Serializable {
     }
 
     public void setFacultyId(String facultyId) {
-       this.facultyId = facultyId;
+        this.facultyId = facultyId;
     }
 
     public DayOfWeek getDayOfWeek() {

@@ -3,6 +3,7 @@ package main.java.service;
 import main.java.models.EnrollmentRecord;
 import main.java.models.Faculty;
 import main.java.models.MaintenanceWindow;
+import main.java.models.NotificationRequest;
 import main.java.models.Student;
 import main.java.models.User;
 import main.java.utils.DatabaseUtil;
@@ -158,5 +159,10 @@ public final class AdminService {
     public static Optional<MaintenanceWindow> getNextMaintenanceWindow(User actor) {
         ensureAdmin(actor);
         return DatabaseUtil.getNextMaintenanceWindow();
+    }
+
+    public static void broadcastNotification(User actor, NotificationRequest request) {
+        ensureAdmin(actor);
+        DatabaseUtil.broadcastNotification(actor, request);
     }
 }

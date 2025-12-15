@@ -9,10 +9,23 @@ import main.java.models.FeeInstallment;
 import main.java.models.PaymentTransaction;
 import main.java.models.User;
 import main.java.models.NotificationMessage;
+import main.java.models.NotificationPreference;
 import main.java.service.EnrollmentService;
 import main.java.service.StudentService;
 import main.java.utils.DatabaseUtil;
 import main.java.gui.dialogs.ChangePasswordDialog;
+import main.java.gui.panels.calendar.CalendarPanel;
+import main.java.gui.panels.calendar.WeeklyPlannerPanel;
+import main.java.gui.panels.faculty.FacultyConnectPanel;
+import main.java.gui.panels.AssignmentsPanel;
+import main.java.gui.panels.AnnouncementsHubPanel;
+import main.java.gui.panels.ExaminationPanel;
+import main.java.gui.panels.StudentAttendancePanel;
+import main.java.gui.panels.GradesTrackingPanel;
+import main.java.gui.panels.NotificationPreferencesPanel;
+import main.java.gui.panels.ThemeCustomizationPanel;
+import main.java.gui.panels.MeetingSlotsPanel;
+import main.java.gui.style.PastelTheme;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -27,6 +40,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -106,13 +120,20 @@ public class StudentSelfServicePanel extends JPanel {
     private final JButton refreshNotificationsButton;
     private final JToggleButton maintenanceFilterToggle;
     private final JToggleButton systemFilterToggle;
+    private final JComboBox<String> digestPreferenceCombo;
+    private final JSpinner digestHourSpinner;
+    private final JCheckBox digestEmailCheck;
+    private final JCheckBox digestSmsCheck;
+    private final JButton saveNotificationPreferenceButton;
+    private final JLabel preferenceStatusLabel;
+    private NotificationPreference notificationPreference;
     private List<NotificationMessage> notificationsCache = new ArrayList<>();
     private final List<NotificationMessage> filteredNotifications = new ArrayList<>();
     private FeeInstallment nextDueInstallment;
 
     public StudentSelfServicePanel(User currentUser) {
         this.currentUser = currentUser;
-        this.catalogModel = new DefaultTableModel(new Object[]{
+        this.catalogModel = new DefaultTableModel(new Object[] {
                 "Section", "Course", "Day", "Time", "Location", "Seats", "Status", "Window", "Prerequisites"
         }, 0) {
             @Override
@@ -120,7 +141,7 @@ public class StudentSelfServicePanel extends JPanel {
                 return false;
             }
         };
-        this.scheduleModel = new DefaultTableModel(new Object[]{
+        this.scheduleModel = new DefaultTableModel(new Object[] {
                 "Section", "Course", "Day", "Time", "Location"
         }, 0) {
             @Override
@@ -128,7 +149,7 @@ public class StudentSelfServicePanel extends JPanel {
                 return false;
             }
         };
-        this.gradesModel = new DefaultTableModel(new Object[]{
+        this.gradesModel = new DefaultTableModel(new Object[] {
                 "Section", "Component", "Score", "Weight", "Final"
         }, 0) {
             @Override
@@ -136,7 +157,7 @@ public class StudentSelfServicePanel extends JPanel {
                 return false;
             }
         };
-        this.paymentHistoryModel = new DefaultTableModel(new Object[]{
+        this.paymentHistoryModel = new DefaultTableModel(new Object[] {
                 "Date", "Amount", "Method", "Reference", "Notes"
         }, 0) {
             @Override
@@ -144,7 +165,7 @@ public class StudentSelfServicePanel extends JPanel {
                 return false;
             }
         };
-        this.installmentModel = new DefaultTableModel(new Object[]{
+        this.installmentModel = new DefaultTableModel(new Object[] {
                 "Due Date", "Amount", "Status", "Description", "Last Reminder"
         }, 0) {
             @Override
@@ -152,7 +173,7 @@ public class StudentSelfServicePanel extends JPanel {
                 return false;
             }
         };
-        this.notificationsModel = new DefaultTableModel(new Object[]{
+        this.notificationsModel = new DefaultTableModel(new Object[] {
                 "Received", "Category", "Status", "Message"
         }, 0) {
             @Override
@@ -189,6 +210,18 @@ public class StudentSelfServicePanel extends JPanel {
         systemFilterToggle.setToolTipText("Show only global system broadcasts.");
         markReadButton.setEnabled(false);
         markUnreadButton.setEnabled(false);
+        digestPreferenceCombo = new JComboBox<>(Arrays.stream(NotificationPreference.DigestFrequency.values())
+                .map(Enum::name)
+                .toArray(String[]::new));
+        digestHourSpinner = new JSpinner(new SpinnerNumberModel(8, 0, 23, 1));
+        digestEmailCheck = new JCheckBox("Email digests");
+        digestSmsCheck = new JCheckBox("SMS alerts");
+        digestEmailCheck.setOpaque(false);
+        digestSmsCheck.setOpaque(false);
+        saveNotificationPreferenceButton = new JButton("Save Preferences");
+        preferenceStatusLabel = new JLabel(" ");
+        preferenceStatusLabel.setFont(new Font("Arial", Font.ITALIC, 11));
+        preferenceStatusLabel.setForeground(new Color(71, 85, 105));
 
         registerButton = new JButton("Register");
         dropButton = new JButton("Drop");
@@ -266,6 +299,7 @@ public class StudentSelfServicePanel extends JPanel {
         currentGradeRiskCourses = new ArrayList<>();
 
         setLayout(new BorderLayout());
+        setBackground(PastelTheme.PASTEL_BG);
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         add(createHeader(), BorderLayout.NORTH);
@@ -277,12 +311,14 @@ public class StudentSelfServicePanel extends JPanel {
 
     private JComponent createHeader() {
         JPanel container = new JPanel(new BorderLayout());
-        container.setOpaque(false);
+        container.setBackground(PastelTheme.PASTEL_BG);
+        container.setOpaque(true);
 
         JPanel topRow = new JPanel(new BorderLayout());
         topRow.setOpaque(false);
         JLabel title = new JLabel("Student Self Service");
-        title.setFont(new Font("Arial", Font.BOLD, 24));
+        title.setFont(PastelTheme.HEADER_FONT);
+        title.setForeground(PastelTheme.TEXT_PRIMARY);
         topRow.add(title, BorderLayout.WEST);
         JPanel headerActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         headerActions.setOpaque(false);
@@ -297,12 +333,29 @@ public class StudentSelfServicePanel extends JPanel {
 
     private JComponent createBody() {
         JTabbedPane tabs = new JTabbedPane();
+        tabs.setFont(PastelTheme.BODY_FONT);
+
+        // Core tabs
+        tabs.addTab("Smart Calendar", new CalendarPanel(currentUser));
+        tabs.addTab("Faculty Connect", new FacultyConnectPanel(currentUser));
         tabs.addTab("Catalog & Registration", buildCatalogTab());
         tabs.addTab("Timetable", buildScheduleTab());
         tabs.addTab("Grades", new JScrollPane(gradesTable));
         tabs.addTab("Finance", buildFinanceTab());
         tabs.addTab("Notifications", buildNotificationsTab());
         tabs.addTab("Transcript", buildTranscriptTab());
+
+        // v3.0 Feature tabs
+        tabs.addTab("📅 Weekly Planner", new WeeklyPlannerPanel(currentUser));
+        tabs.addTab("📝 Assignments", new AssignmentsPanel(currentUser));
+        tabs.addTab("📢 Announcements", new AnnouncementsHubPanel(currentUser));
+        tabs.addTab("📋 Examinations", new ExaminationPanel(currentUser));
+        tabs.addTab("✓ My Attendance", new StudentAttendancePanel(currentUser));
+        tabs.addTab("📊 Grades & GPA", new GradesTrackingPanel(currentUser));
+        tabs.addTab("🤝 Meeting Slots", new MeetingSlotsPanel(currentUser));
+        tabs.addTab("⚙ Preferences", new NotificationPreferencesPanel(currentUser));
+        tabs.addTab("🎨 Theme", new ThemeCustomizationPanel(currentUser));
+
         return tabs;
     }
 
@@ -442,6 +495,44 @@ public class StudentSelfServicePanel extends JPanel {
         controls.add(refreshNotificationsButton);
         panel.add(controls, BorderLayout.NORTH);
         panel.add(new JScrollPane(notificationsTable), BorderLayout.CENTER);
+        panel.add(buildNotificationPreferencesPanel(), BorderLayout.SOUTH);
+        return panel;
+    }
+
+    private JPanel buildNotificationPreferencesPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Delivery Preferences"));
+        panel.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(4, 4, 4, 4);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(new JLabel("Digest Mode:"), gbc);
+        gbc.gridx = 1;
+        panel.add(digestPreferenceCombo, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(new JLabel("Digest Hour (0-23):"), gbc);
+        gbc.gridx = 1;
+        panel.add(digestHourSpinner, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        panel.add(digestEmailCheck, gbc);
+        gbc.gridx = 1;
+        panel.add(digestSmsCheck, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        panel.add(preferenceStatusLabel, gbc);
+
+        gbc.gridy = 4;
+        gbc.anchor = GridBagConstraints.EAST;
+        panel.add(saveNotificationPreferenceButton, gbc);
         return panel;
     }
 
@@ -573,6 +664,8 @@ public class StudentSelfServicePanel extends JPanel {
         markReadButton.addActionListener(e -> markSelectedNotification(true));
         markUnreadButton.addActionListener(e -> markSelectedNotification(false));
         refreshNotificationsButton.addActionListener(e -> populateNotifications());
+        saveNotificationPreferenceButton.addActionListener(e -> saveNotificationPreferences());
+        digestPreferenceCombo.addActionListener(e -> updateDigestHourAvailability());
     }
 
     private void showChangePasswordDialog() {
@@ -597,6 +690,7 @@ public class StudentSelfServicePanel extends JPanel {
             updateFinanceSummary();
             populateFinanceTables();
             populateNotifications();
+            loadNotificationPreferences();
             updateGpaHistory();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Profile not found", JOptionPane.ERROR_MESSAGE);
@@ -611,9 +705,10 @@ public class StudentSelfServicePanel extends JPanel {
             updateSummary();
             updateFinanceSummary();
             notificationsCache = new ArrayList<>();
-            notificationCategoryFilter.setModel(new DefaultComboBoxModel<>(new String[]{"All"}));
+            notificationCategoryFilter.setModel(new DefaultComboBoxModel<>(new String[] { "All" }));
             unreadOnlyCheck.setSelected(false);
             updateNotificationActions();
+            preferenceStatusLabel.setText("Preferences unavailable.");
             updateActionButtons();
             updateGpaHistory();
         }
@@ -661,7 +756,8 @@ public class StudentSelfServicePanel extends JPanel {
             Faculty faculty = DatabaseUtil.getFaculty(section.getFacultyId());
             String courseTitle = course != null ? course.getCourseName() : section.getTitle();
             String instructorName = faculty != null ? faculty.getFullName() : "TBA";
-            String haystack = (section.getSectionId() + " " + section.getCourseId() + " " + courseTitle + " " + instructorName)
+            String haystack = (section.getSectionId() + " " + section.getCourseId() + " " + courseTitle + " "
+                    + instructorName)
                     .toLowerCase(Locale.ENGLISH);
             if (!search.isEmpty() && !haystack.contains(search)) {
                 continue;
@@ -677,7 +773,8 @@ public class StudentSelfServicePanel extends JPanel {
             }
 
             List<String> prereqs = DatabaseUtil.getCoursePrerequisites(section.getCourseId());
-            List<String> missing = DatabaseUtil.getMissingPrerequisites(studentProfile.getStudentId(), section.getCourseId());
+            List<String> missing = DatabaseUtil.getMissingPrerequisites(studentProfile.getStudentId(),
+                    section.getCourseId());
 
             String statusText;
             if (status == EnrollmentRecord.Status.ENROLLED) {
@@ -710,7 +807,7 @@ public class StudentSelfServicePanel extends JPanel {
                 windowText = "Open until " + section.getEnrollmentDeadline();
             }
 
-            catalogModel.addRow(new Object[]{
+            catalogModel.addRow(new Object[] {
                     section.getSectionId(),
                     section.getCourseId() + " - " + courseTitle,
                     capitalize(section.getDayOfWeek().name()),
@@ -743,7 +840,7 @@ public class StudentSelfServicePanel extends JPanel {
         scheduleModel.setRowCount(0);
         List<Section> schedule = DatabaseUtil.getScheduleForStudent(studentProfile.getStudentId());
         for (Section section : schedule) {
-            scheduleModel.addRow(new Object[]{
+            scheduleModel.addRow(new Object[] {
                     section.getSectionId(),
                     section.getCourseId() + " - " + section.getTitle(),
                     capitalize(section.getDayOfWeek().name()),
@@ -765,7 +862,7 @@ public class StudentSelfServicePanel extends JPanel {
             Map<String, Double> weights = section != null ? section.getAssessmentWeights() : Collections.emptyMap();
             double finalGrade = record.getFinalGrade();
             if (record.getComponentScores().isEmpty()) {
-                gradesModel.addRow(new Object[]{
+                gradesModel.addRow(new Object[] {
                         record.getSectionId(),
                         "-",
                         "-",
@@ -777,7 +874,7 @@ public class StudentSelfServicePanel extends JPanel {
                     String component = entry.getKey();
                     Double score = entry.getValue();
                     Double weight = weights.getOrDefault(component, 0.0);
-                    gradesModel.addRow(new Object[]{
+                    gradesModel.addRow(new Object[] {
                             record.getSectionId(), component, score, weight, finalGrade
                     });
                 }
@@ -796,7 +893,7 @@ public class StudentSelfServicePanel extends JPanel {
 
         List<PaymentTransaction> history = DatabaseUtil.getPaymentHistoryForStudent(studentProfile.getStudentId());
         for (PaymentTransaction tx : history) {
-            paymentHistoryModel.addRow(new Object[]{
+            paymentHistoryModel.addRow(new Object[] {
                     tx.getPaidOn() != null ? DATE_FORMATTER.format(tx.getPaidOn()) : "-",
                     formatCurrency(tx.getAmount()),
                     tx.getMethod() != null ? tx.getMethod() : "-",
@@ -816,12 +913,13 @@ public class StudentSelfServicePanel extends JPanel {
             } else {
                 statusText = "Due";
             }
-            installmentModel.addRow(new Object[]{
+            installmentModel.addRow(new Object[] {
                     installment.getDueDate() != null ? DATE_FORMATTER.format(installment.getDueDate()) : "-",
                     formatCurrency(installment.getAmount()),
                     statusText,
                     installment.getDescription() != null ? installment.getDescription() : "-",
-                    installment.getLastReminderSent() != null ? DATE_FORMATTER.format(installment.getLastReminderSent()) : "-"
+                    installment.getLastReminderSent() != null ? DATE_FORMATTER.format(installment.getLastReminderSent())
+                            : "-"
             });
         }
         installmentTimelinePanel.setInstallments(installments);
@@ -831,7 +929,7 @@ public class StudentSelfServicePanel extends JPanel {
         notificationsModel.setRowCount(0);
         filteredNotifications.clear();
         if (studentProfile == null) {
-            notificationCategoryFilter.setModel(new DefaultComboBoxModel<>(new String[]{"All"}));
+            notificationCategoryFilter.setModel(new DefaultComboBoxModel<>(new String[] { "All" }));
             unreadOnlyCheck.setSelected(false);
             maintenanceFilterToggle.setEnabled(false);
             systemFilterToggle.setEnabled(false);
@@ -893,14 +991,14 @@ public class StudentSelfServicePanel extends JPanel {
             }
             if ((maintenanceChip || systemChip)
                     && !(maintenanceChip && isMaintenanceCategory(categoryKey)
-                    || systemChip && isSystemCategory(categoryKey))) {
+                            || systemChip && isSystemCategory(categoryKey))) {
                 continue;
             }
             if (unreadOnly && message.isRead()) {
                 continue;
             }
             filteredNotifications.add(message);
-            notificationsModel.addRow(new Object[]{
+            notificationsModel.addRow(new Object[] {
                     message.getCreatedAt() != null ? DATE_TIME_FORMATTER.format(message.getCreatedAt()) : "-",
                     category,
                     message.isRead() ? "Read" : "Unread",
@@ -952,6 +1050,72 @@ public class StudentSelfServicePanel extends JPanel {
             return null;
         }
         return filteredNotifications.get(modelRow);
+    }
+
+    private void loadNotificationPreferences() {
+        if (currentUser == null) {
+            return;
+        }
+        try {
+            notificationPreference = DatabaseUtil.getNotificationPreference(currentUser.getUsername());
+            digestPreferenceCombo.setSelectedItem(notificationPreference.getDigestFrequency().name());
+            digestHourSpinner.setValue(notificationPreference.getDigestHour());
+            digestEmailCheck.setSelected(notificationPreference.isEmailEnabled());
+            digestSmsCheck.setSelected(notificationPreference.isSmsEnabled());
+            updateDigestHourAvailability();
+            if (notificationPreference.getUpdatedAt() != null) {
+                preferenceStatusLabel
+                        .setText("Last updated " + DATE_TIME_FORMATTER.format(notificationPreference.getUpdatedAt()));
+            } else {
+                preferenceStatusLabel.setText("Preferences loaded.");
+            }
+        } catch (Exception ex) {
+            preferenceStatusLabel.setText("Unable to load preferences: " + ex.getMessage());
+        }
+    }
+
+    private void saveNotificationPreferences() {
+        if (currentUser == null) {
+            return;
+        }
+        try {
+            NotificationPreference.DigestFrequency frequency = selectedDigestFrequency();
+            int hour = ((Number) digestHourSpinner.getValue()).intValue();
+            if (hour < 0 || hour > 23) {
+                throw new IllegalArgumentException("Digest hour must be between 0 and 23.");
+            }
+            NotificationPreference preference = new NotificationPreference(
+                    currentUser.getUsername(),
+                    frequency,
+                    hour,
+                    digestEmailCheck.isSelected(),
+                    digestSmsCheck.isSelected(),
+                    LocalDateTime.now());
+            notificationPreference = DatabaseUtil.saveNotificationPreference(preference);
+            preferenceStatusLabel.setText("Saved at " + DATE_TIME_FORMATTER.format(LocalDateTime.now()));
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to save preferences",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private NotificationPreference.DigestFrequency selectedDigestFrequency() {
+        Object value = digestPreferenceCombo.getSelectedItem();
+        if (value instanceof String str) {
+            try {
+                return NotificationPreference.DigestFrequency.valueOf(str);
+            } catch (IllegalArgumentException ignored) {
+                return NotificationPreference.DigestFrequency.IMMEDIATE;
+            }
+        }
+        return NotificationPreference.DigestFrequency.IMMEDIATE;
+    }
+
+    private void updateDigestHourAvailability() {
+        NotificationPreference.DigestFrequency frequency = selectedDigestFrequency();
+        boolean needsHour = frequency == NotificationPreference.DigestFrequency.DAILY
+                || frequency == NotificationPreference.DigestFrequency.WEEKLY;
+        digestHourSpinner.setEnabled(needsHour);
     }
 
     private String normalizeCategory(String category) {
@@ -1161,7 +1325,8 @@ public class StudentSelfServicePanel extends JPanel {
                 DatabaseUtil.submitRegistrationRequest(currentUser, studentProfile.getStudentId(), sectionId);
                 JOptionPane.showMessageDialog(this, "Registration request submitted for advisor approval.");
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to submit request", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to submit request",
+                        JOptionPane.ERROR_MESSAGE);
             }
             return;
         }
@@ -1231,19 +1396,22 @@ public class StudentSelfServicePanel extends JPanel {
                 canRegister = false;
             }
 
-            List<String> missing = DatabaseUtil.getMissingPrerequisites(studentProfile.getStudentId(), section.getCourseId());
+            List<String> missing = DatabaseUtil.getMissingPrerequisites(studentProfile.getStudentId(),
+                    section.getCourseId());
             if (!missing.isEmpty()) {
                 warnings.add("Missing prerequisites: " + String.join(", ", missing));
                 canRegister = false;
             }
 
-            List<String> missingCoreqs = DatabaseUtil.getMissingCorequisites(studentProfile.getStudentId(), section.getCourseId());
+            List<String> missingCoreqs = DatabaseUtil.getMissingCorequisites(studentProfile.getStudentId(),
+                    section.getCourseId());
             if (!missingCoreqs.isEmpty()) {
                 warnings.add("Missing co-requisites: " + String.join(", ", missingCoreqs));
                 canRegister = false;
             }
 
-            List<String> conflicts = DatabaseUtil.getAntirequisiteConflicts(studentProfile.getStudentId(), section.getCourseId());
+            List<String> conflicts = DatabaseUtil.getAntirequisiteConflicts(studentProfile.getStudentId(),
+                    section.getCourseId());
             if (!conflicts.isEmpty()) {
                 warnings.add("Conflicts with anti-requisites: " + String.join(", ", conflicts));
                 canRegister = false;
@@ -1317,7 +1485,8 @@ public class StudentSelfServicePanel extends JPanel {
                 content.newLine();
                 yPosition -= lineHeight;
                 content.setFont(PDType1Font.HELVETICA, 12);
-                String studentLine = "Student: " + studentProfile.getFullName() + " (" + studentProfile.getStudentId() + ")";
+                String studentLine = "Student: " + studentProfile.getFullName() + " (" + studentProfile.getStudentId()
+                        + ")";
                 content.showText(studentLine);
                 content.newLine();
                 yPosition -= lineHeight;
@@ -1473,7 +1642,8 @@ public class StudentSelfServicePanel extends JPanel {
                 writer.write("Section,Course,Final Grade\n");
                 for (EnrollmentRecord record : DatabaseUtil.getEnrollmentsForStudent(studentProfile.getStudentId())) {
                     Section section = DatabaseUtil.getSection(record.getSectionId());
-                    String courseName = section != null ? section.getCourseId() + " " + section.getTitle() : record.getSectionId();
+                    String courseName = section != null ? section.getCourseId() + " " + section.getTitle()
+                            : record.getSectionId();
                     writer.write(record.getSectionId() + "," + courseName + "," + record.getFinalGrade() + "\n");
                 }
                 JOptionPane.showMessageDialog(this, "Transcript exported to " + file.getAbsolutePath());
@@ -1488,7 +1658,8 @@ public class StudentSelfServicePanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Student profile unavailable.");
             return;
         }
-        List<EnrollmentRecord> records = new ArrayList<>(DatabaseUtil.getEnrollmentsForStudent(studentProfile.getStudentId()));
+        List<EnrollmentRecord> records = new ArrayList<>(
+                DatabaseUtil.getEnrollmentsForStudent(studentProfile.getStudentId()));
         if (records.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No transcript data available yet.");
             return;
@@ -1578,10 +1749,12 @@ public class StudentSelfServicePanel extends JPanel {
                 content.newLine();
                 yPosition -= lineHeight;
                 content.setFont(PDType1Font.HELVETICA, 12);
-                content.showText("Student: " + studentProfile.getFullName() + " (" + studentProfile.getStudentId() + ")");
+                content.showText(
+                        "Student: " + studentProfile.getFullName() + " (" + studentProfile.getStudentId() + ")");
                 content.newLine();
                 yPosition -= lineHeight;
-                content.showText("Program: " + (studentProfile.getCourse() != null ? studentProfile.getCourse() : "Not assigned"));
+                content.showText("Program: "
+                        + (studentProfile.getCourse() != null ? studentProfile.getCourse() : "Not assigned"));
                 content.newLine();
                 yPosition -= lineHeight;
                 content.showText("Generated: " + java.time.LocalDateTime.now()
@@ -1661,7 +1834,8 @@ public class StudentSelfServicePanel extends JPanel {
                         + (studentProfile.getCourse() != null ? studentProfile.getCourse() : "Not assigned"));
                 content.newLine();
                 content.showText("Academic standing: "
-                        + (studentProfile.getAcademicStanding() != null ? studentProfile.getAcademicStanding() : "N/A"));
+                        + (studentProfile.getAcademicStanding() != null ? studentProfile.getAcademicStanding()
+                                : "N/A"));
                 content.newLine();
                 content.showText("Credits completed: " + studentProfile.getCreditsCompleted());
                 content.newLine();
@@ -1789,10 +1963,12 @@ public class StudentSelfServicePanel extends JPanel {
                 ? DATE_FORMATTER.format(nextDueInstallment.getDueDate())
                 : "the upcoming due date";
         String installmentAmount = formatCurrency(nextDueInstallment.getAmount());
-        String installmentLabel = nextDueInstallment.getDescription() != null && !nextDueInstallment.getDescription().isBlank()
-                ? nextDueInstallment.getDescription()
-                : "your next installment";
-        String reminderBody = String.format("Friendly reminder: %s of %s is due by %s. Outstanding balance %s. Reach out if you need assistance.",
+        String installmentLabel = nextDueInstallment.getDescription() != null
+                && !nextDueInstallment.getDescription().isBlank()
+                        ? nextDueInstallment.getDescription()
+                        : "your next installment";
+        String reminderBody = String.format(
+                "Friendly reminder: %s of %s is due by %s. Outstanding balance %s. Reach out if you need assistance.",
                 installmentLabel,
                 installmentAmount,
                 dueLabel,
@@ -1832,7 +2008,8 @@ public class StudentSelfServicePanel extends JPanel {
                 entriesPanel.add(empty);
             } else {
                 List<FeeInstallment> sorted = new ArrayList<>(installments);
-                sorted.sort(Comparator.comparing(FeeInstallment::getDueDate, Comparator.nullsLast(Comparator.naturalOrder())));
+                sorted.sort(Comparator.comparing(FeeInstallment::getDueDate,
+                        Comparator.nullsLast(Comparator.naturalOrder())));
                 LocalDate today = LocalDate.now();
                 for (int i = 0; i < sorted.size(); i++) {
                     FeeInstallment installment = sorted.get(i);
@@ -1863,7 +2040,8 @@ public class StudentSelfServicePanel extends JPanel {
 
                 JLabel title = new JLabel(buildTitle(installment, today));
                 title.setFont(title.getFont().deriveFont(Font.BOLD));
-                JLabel amount = new JLabel(formatCurrency(installment.getAmount()) + " • " + describeLabel(installment));
+                JLabel amount = new JLabel(
+                        formatCurrency(installment.getAmount()) + " • " + describeLabel(installment));
                 amount.setForeground(new Color(71, 85, 105));
                 JLabel reminder = new JLabel(buildReminderText(installment));
                 reminder.setForeground(new Color(100, 116, 139));
@@ -2024,22 +2202,3 @@ public class StudentSelfServicePanel extends JPanel {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

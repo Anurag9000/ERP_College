@@ -103,9 +103,7 @@ Sources reviewed: `src/main/java/main/java/**` (gui panels/dialogs, services, ut
 - [DONE] Central maintenance flag persisted via `SettingsDao`, toggled through `AdminService`, and surfaced through automatic ALL-audience notifications plus MainFrame and StudentSelfServicePanel banners.
 - [DONE] Finance reminder scheduler that inspects installments and issues notifications/digests every hour (`utils/FinanceReminderScheduler.java`).
 - [DONE] Maintenance window scheduler backed by Flyway migrations, DAO/service helpers, auto notifications, and countdown UI (`MaintenanceWindowDao`, `DatabaseUtil`, `MaintenancePanel`).
-- [DONE] Notification centre with broadcast UI (`NotificationsPanel`) and student inbox filters (categories, unread toggles, mark read/unread).
-### Outstanding
-- [PARTIAL] Notification centre enhancements: no email/SMS stubs, digest configuration UI, or historical insights for admins.
+- [DONE] Notification centre with targeted broadcasts, admin history filters, email/SMS delivery stubs, and student-level digest preferences (`NotificationsPanel`, `StudentSelfServicePanel`, `NotificationPreferenceDao`).
 
 ## Analytics & Degree Planning
 - [TODO] Degree audit planner, advisor dashboards, risk alerts.

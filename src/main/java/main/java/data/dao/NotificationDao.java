@@ -12,6 +12,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * DAO for persisting system notifications.
@@ -134,6 +135,52 @@ public class NotificationDao extends BaseDao {
             logger.error("Error updating read state for notification {}: {}", id, ex.getMessage(), ex);
             throw new IllegalStateException("Unable to update notification state", ex);
         }
+    }
+
+    public List<NotificationMessage> findAdminHistory(NotificationMessage.Audience audience,
+                                                      LocalDateTime from,
+                                                      LocalDateTime to,
+                                                      String category) {
+        List<NotificationMessage> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT id, audience, target_id, message, category, created_at, is_read, read_at FROM notifications WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (audience != null) {
+            sql.append(" AND audience = ?");
+            params.add(audience.name());
+        }
+        if (from != null) {
+            sql.append(" AND created_at >= ?");
+            params.add(Timestamp.valueOf(from));
+        }
+        if (to != null) {
+            sql.append(" AND created_at <= ?");
+            params.add(Timestamp.valueOf(to));
+        }
+        if (category != null && !category.isBlank()) {
+            sql.append(" AND LOWER(category) LIKE ?");
+            params.add("%" + category.trim().toLowerCase(Locale.ENGLISH) + "%");
+        }
+        sql.append(" ORDER BY created_at DESC");
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                Object param = params.get(i);
+                if (param instanceof Timestamp ts) {
+                    ps.setTimestamp(i + 1, ts);
+                } else {
+                    ps.setObject(i + 1, param);
+                }
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapNotification(rs));
+                }
+            }
+        } catch (SQLException ex) {
+            logger.error("Error loading notification history: {}", ex.getMessage(), ex);
+        }
+        return list;
     }
 
     private NotificationMessage fetchById(Connection conn, long id) throws SQLException {

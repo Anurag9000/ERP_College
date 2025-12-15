@@ -5,10 +5,6 @@
 - [ ] Reporting suite (enrollment trends, waitlist pressure, attendance compliance, financial arrears).
 - [ ] Bulk CSV/XLS import/export for students, instructors, courses, enrollments.
 
-## Maintenance & Notifications
-
-- [ ] Notification centre enhancements: targeted broadcasts, email/SMS stubs, digest configuration, admin history view.
-
 ## Analytics & Degree Planning (Enhancements)
 
 - [ ] Degree audit planner, advisor dashboards, risk alerts.
