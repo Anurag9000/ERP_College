@@ -1,3 +1,4 @@
+package main.java.utils;
 
 import main.java.config.ConfigLoader;
 import main.java.data.AuthUserDao;
@@ -22,6 +23,7 @@ import main.java.data.dao.InstructorMessageDao;
 import main.java.data.dao.RegistrationRequestDao;
 import main.java.data.migration.LegacyDataMigrator;
 import main.java.utils.PasswordPolicy;
+import main.java.data.dao.AuditLogDao;
 import main.java.utils.AuditLogService;
 import main.java.service.NotificationDeliveryService;
 
@@ -50,7 +52,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
- * Database utility facade exposing high-level operations backed by the DAO layer.
+ * Database utility facade exposing high-level operations backed by the DAO
+ * layer.
  */
 public class DatabaseUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseUtil.class);
@@ -67,35 +70,122 @@ public class DatabaseUtil {
 
     private static final int MAX_FAILED_ATTEMPTS = parseIntConfig("security.maxFailedAttempts", 5);
     private static final int LOCKOUT_MINUTES = parseIntConfig("security.lockoutMinutes", 15);
-    private static final int PASSWORD_HISTORY_SIZE = parseIntConfig("security.passwordHistorySize", PasswordPolicy.historySize());
+    private static final int PASSWORD_HISTORY_SIZE = parseIntConfig("security.passwordHistorySize",
+            PasswordPolicy.historySize());
     private static final int MAX_TERM_CREDITS = parseIntConfig("registration.maxCredits", 24);
-    private static final AuthUserDao authUserDao = new AuthUserDao();
-    private static final StudentDao studentDao = new StudentDao();
-    private static final CourseDao courseDao = new CourseDao();
-    private static final InstructorDao instructorDao = new InstructorDao();
-    private static final SectionDao sectionDao = new SectionDao();
-    private static final EnrollmentDao enrollmentDao = new EnrollmentDao();
-    private static final WaitlistDao waitlistDao = new WaitlistDao();
-    private static final AttendanceDao attendanceDao = new AttendanceDao();
-    private static final NotificationDao notificationDao = new NotificationDao();
-    private static final SettingsDao settingsDao = new SettingsDao();
-    private static final CoursePrerequisiteDao coursePrerequisiteDao = new CoursePrerequisiteDao();
-    private static final CourseRelationshipDao courseRelationshipDao = new CourseRelationshipDao();
-    private static final AssessmentTemplateDao assessmentTemplateDao = new AssessmentTemplateDao();
-    private static final PaymentTransactionDao paymentTransactionDao = new PaymentTransactionDao();
-    private static final FeeInstallmentDao feeInstallmentDao = new FeeInstallmentDao();
-    private static final RegistrationRequestDao registrationRequestDao = new RegistrationRequestDao();
-    private static final InstructorMessageDao instructorMessageDao = new InstructorMessageDao();
-    private static final FeeScheduleTemplateDao feeScheduleTemplateDao = new FeeScheduleTemplateDao();
-    private static final MaintenanceWindowDao maintenanceWindowDao = new MaintenanceWindowDao();
+    private static AuthUserDao authUserDao = new AuthUserDao();
+    private static StudentDao studentDao = new StudentDao();
+    private static CourseDao courseDao = new CourseDao();
+    private static InstructorDao instructorDao = new InstructorDao();
+    private static SectionDao sectionDao = new SectionDao();
+    private static EnrollmentDao enrollmentDao = new EnrollmentDao();
+    private static WaitlistDao waitlistDao = new WaitlistDao();
+    private static AttendanceDao attendanceDao = new AttendanceDao();
+    private static NotificationDao notificationDao = new NotificationDao();
+    private static SettingsDao settingsDao = new SettingsDao();
+    private static CoursePrerequisiteDao coursePrerequisiteDao = new CoursePrerequisiteDao();
+    private static CourseRelationshipDao courseRelationshipDao = new CourseRelationshipDao();
+    private static AssessmentTemplateDao assessmentTemplateDao = new AssessmentTemplateDao();
+    private static PaymentTransactionDao paymentTransactionDao = new PaymentTransactionDao();
+    private static FeeInstallmentDao feeInstallmentDao = new FeeInstallmentDao();
+    private static RegistrationRequestDao registrationRequestDao = new RegistrationRequestDao();
+    private static InstructorMessageDao instructorMessageDao = new InstructorMessageDao();
+    private static FeeScheduleTemplateDao feeScheduleTemplateDao = new FeeScheduleTemplateDao();
+    private static MaintenanceWindowDao maintenanceWindowDao = new MaintenanceWindowDao();
+    private static NotificationPreferenceDao notificationPreferenceDao = new NotificationPreferenceDao();
+    private static AuditLogDao auditLogDao = new AuditLogDao();
+
+    public static void setAuthUserDao(AuthUserDao dao) {
+        authUserDao = dao;
+    }
+
+    public static void setStudentDao(StudentDao dao) {
+        studentDao = dao;
+    }
+
+    public static void setCourseDao(CourseDao dao) {
+        courseDao = dao;
+    }
+
+    public static void setInstructorDao(InstructorDao dao) {
+        instructorDao = dao;
+    }
+
+    public static void setSectionDao(SectionDao dao) {
+        sectionDao = dao;
+    }
+
+    public static void setEnrollmentDao(EnrollmentDao dao) {
+        enrollmentDao = dao;
+    }
+
+    public static void setWaitlistDao(WaitlistDao dao) {
+        waitlistDao = dao;
+    }
+
+    public static void setAttendanceDao(AttendanceDao dao) {
+        attendanceDao = dao;
+    }
+
+    public static void setNotificationDao(NotificationDao dao) {
+        notificationDao = dao;
+    }
+
+    public static void setSettingsDao(SettingsDao dao) {
+        settingsDao = dao;
+    }
+
+    public static void setCoursePrerequisiteDao(CoursePrerequisiteDao dao) {
+        coursePrerequisiteDao = dao;
+    }
+
+    public static void setCourseRelationshipDao(CourseRelationshipDao dao) {
+        courseRelationshipDao = dao;
+    }
+
+    public static void setAssessmentTemplateDao(AssessmentTemplateDao dao) {
+        assessmentTemplateDao = dao;
+    }
+
+    public static void setPaymentTransactionDao(PaymentTransactionDao dao) {
+        paymentTransactionDao = dao;
+    }
+
+    public static void setFeeInstallmentDao(FeeInstallmentDao dao) {
+        feeInstallmentDao = dao;
+    }
+
+    public static void setRegistrationRequestDao(RegistrationRequestDao dao) {
+        registrationRequestDao = dao;
+    }
+
+    public static void setNotificationPreferenceDao(NotificationPreferenceDao dao) {
+        notificationPreferenceDao = dao;
+    }
+
+    public static void setInstructorMessageDao(InstructorMessageDao dao) {
+        instructorMessageDao = dao;
+    }
+
+    public static void setFeeScheduleTemplateDao(FeeScheduleTemplateDao dao) {
+        feeScheduleTemplateDao = dao;
+    }
+
+    public static void setMaintenanceWindowDao(MaintenanceWindowDao dao) {
+        maintenanceWindowDao = dao;
+    }
+
+    public static void setAuditLogDao(AuditLogDao dao) {
+        auditLogDao = dao;
+    }
 
     private static final Map<String, List<String>> coursePrerequisiteCache = new ConcurrentHashMap<>();
     private static final Map<String, List<String>> courseCorequisiteCache = new ConcurrentHashMap<>();
     private static final Map<String, List<String>> courseAntirequisiteCache = new ConcurrentHashMap<>();
     private static final double PASSING_GRADE_THRESHOLD = 40.0;
     private static final List<MaintenanceWindow> maintenanceWindowCache = new CopyOnWriteArrayList<>();
-    private static final ScheduledExecutorService maintenanceExecutor =
-            Executors.newSingleThreadScheduledExecutor(r -> {
+    private static final ScheduledExecutorService maintenanceExecutor = Executors
+            .newSingleThreadScheduledExecutor(r -> {
                 Thread thread = new Thread(r, "maintenance-scheduler");
                 thread.setDaemon(true);
                 return thread;
@@ -188,14 +278,14 @@ public class DatabaseUtil {
             }
         }
     }
-    
-    public static void initializeDatabase() {
+
+    public static synchronized void initializeDatabase() {
         // Create data directory if it doesn't exist
         File dataDir = new File(DATA_DIR);
         if (!dataDir.exists()) {
             dataDir.mkdirs();
         }
-        
+
         // Load existing data or create sample data
         loadData();
         refreshMaintenanceWindowCache();
@@ -227,42 +317,41 @@ public class DatabaseUtil {
         refreshInstructorCache();
         refreshSectionCache();
         coursePrerequisiteCache.clear();
-
     }
 
     private static void createSampleData() {
         if (authUserDao.findByUsername("admin").isPresent()) {
             return;
         }
-        // Create default admin user
-        addUser("admin", "Admin", "Administrator", "admin@college.edu", "admin123");
-        addUser("inst1", "Instructor", "John Smith", "john.smith@college.edu", "inst123");
-        addUser("stu1", "Student", "Alice Johnson", "alice.johnson@student.college.edu", "stud123");
-        addUser("stu2", "Student", "Bob Williams", "bob.williams@student.college.edu", "stud456");
-        
+        // Create default accounts with policy-compliant passwords
+        addUser("admin", "Admin", "Administrator", "admin@college.edu", "Admin@12345");
+        addUser("inst1", "Instructor", "John Smith", "john.smith@college.edu", "Instructor@123");
+        addUser("stu1", "Student", "Alice Johnson", "alice.johnson@student.college.edu", "Student@1231");
+        addUser("stu2", "Student", "Bob Williams", "bob.williams@student.college.edu", "Student@1232");
+
         // Create sample faculty
-        Faculty f1 = new Faculty("FAC001", "John", "Smith", "john.smith@college.edu", 
-                                "123-456-7890", "Computer Science", "Professor", "Ph.D", 75000);
+        Faculty f1 = new Faculty("FAC001", "John", "Smith", "john.smith@college.edu",
+                "123-456-7890", "Computer Science", "Professor", "Ph.D", 75000);
         f1.setUsername("inst1");
         instructorDao.insert(f1);
         faculty.put(f1.getFacultyId(), f1);
-        
-        Faculty f2 = new Faculty("FAC002", "Jane", "Davis", "jane.davis@college.edu", 
-                                "123-456-7891", "Mathematics", "Associate Professor", "M.Sc", 65000);
+
+        Faculty f2 = new Faculty("FAC002", "Jane", "Davis", "jane.davis@college.edu",
+                "123-456-7891", "Mathematics", "Associate Professor", "M.Sc", 65000);
         instructorDao.insert(f2);
         faculty.put(f2.getFacultyId(), f2);
-        
-        Course c1 = new Course("CSE101", "Computer Science Engineering", "Computer Science", 
-                              8, 200000, "4-year undergraduate program in Computer Science", 60);
+
+        Course c1 = new Course("CSE101", "Computer Science Engineering", "Computer Science",
+                8, 200000, "4-year undergraduate program in Computer Science", 60);
         addCourse(c1);
-        
-        Course c2 = new Course("MATH101", "Mathematics", "Mathematics", 
-                              6, 150000, "3-year undergraduate program in Mathematics", 40);
+
+        Course c2 = new Course("MATH101", "Mathematics", "Mathematics",
+                6, 150000, "3-year undergraduate program in Mathematics", 40);
         addCourse(c2);
-        
-        Student s1 = new Student("STU001", "Alice", "Johnson", "alice.johnson@student.college.edu", 
-                               "987-654-3210", LocalDate.of(2000, 5, 15), 
-                               "123 Main St, City", "CSE101", 3);
+
+        Student s1 = new Student("STU001", "Alice", "Johnson", "alice.johnson@student.college.edu",
+                "987-654-3210", LocalDate.of(2000, 5, 15),
+                "123 Main St, City", "CSE101", 3);
         s1.setTotalFees(200000);
         s1.setFeesPaid(150000);
         s1.setCreditsCompleted(72);
@@ -271,10 +360,10 @@ public class DatabaseUtil {
         s1.setNextFeeDueDate(LocalDate.now().plusDays(45));
         s1.setUsername("stu1");
         addStudent(s1);
-        
-        Student s2 = new Student("STU002", "Bob", "Williams", "bob.williams@student.college.edu", 
-                               "987-654-3211", LocalDate.of(1999, 8, 22), 
-                               "456 Oak Ave, City", "MATH101", 2);
+
+        Student s2 = new Student("STU002", "Bob", "Williams", "bob.williams@student.college.edu",
+                "987-654-3211", LocalDate.of(1999, 8, 22),
+                "456 Oak Ave, City", "MATH101", 2);
         s2.setTotalFees(150000);
         s2.setFeesPaid(100000);
         s2.setCreditsCompleted(36);
@@ -285,7 +374,7 @@ public class DatabaseUtil {
         addStudent(s2);
 
         seedFinanceData(s1, s2);
-        
+
         Course course1 = getCourse("CSE101");
         course1.setAvailableSeats(course1.getAvailableSeats() - 1);
         updateCourse(course1);
@@ -294,79 +383,79 @@ public class DatabaseUtil {
         updateCourse(course2);
 
         Section sec1 = new Section(
-            "SEC101A",
-            c1.getCourseId(),
-            "Data Structures - A",
-            f1.getFacultyId(),
-            DayOfWeek.MONDAY,
-            LocalTime.of(9, 0),
-            LocalTime.of(10, 30),
-            "Room CS-101",
-            30
-        );
+                "SEC101A",
+                c1.getCourseId(),
+                "Data Structures - A",
+                f1.getFacultyId(),
+                DayOfWeek.MONDAY,
+                LocalTime.of(9, 0),
+                LocalTime.of(10, 30),
+                "Room CS-101",
+                30);
         sec1.setSemester("Fall");
         sec1.setYear(LocalDate.now().getYear());
         sec1.setDropDeadline(LocalDate.now().plusDays(25));
         addSection(sec1);
 
         Section sec2 = new Section(
-            "SEC101B",
-            c1.getCourseId(),
-            "Algorithms - A",
-            f1.getFacultyId(),
-            DayOfWeek.WEDNESDAY,
-            LocalTime.of(11, 0),
-            LocalTime.of(12, 30),
-            "Room CS-201",
-            30
-        );
+                "SEC101B",
+                c1.getCourseId(),
+                "Algorithms - A",
+                f1.getFacultyId(),
+                DayOfWeek.WEDNESDAY,
+                LocalTime.of(11, 0),
+                LocalTime.of(12, 30),
+                "Room CS-201",
+                30);
         sec2.setSemester("Fall");
         sec2.setYear(LocalDate.now().getYear());
         sec2.setDropDeadline(LocalDate.now().plusDays(25));
         addSection(sec2);
 
         Section sec3 = new Section(
-            "SEC201A",
-            c2.getCourseId(),
-            "Statistics - A",
-            f2.getFacultyId(),
-            DayOfWeek.TUESDAY,
-            LocalTime.of(14, 0),
-            LocalTime.of(15, 30),
-            "Room MATH-101",
-            25
-        );
+                "SEC201A",
+                c2.getCourseId(),
+                "Statistics - A",
+                f2.getFacultyId(),
+                DayOfWeek.TUESDAY,
+                LocalTime.of(14, 0),
+                LocalTime.of(15, 30),
+                "Room MATH-101",
+                25);
         sec3.setSemester("Fall");
         sec3.setYear(LocalDate.now().getYear());
         sec3.setDropDeadline(LocalDate.now().plusDays(25));
         addSection(sec3);
 
-        EnrollmentRecord er1 = new EnrollmentRecord(s1.getStudentId(), sec1.getSectionId(), EnrollmentRecord.Status.ENROLLED);
+        EnrollmentRecord er1 = new EnrollmentRecord(s1.getStudentId(), sec1.getSectionId(),
+                EnrollmentRecord.Status.ENROLLED);
         enrollmentDao.insert(er1);
-        EnrollmentRecord er2 = new EnrollmentRecord(s2.getStudentId(), sec3.getSectionId(), EnrollmentRecord.Status.ENROLLED);
+        EnrollmentRecord er2 = new EnrollmentRecord(s2.getStudentId(), sec3.getSectionId(),
+                EnrollmentRecord.Status.ENROLLED);
         enrollmentDao.insert(er2);
-        EnrollmentRecord er3 = new EnrollmentRecord(s2.getStudentId(), sec2.getSectionId(), EnrollmentRecord.Status.WAITLISTED);
+        EnrollmentRecord er3 = new EnrollmentRecord(s2.getStudentId(), sec2.getSectionId(),
+                EnrollmentRecord.Status.WAITLISTED);
         enrollmentDao.insert(er3);
         waitlistDao.insert(sec2.getSectionId(), s2.getStudentId(), 1, true);
 
         // Seed welcome notifications
         addNotification(new NotificationMessage(
-            NotificationMessage.Audience.ALL,
-            null,
-            "Semester opens next Monday. Check your timetable for clashes.",
-            "General"));
+                NotificationMessage.Audience.ALL,
+                null,
+                "Semester opens next Monday. Check your timetable for clashes.",
+                "General"));
         addNotification(new NotificationMessage(
-            NotificationMessage.Audience.STUDENT,
-            s1.getStudentId(),
-            "Fees due in 45 days. Outstanding balance Rs " + String.format("%.0f", s1.getOutstandingFees()),
-            "Finance"));
+                NotificationMessage.Audience.STUDENT,
+                s1.getStudentId(),
+                "Fees due in 45 days. Outstanding balance Rs " + String.format("%.0f", s1.getOutstandingFees()),
+                "Finance"));
         addNotification(new NotificationMessage(
-            NotificationMessage.Audience.STUDENT,
-            s2.getStudentId(),
-            "You are waitlisted for Algorithms - A. We'll auto-enrol if a seat frees up.",
-            "Registration"));
+                NotificationMessage.Audience.STUDENT,
+                s2.getStudentId(),
+                "You are waitlisted for Algorithms - A. We'll auto-enrol if a seat frees up.",
+                "Registration"));
     }
-    
+
     @SuppressWarnings("unchecked")
     private static void loadData() {
         students = new ConcurrentHashMap<>();
@@ -375,11 +464,11 @@ public class DatabaseUtil {
         sections = new ConcurrentHashMap<>();
         settings = new ConcurrentHashMap<>(settingsDao.findAll());
     }
-    
+
     public static void saveData() {
         // No-op retained for backward compatibility with legacy callers.
     }
-    
+
     // User operations
     public static synchronized User authenticateUser(String username, String password) {
         LocalDateTime now = LocalDateTime.now();
@@ -434,16 +523,17 @@ public class DatabaseUtil {
             return null;
         }
     }
-    
-    public static Collection<User> getAllUsers() {
-        return authUserDao.findAll();
+
+    public static List<User> getAllUsers() {
+        return new ArrayList<>(authUserDao.findAll());
     }
 
     public static User getUser(String username) {
         return authUserDao.findByUsername(username).orElse(null);
     }
 
-    public static synchronized User addUser(String username, String role, String fullName, String email, String rawPassword) {
+    public static synchronized User addUser(String username, String role, String fullName, String email,
+            String rawPassword) {
         PasswordPolicy.validateComplexity(rawPassword);
         if (authUserDao.findByUsername(username).isPresent()) {
             throw new IllegalArgumentException("Username already exists");
@@ -504,23 +594,23 @@ public class DatabaseUtil {
         applyNewPassword(user, newPassword, true, false);
         AuditLogService.log(AuditLogService.EventType.PASSWORD_RESET, username, "Admin reset password");
     }
-    
+
     // Student operations
     public static void addStudent(Student student) {
         studentDao.insert(student);
         students.put(student.getStudentId(), student);
     }
-    
+
     public static void updateStudent(Student student) {
         studentDao.update(student);
         students.put(student.getStudentId(), student);
     }
-    
+
     public static void deleteStudent(String studentId) {
         studentDao.delete(studentId);
         students.remove(studentId);
     }
-    
+
     public static Student getStudent(String studentId) {
         Student student = students.get(studentId);
         if (student == null) {
@@ -529,8 +619,8 @@ public class DatabaseUtil {
         }
         return student;
     }
-    
-    public static Collection<Student> getAllStudents() {
+
+    public static List<Student> getAllStudents() {
         return new ArrayList<>(students.values());
     }
 
@@ -552,11 +642,11 @@ public class DatabaseUtil {
     }
 
     public static synchronized PaymentTransaction recordPayment(String actorUsername,
-                                                                String studentId,
-                                                                double amount,
-                                                                String method,
-                                                                String reference,
-                                                                String notes) {
+            String studentId,
+            double amount,
+            String method,
+            String reference,
+            String notes) {
         if (amount <= 0) {
             throw new IllegalArgumentException("Payment amount must be positive.");
         }
@@ -565,7 +655,8 @@ public class DatabaseUtil {
             throw new IllegalArgumentException("Student not found: " + studentId);
         }
 
-        PaymentTransaction transaction = new PaymentTransaction(studentId, amount, LocalDate.now(), method, reference, notes);
+        PaymentTransaction transaction = new PaymentTransaction(studentId, amount, LocalDate.now(), method, reference,
+                notes);
         paymentTransactionDao.insert(transaction);
 
         double updatedPaid = Math.min(student.getTotalFees(), student.getFeesPaid() + amount);
@@ -640,18 +731,18 @@ public class DatabaseUtil {
     }
 
     public static FeeScheduleTemplateDao.TemplateRecord addFeeScheduleTemplate(String courseCode,
-                                                                              String label,
-                                                                              double amount,
-                                                                              int offsetDays) {
+            String label,
+            double amount,
+            int offsetDays) {
         validateTemplateInput(courseCode, label, amount, offsetDays);
         return feeScheduleTemplateDao.insert(courseCode.trim(), label.trim(), amount, offsetDays);
     }
 
     public static void updateFeeScheduleTemplate(long templateId,
-                                                 String courseCode,
-                                                 String label,
-                                                 double amount,
-                                                 int offsetDays) {
+            String courseCode,
+            String label,
+            double amount,
+            int offsetDays) {
         validateTemplateInput(courseCode, label, amount, offsetDays);
         feeScheduleTemplateDao.update(templateId, label.trim(), amount, offsetDays);
     }
@@ -708,8 +799,7 @@ public class DatabaseUtil {
                     FeeInstallment.Status.DUE,
                     template.label(),
                     null,
-                    null
-            );
+                    null);
             feeInstallmentDao.insert(installment);
             remaining -= amount;
         }
@@ -725,16 +815,15 @@ public class DatabaseUtil {
                     FeeInstallment.Status.DUE,
                     "Balance",
                     null,
-                    null
-            );
+                    null);
             feeInstallmentDao.insert(balanceInstallment);
         }
     }
 
     private static void validateTemplateInput(String courseCode,
-                                              String label,
-                                              double amount,
-                                              int offsetDays) {
+            String label,
+            double amount,
+            int offsetDays) {
         if (courseCode == null || courseCode.isBlank()) {
             throw new IllegalArgumentException("Course is required.");
         }
@@ -800,9 +889,9 @@ public class DatabaseUtil {
     }
 
     public static AssessmentTemplateDao.AssessmentTemplate createAssessmentTemplate(String courseCode,
-                                                                                     String templateName,
-                                                                                     Map<String, Double> weights,
-                                                                                     String createdBy) {
+            String templateName,
+            Map<String, Double> weights,
+            String createdBy) {
         if (courseCode == null || courseCode.isBlank()) {
             throw new IllegalArgumentException("Course code is required.");
         }
@@ -866,7 +955,8 @@ public class DatabaseUtil {
         record.setComponentFeedback(feedback);
     }
 
-    public static void saveComponentFeedbackEntry(String sectionId, String studentId, String component, String comment) {
+    public static void saveComponentFeedbackEntry(String sectionId, String studentId, String component,
+            String comment) {
         EnrollmentRecord record = findEnrollmentRecord(sectionId, studentId);
         record.putFeedback(component, comment);
     }
@@ -879,10 +969,10 @@ public class DatabaseUtil {
     }
 
     public static void sendInstructorMessage(User instructor,
-                                             String sectionId,
-                                             List<String> requestedRecipients,
-                                             String subject,
-                                             String body) {
+            String sectionId,
+            List<String> requestedRecipients,
+            String subject,
+            String body) {
         if (instructor == null || !"Instructor".equalsIgnoreCase(instructor.getRole())) {
             throw new SecurityException("Instructor session required.");
         }
@@ -930,14 +1020,13 @@ public class DatabaseUtil {
                 source.getPaidOn(),
                 source.getMethod(),
                 source.getReference(),
-                source.getNotes()
-        );
+                source.getNotes());
     }
 
     private static FeeInstallment cloneInstallment(FeeInstallment source) {
         return FeeInstallment.copyOf(source);
     }
-    
+
     // Faculty operations
     public static void addFaculty(Faculty facultyMember) {
         instructorDao.insert(facultyMember);
@@ -963,14 +1052,14 @@ public class DatabaseUtil {
         return member;
     }
 
-    public static Collection<Faculty> getAllFaculty() {
+    public static List<Faculty> getAllFaculty() {
         return new ArrayList<>(faculty.values());
     }
 
     public static Faculty findFacultyByUsername(String username) {
         return instructorDao.findByUsername(username).orElse(null);
     }
-    
+
     // Course operations
     public static void addCourse(Course course) {
         courseDao.insert(course);
@@ -999,10 +1088,10 @@ public class DatabaseUtil {
         return course;
     }
 
-    public static Collection<Course> getAllCourses() {
+    public static List<Course> getAllCourses() {
         return new ArrayList<>(courses.values());
     }
-    
+
     public static String generateNextId(String prefix, Collection<?> collection) {
         int maxId = 0;
         for (Object obj : collection) {
@@ -1016,7 +1105,7 @@ public class DatabaseUtil {
             } else if (obj instanceof Section) {
                 id = ((Section) obj).getSectionId();
             }
-            
+
             if (id.startsWith(prefix)) {
                 try {
                     int num = Integer.parseInt(id.substring(prefix.length()));
@@ -1030,7 +1119,7 @@ public class DatabaseUtil {
     }
 
     // Section operations
-    public static Collection<Section> getAllSections() {
+    public static List<Section> getAllSections() {
         return new ArrayList<>(sections.values());
     }
 
@@ -1180,7 +1269,8 @@ public class DatabaseUtil {
         return registerStudentToSection(null, studentId, sectionId);
     }
 
-    public static synchronized EnrollmentRecord registerStudentToSection(User actor, String studentId, String sectionId) {
+    public static synchronized EnrollmentRecord registerStudentToSection(User actor, String studentId,
+            String sectionId) {
         String performedBy = actor == null ? null : actor.getUsername();
         boolean autoApproved = actor != null && !"Student".equalsIgnoreCase(actor.getRole());
         Section section = getSection(sectionId);
@@ -1374,11 +1464,12 @@ public class DatabaseUtil {
     }
 
     public static synchronized EnrollmentRecord overrideEnrollStudent(User admin,
-                                                                      String studentId,
-                                                                      String sectionId,
-                                                                      boolean ignoreCapacity,
-                                                                      boolean ignoreConflicts,
-                                                                      boolean ignoreRequisites) {
+            String studentId,
+            String sectionId,
+            boolean ignoreCapacity,
+            boolean ignoreConflicts,
+            boolean ignoreRequisites,
+            boolean ignoreCredits) {
         ensureAdmin(admin);
         Section section = getSection(sectionId);
         if (section == null) {
@@ -1412,12 +1503,23 @@ public class DatabaseUtil {
         if (already) {
             throw new IllegalStateException("Student already enrolled or waitlisted for this section.");
         }
+
+        int courseCredits = getCourseCreditHours(section.getCourseId());
+        if (!ignoreCredits) {
+            int currentCredits = calculateEnrolledCredits(studentId);
+            if (currentCredits + courseCredits > MAX_TERM_CREDITS) {
+                throw new IllegalStateException("Credit load would exceed the maximum of "
+                        + MAX_TERM_CREDITS + " hours. Enable credit override to bypass.");
+            }
+        }
+
         long enrolledCount = existing.stream()
                 .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
                 .count();
         boolean seatAvailable = enrolledCount < section.getCapacity();
         boolean enrollNow = seatAvailable || ignoreCapacity;
-        EnrollmentRecord.Status status = enrollNow ? EnrollmentRecord.Status.ENROLLED : EnrollmentRecord.Status.WAITLISTED;
+        EnrollmentRecord.Status status = enrollNow ? EnrollmentRecord.Status.ENROLLED
+                : EnrollmentRecord.Status.WAITLISTED;
         EnrollmentRecord record = new EnrollmentRecord(studentId, sectionId, status);
         enrollmentDao.insert(record);
 
@@ -1449,7 +1551,8 @@ public class DatabaseUtil {
         return record;
     }
 
-    private static boolean promoteApprovedWaitlistedIfPossible(Section section, List<EnrollmentRecord> sectionEnrollments) {
+    private static boolean promoteApprovedWaitlistedIfPossible(Section section,
+            List<EnrollmentRecord> sectionEnrollments) {
         List<WaitlistDao.WaitlistEntry> waitlist = waitlistDao.findEntries(section.getSectionId());
         if (waitlist.isEmpty()) {
             return false;
@@ -1519,13 +1622,12 @@ public class DatabaseUtil {
 
     // Attendance operations
     public static void recordAttendance(String sectionId,
-                                        LocalDate date,
-                                        Map<String, AttendanceRecord.AttendanceStatus> attendance) {
+            LocalDate date,
+            Map<String, AttendanceRecord.AttendanceStatus> attendance) {
         AttendanceRecord record = new AttendanceRecord(sectionId, date);
         attendance.forEach((studentId, status) -> record.markStatus(
                 studentId,
-                status != null ? status : AttendanceRecord.AttendanceStatus.ABSENT
-        ));
+                status != null ? status : AttendanceRecord.AttendanceStatus.ABSENT));
         attendanceDao.deleteBySectionAndDate(sectionId, date);
         attendanceDao.insert(record);
     }
@@ -1536,8 +1638,7 @@ public class DatabaseUtil {
 
     // Notification operations
     public static List<NotificationMessage> getNotifications(NotificationMessage.Audience audience, String targetId) {
-        NotificationMessage.Audience resolvedAudience =
-                audience == null ? NotificationMessage.Audience.ALL : audience;
+        NotificationMessage.Audience resolvedAudience = audience == null ? NotificationMessage.Audience.ALL : audience;
         return notificationDao.findVisible(resolvedAudience, targetId);
     }
 
@@ -1554,9 +1655,9 @@ public class DatabaseUtil {
     }
 
     public static List<NotificationMessage> getNotificationsForAdmin(NotificationMessage.Audience audience,
-                                                                      LocalDateTime from,
-                                                                      LocalDateTime to,
-                                                                      String category) {
+            LocalDateTime from,
+            LocalDateTime to,
+            String category) {
         return notificationDao.findAdminHistory(audience, from, to, category);
     }
 
@@ -1586,19 +1687,23 @@ public class DatabaseUtil {
         List<ContactRecipient> contacts = new ArrayList<>();
         switch (request.getTargetType()) {
             case ALL -> {
-                addNotification(new NotificationMessage(NotificationMessage.Audience.ALL, null, message, request.getCategory()));
+                addNotification(new NotificationMessage(NotificationMessage.Audience.ALL, null, message,
+                        request.getCategory()));
                 contacts.addAll(collectContactsForAudience(NotificationMessage.Audience.ALL));
             }
             case STUDENTS -> {
-                addNotification(new NotificationMessage(NotificationMessage.Audience.STUDENT, null, message, request.getCategory()));
+                addNotification(new NotificationMessage(NotificationMessage.Audience.STUDENT, null, message,
+                        request.getCategory()));
                 contacts.addAll(collectContactsForAudience(NotificationMessage.Audience.STUDENT));
             }
             case INSTRUCTORS -> {
-                addNotification(new NotificationMessage(NotificationMessage.Audience.INSTRUCTOR, null, message, request.getCategory()));
+                addNotification(new NotificationMessage(NotificationMessage.Audience.INSTRUCTOR, null, message,
+                        request.getCategory()));
                 contacts.addAll(collectContactsForAudience(NotificationMessage.Audience.INSTRUCTOR));
             }
             case ADMINS -> {
-                addNotification(new NotificationMessage(NotificationMessage.Audience.ADMIN, null, message, request.getCategory()));
+                addNotification(new NotificationMessage(NotificationMessage.Audience.ADMIN, null, message,
+                        request.getCategory()));
                 contacts.addAll(collectContactsForAudience(NotificationMessage.Audience.ADMIN));
             }
             case USER -> {
@@ -1624,8 +1729,7 @@ public class DatabaseUtil {
         return sections.values().stream()
                 .collect(Collectors.groupingBy(
                         Section::getCourseId,
-                        Collectors.summingLong(sec -> sec.getWaitlistedStudentIds().size())
-                ));
+                        Collectors.summingLong(sec -> sec.getWaitlistedStudentIds().size())));
     }
 
     public static List<WaitlistDao.WaitlistEntry> getWaitlistEntries(String sectionId) {
@@ -1669,19 +1773,47 @@ public class DatabaseUtil {
             addNotification(new NotificationMessage(
                     NotificationMessage.Audience.STUDENT,
                     studentId,
-                    "Advisor approval granted for " + section.getTitle() + ". You'll be enrolled automatically when a seat opens.",
+                    "Advisor approval granted for " + section.getTitle()
+                            + ". You'll be enrolled automatically when a seat opens.",
                     "Registration"));
         } else if (!approved && section != null) {
             addNotification(new NotificationMessage(
                     NotificationMessage.Audience.STUDENT,
                     studentId,
-                "Advisor approval revoked for " + section.getTitle() + ". Contact advising for details.",
-                "Registration"));
+                    "Advisor approval revoked for " + section.getTitle() + ". Contact advising for details.",
+                    "Registration"));
         }
         refreshSectionCache();
     }
 
-    public record WaitlistSnapshot(String studentId, String studentName, int position, boolean approved) {
+    public static class WaitlistSnapshot {
+        private final String studentId;
+        private final String studentName;
+        private final int position;
+        private final boolean approved;
+
+        public WaitlistSnapshot(String studentId, String studentName, int position, boolean approved) {
+            this.studentId = studentId;
+            this.studentName = studentName;
+            this.position = position;
+            this.approved = approved;
+        }
+
+        public String studentId() {
+            return studentId;
+        }
+
+        public String studentName() {
+            return studentName;
+        }
+
+        public int position() {
+            return position;
+        }
+
+        public boolean approved() {
+            return approved;
+        }
     }
 
     public static synchronized void promoteWaitlistedStudent(User admin, String sectionId, String studentId) {
@@ -1690,6 +1822,14 @@ public class DatabaseUtil {
         if (section == null) {
             throw new IllegalArgumentException("Section not found: " + sectionId);
         }
+
+        int courseCredits = getCourseCreditHours(section.getCourseId());
+        int currentCredits = calculateEnrolledCredits(studentId);
+        if (currentCredits + courseCredits > MAX_TERM_CREDITS) {
+            throw new IllegalStateException(
+                    "Promotion failed: Student would exceed credit limit of " + MAX_TERM_CREDITS + " hours.");
+        }
+
         List<EnrollmentRecord> enrollments = enrollmentDao.findBySection(sectionId);
         EnrollmentRecord record = enrollments.stream()
                 .filter(rec -> rec.getStudentId().equals(studentId))
@@ -1803,13 +1943,53 @@ public class DatabaseUtil {
         }
     }
 
-    public record RegistrationRequestView(long id,
-                                          String studentId,
-                                          String studentName,
-                                          String sectionId,
-                                          String sectionTitle,
-                                          String requestedBy,
-                                          java.time.Instant requestedAt) {
+    public static class RegistrationRequestView {
+        private final long id;
+        private final String studentId;
+        private final String studentName;
+        private final String sectionId;
+        private final String sectionTitle;
+        private final String requestedBy;
+        private final java.time.Instant requestedAt;
+
+        public RegistrationRequestView(long id, String studentId, String studentName, String sectionId,
+                String sectionTitle, String requestedBy, java.time.Instant requestedAt) {
+            this.id = id;
+            this.studentId = studentId;
+            this.studentName = studentName;
+            this.sectionId = sectionId;
+            this.sectionTitle = sectionTitle;
+            this.requestedBy = requestedBy;
+            this.requestedAt = requestedAt;
+        }
+
+        public long id() {
+            return id;
+        }
+
+        public String studentId() {
+            return studentId;
+        }
+
+        public String studentName() {
+            return studentName;
+        }
+
+        public String sectionId() {
+            return sectionId;
+        }
+
+        public String sectionTitle() {
+            return sectionTitle;
+        }
+
+        public String requestedBy() {
+            return requestedBy;
+        }
+
+        public java.time.Instant requestedAt() {
+            return requestedAt;
+        }
     }
 
     public static List<String> getCoursePrerequisites(String courseId) {
@@ -2002,7 +2182,8 @@ public class DatabaseUtil {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
     }
 
-    private static void applyNewPassword(User user, String newPassword, boolean mustChangeNext, boolean skipValidation) {
+    private static void applyNewPassword(User user, String newPassword, boolean mustChangeNext,
+            boolean skipValidation) {
         if (!skipValidation) {
             PasswordPolicy.validateComplexity(newPassword);
             ensureNotInHistory(user, newPassword);
@@ -2076,9 +2257,9 @@ public class DatabaseUtil {
     }
 
     public static MaintenanceWindow scheduleMaintenanceWindow(User actor,
-                                                              LocalDateTime start,
-                                                              LocalDateTime end,
-                                                              String message) {
+            LocalDateTime start,
+            LocalDateTime end,
+            String message) {
         Objects.requireNonNull(actor, "actor is required");
         Objects.requireNonNull(start, "start is required");
         Objects.requireNonNull(end, "end is required");
@@ -2267,16 +2448,16 @@ public class DatabaseUtil {
     }
 
     private static void setMaintenanceModeForWindow(boolean maintenanceOn,
-                                                    MaintenanceWindow window,
-                                                    String message) {
+            MaintenanceWindow window,
+            String message) {
         handleMaintenanceToggle(maintenanceOn, "scheduled", window, message, "system");
     }
 
     private static void handleMaintenanceToggle(boolean maintenanceOn,
-                                                String origin,
-                                                MaintenanceWindow windowContext,
-                                                String notificationMessage,
-                                                String auditActor) {
+            String origin,
+            MaintenanceWindow windowContext,
+            String notificationMessage,
+            String auditActor) {
         String value = Boolean.toString(maintenanceOn);
         settings.put("maintenance", value);
         settingsDao.upsert("maintenance", value);
@@ -2426,17 +2607,87 @@ public class DatabaseUtil {
         }
     }
 
-    public record TermGpa(String termLabel, double gpa, boolean probation) {
-    }
+    public static class TermGpa {
+        private final String termLabel;
+        private final double gpa;
+        private final boolean probation;
 
-    public record SectionConflict(SectionConflict.Type type, String sectionA, String sectionB, String detail) {
-        public enum Type {
-            ROOM,
-            FACULTY
+        public TermGpa(String termLabel, double gpa, boolean probation) {
+            this.termLabel = termLabel;
+            this.gpa = gpa;
+            this.probation = probation;
+        }
+
+        public String termLabel() {
+            return termLabel;
+        }
+
+        public double gpa() {
+            return gpa;
+        }
+
+        public boolean probation() {
+            return probation;
         }
     }
 
-    public record CapacityWarning(String sectionId, int capacity, int enrolled) {
+    public static class SectionConflict {
+        public enum Type {
+            ROOM, FACULTY
+        }
+
+        private final Type type;
+        private final String sectionA;
+        private final String sectionB;
+        private final String detail;
+
+        public SectionConflict(Type type, String sectionA, String sectionB, String detail) {
+            this.type = type;
+            this.sectionA = sectionA;
+            this.sectionB = sectionB;
+            this.detail = detail;
+        }
+
+        public Type type() {
+            return type;
+        }
+
+        public String sectionA() {
+            return sectionA;
+        }
+
+        public String sectionB() {
+            return sectionB;
+        }
+
+        public String detail() {
+            return detail;
+        }
+    }
+
+    public static class CapacityWarning {
+        private final String sectionId;
+        private final int capacity;
+        private final int enrolled;
+
+        public CapacityWarning(String sectionId, int capacity, int enrolled) {
+            this.sectionId = sectionId;
+            this.capacity = capacity;
+            this.enrolled = enrolled;
+        }
+
+        public String sectionId() {
+            return sectionId;
+        }
+
+        public int capacity() {
+            return capacity;
+        }
+
+        public int enrolled() {
+            return enrolled;
+        }
+
         public int overBy() {
             return Math.max(0, enrolled - capacity);
         }
@@ -2446,7 +2697,8 @@ public class DatabaseUtil {
         return enrollmentDao.findBySection(sectionId).stream()
                 .filter(rec -> rec.getStudentId().equalsIgnoreCase(studentId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Student " + studentId + " not enrolled in section " + sectionId));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Student " + studentId + " not enrolled in section " + sectionId));
     }
 
     private static List<String> resolveSectionRecipients(String sectionId, List<String> requested) {
@@ -2480,7 +2732,8 @@ public class DatabaseUtil {
             throw new IllegalArgumentException("User not found: " + username);
         }
         String targetId = resolveUserTargetId(user);
-        addNotification(new NotificationMessage(NotificationMessage.Audience.USER, targetId, message, request.getCategory()));
+        addNotification(
+                new NotificationMessage(NotificationMessage.Audience.USER, targetId, message, request.getCategory()));
         Student student = findStudentByUsername(user.getUsername());
         if (student != null) {
             return contactFromStudent(student);
@@ -2553,8 +2806,8 @@ public class DatabaseUtil {
     }
 
     private static void deliverNotificationStubs(List<ContactRecipient> contacts,
-                                                 NotificationRequest request,
-                                                 String message) {
+            NotificationRequest request,
+            String message) {
         Set<String> emailed = new HashSet<>();
         Set<String> texted = new HashSet<>();
         for (ContactRecipient recipient : contacts) {
@@ -2587,26 +2840,6 @@ public class DatabaseUtil {
         return new ContactRecipient(name, user.getEmail(), null);
     }
 
-    private static Student findStudentByUsername(String username) {
-        if (username == null) {
-            return null;
-        }
-        return getAllStudents().stream()
-                .filter(student -> username.equalsIgnoreCase(student.getUsername()))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static Faculty findFacultyByUsername(String username) {
-        if (username == null) {
-            return null;
-        }
-        return getAllFaculty().stream()
-                .filter(faculty -> username.equalsIgnoreCase(faculty.getUsername()))
-                .findFirst()
-                .orElse(null);
-    }
-
     private static String resolveUserTargetId(User user) {
         Student student = findStudentByUsername(user.getUsername());
         if (student != null) {
@@ -2619,17 +2852,49 @@ public class DatabaseUtil {
         return user.getUsername();
     }
 
+    public static Map<String, Double> getGrades(String studentId, String sectionId) {
+        try {
+            EnrollmentRecord record = findEnrollmentRecord(sectionId, studentId);
+            return record.getComponentScores();
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
+    }
+
+    public static Double getFinalGrade(String studentId, String sectionId) {
+        try {
+            EnrollmentRecord record = findEnrollmentRecord(sectionId, studentId);
+            return record.getFinalGrade();
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
     private static String normalizeDepartment(String department) {
         return department == null ? "" : department.trim().toLowerCase(Locale.ENGLISH);
     }
 
-    private record ContactRecipient(String name, String email, String phone) {
+    private static class ContactRecipient {
+        private final String name;
+        private final String email;
+        private final String phone;
+
+        public ContactRecipient(String name, String email, String phone) {
+            this.name = name;
+            this.email = email;
+            this.phone = phone;
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public String email() {
+            return email;
+        }
+
+        public String phone() {
+            return phone;
+        }
     }
 }
-
-
-
-
-
-
-

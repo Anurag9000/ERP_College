@@ -18,7 +18,11 @@ import java.util.stream.Collectors;
  */
 public class FacultyService {
 
-    private static final AppointmentDao appointmentDao = new AppointmentDao();
+    private static AppointmentDao appointmentDao = new AppointmentDao();
+
+    public static void setAppointmentDao(AppointmentDao dao) {
+        appointmentDao = dao;
+    }
 
     public enum StatusType {
         TEACHING, IN_OFFICE, FREE, UNAVAILABLE
