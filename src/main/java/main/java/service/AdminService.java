@@ -28,7 +28,8 @@ public final class AdminService {
         }
     }
 
-    public static User createUser(User actor, String username, String role, String fullName, String email, String tempPassword) {
+    public static User createUser(User actor, String username, String role, String fullName, String email,
+            String tempPassword) {
         ensureAdmin(actor);
         return DatabaseUtil.addUser(username, role, fullName, email, tempPassword);
     }
@@ -93,10 +94,10 @@ public final class AdminService {
     }
 
     public static void updateCourseRelationships(User actor,
-                                                 String courseId,
-                                                 List<String> prerequisites,
-                                                 List<String> corequisites,
-                                                 List<String> antirequisites) {
+            String courseId,
+            List<String> prerequisites,
+            List<String> corequisites,
+            List<String> antirequisites) {
         ensureAdmin(actor);
         DatabaseUtil.updateCoursePrerequisites(courseId, prerequisites);
         DatabaseUtil.updateCourseCorequisites(courseId, corequisites);
@@ -107,20 +108,21 @@ public final class AdminService {
     }
 
     public static EnrollmentRecord overrideEnroll(User actor,
-                                                  String studentId,
-                                                  String sectionId,
-                                                  boolean ignoreCapacity,
-                                                  boolean ignoreConflicts,
-                                                  boolean ignoreRequisites) {
+            String studentId,
+            String sectionId,
+            boolean ignoreCapacity,
+            boolean ignoreConflicts,
+            boolean ignoreRequisites,
+            boolean ignoreCredits) {
         ensureAdmin(actor);
         return DatabaseUtil.overrideEnrollStudent(actor, studentId, sectionId,
-                ignoreCapacity, ignoreConflicts, ignoreRequisites);
+                ignoreCapacity, ignoreConflicts, ignoreRequisites, ignoreCredits);
     }
 
     public static void updateSectionDeadlines(User actor,
-                                              String sectionId,
-                                              LocalDate enrollmentDeadline,
-                                              LocalDate dropDeadline) {
+            String sectionId,
+            LocalDate enrollmentDeadline,
+            LocalDate dropDeadline) {
         ensureAdmin(actor);
         DatabaseUtil.updateSectionDeadlines(sectionId, enrollmentDeadline, dropDeadline);
         AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE,
@@ -139,9 +141,9 @@ public final class AdminService {
     }
 
     public static MaintenanceWindow scheduleMaintenanceWindow(User actor,
-                                                              LocalDateTime start,
-                                                              LocalDateTime end,
-                                                              String message) {
+            LocalDateTime start,
+            LocalDateTime end,
+            String message) {
         ensureAdmin(actor);
         return DatabaseUtil.scheduleMaintenanceWindow(actor, start, end, message);
     }

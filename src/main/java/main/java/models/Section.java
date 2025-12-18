@@ -41,6 +41,10 @@ public class Section implements Serializable {
         this.waitlistedStudentIds = new ArrayList<>();
         this.assessmentWeights = new LinkedHashMap<>();
         this.gradebookState = GradebookState.DRAFT;
+        this.enrollmentDeadline = LocalDate.now().plusDays(14);
+        this.dropDeadline = LocalDate.now().plusDays(28);
+        this.semester = "Fall";
+        this.year = LocalDate.now().getYear();
     }
 
     public Section(String sectionId, String courseId, String title, String facultyId,

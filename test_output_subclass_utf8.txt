@@ -1,0 +1,217 @@
+﻿Executing: javac -d target/test-classes -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar" src/test/java/main/java/utils/*.java
+Executing: java -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar" main.java.utils.ManualTestRunner
+Running tests in PasswordUtilTest
+  - testHashPassword: PASSED
+  - testVerifyPasswordInvalid: PASSED
+Running tests in PasswordPolicyTest
+  - testValidPassword: PASSED
+  - testTooShort: PASSED
+  - testNoUppercase: PASSED
+  - testNoSpecialChar: PASSED
+  - testNoLowercase: PASSED
+  - testNoDigit: PASSED
+Running tests in AdminServiceTest
+  - testCreateUserAsNonAdmin: PASSED
+  - testEnsureAdminSuccess: PASSED
+node : WARNING: A 
+Java agent has been 
+loaded dynamically (C
+:\Users\DELL\.m2\repo
+sitory\net\bytebuddy\
+byte-buddy-agent\1.14
+.15\byte-buddy-agent-
+1.14.15.jar)
+At line:1 char:1
++ node run_tests.js 
+> test_output_subclas
+s.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (WARNING   
+ : A Java...nt-1.    
+14.15.jar):Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+WARNING: If a 
+serviceability tool 
+is in use, please 
+run with -XX:+EnableD
+ynamicAgentLoading 
+to hide this warning
+WARNING: If a 
+serviceability tool 
+is not in use, 
+please run with -Djdk
+.instrument.traceUsag
+e for more 
+information
+WARNING: Dynamic 
+loading of agents 
+will be disallowed 
+by default in a 
+future release
+  - testCreateUserAsAdmin: FAILED
+java.lang.NoClassDefF
+oundError: org/slf4j/
+LoggerFactory
+	at main.java.data.Au
+thUserDao.<clinit>(Au
+thUserDao.java:20)
+	at jdk.internal.refl
+ect.GeneratedSerializ
+ationConstructorAcces
+sor1.newInstance(Unkn
+own Source)
+	at java.base/java.la
+ng.reflect.Constructo
+r.newInstanceWithCall
+er(Constructor.java:5
+02)
+	at java.base/java.la
+ng.reflect.Constructo
+r.newInstance(Constru
+ctor.java:486)
+	at org.objenesis.ins
+tantiator.sun.SunRefl
+ectionFactoryInstanti
+ator.newInstance(SunR
+eflectionFactoryInsta
+ntiator.java:48)
+	at org.objenesis.Obj
+enesisBase.newInstanc
+e(ObjenesisBase.java:
+73)
+	at org.mockito.inter
+nal.creation.instance
+.ObjenesisInstantiato
+r.newInstance(Objenes
+isInstantiator.java:2
+2)
+	at org.mockito.inter
+nal.creation.bytebudd
+y.SubclassByteBuddyMo
+ckMaker.createMock(Su
+bclassByteBuddyMockMa
+ker.java:48)
+	at org.mockito.inter
+nal.creation.bytebudd
+y.ByteBuddyMockMaker.
+createMock(ByteBuddyM
+ockMaker.java:41)
+	at org.mockito.inter
+nal.util.MockUtil.cre
+ateMock(MockUtil.java
+:99)
+	at org.mockito.inter
+nal.MockitoCore.mock(
+MockitoCore.java:84)
+	at org.mockito.Mocki
+to.mock(Mockito.java:
+2104)
+	at org.mockito.Mocki
+to.mock(Mockito.java:
+2019)
+	at main.java.service
+.AdminServiceTest.tes
+tCreateUserAsAdmin(Ad
+minServiceTest.java:3
+1)
+	at java.base/jdk.int
+ernal.reflect.DirectM
+ethodHandleAccessor.i
+nvoke(DirectMethodHan
+dleAccessor.java:103)
+	at java.base/java.la
+ng.reflect.Method.inv
+oke(Method.java:580)
+	at main.java.utils.M
+anualTestRunner.main(
+ManualTestRunner.java
+:30)
+Caused by: java.lang.
+ClassNotFoundExceptio
+n: org.slf4j.LoggerFa
+ctory
+	at java.base/jdk.int
+ernal.loader.BuiltinC
+lassLoader.loadClass(
+BuiltinClassLoader.ja
+va:641)
+	at java.base/jdk.int
+ernal.loader.ClassLoa
+ders$AppClassLoader.l
+oadClass(ClassLoaders
+.java:188)
+	at java.base/java.la
+ng.ClassLoader.loadCl
+ass(ClassLoader.java:
+526)
+	... 17 more
+  - testEnsureAdminFailure: PASSED
+
+Test Results:
+Total:  12
+Passed: 11
+Failed: 1
+Command failed: java 
+-cp "target/classes;t
+arget/test-classes;sr
+c/test/resources;C:\U
+sers\DELL\.m2\reposit
+ory\org\junit\jupiter
+\junit-jupiter-api\5.
+10.2\junit-jupiter-ap
+i-5.10.2.jar;C:\Users
+\DELL\.m2\repository\
+org\junit\jupiter\jun
+it-jupiter-engine\5.1
+0.2\junit-jupiter-eng
+ine-5.10.2.jar;C:\Use
+rs\DELL\.m2\repositor
+y\org\junit\platform\
+junit-platform-common
+s\1.10.2\junit-platfo
+rm-commons-1.10.2.jar
+;C:\Users\DELL\.m2\re
+pository\org\junit\pl
+atform\junit-platform
+-engine\1.10.2\junit-
+platform-engine-1.10.
+2.jar;C:\Users\DELL\.
+m2\repository\org\ope
+ntest4j\opentest4j\1.
+3.0\opentest4j-1.3.0.
+jar;C:\Users\DELL\.m2
+\repository\org\apigu
+ardian\apiguardian-ap
+i\1.1.2\apiguardian-a
+pi-1.1.2.jar;C:\Users
+\DELL\.m2\repository\
+org\assertj\assertj-c
+ore\3.26.0\assertj-co
+re-3.26.0.jar;C:\User
+s\DELL\.m2\repository
+\org\mockito\mockito-
+core\5.12.0\mockito-c
+ore-5.12.0.jar;C:\Use
+rs\DELL\.m2\repositor
+y\net\bytebuddy\byte-
+buddy\1.14.15\byte-bu
+ddy-1.14.15.jar;C:\Us
+ers\DELL\.m2\reposito
+ry\net\bytebuddy\byte
+-buddy-agent\1.14.15\
+byte-buddy-agent-1.14
+.15.jar;C:\Users\DELL
+\.m2\repository\org\o
+bjenesis\objenesis\3.
+3\objenesis-3.3.jar" 
+main.java.utils.Manua
+lTestRunner

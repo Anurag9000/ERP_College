@@ -7,6 +7,7 @@ import main.java.models.User;
 import main.java.utils.DatabaseUtil;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Coordinates registration and drop flows with access-rule enforcement.
@@ -90,4 +91,3 @@ public final class EnrollmentService {
         return student;
     }
 }
-

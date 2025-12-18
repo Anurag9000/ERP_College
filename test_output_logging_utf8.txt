@@ -1,0 +1,158 @@
+﻿Executing: javac -d target/test-classes -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar" src/test/java/main/java/utils/*.java
+Executing: java -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar" main.java.utils.ManualTestRunner
+Running tests in PasswordUtilTest
+  - testVerifyPasswordInvalid: PASSED
+  - testHashPassword: PASSED
+Running tests in PasswordPolicyTest
+  - testNoDigit: PASSED
+  - testNoSpecialChar: PASSED
+  - testNoLowercase: PASSED
+  - testNoUppercase: PASSED
+  - testValidPassword: PASSED
+  - testTooShort: PASSED
+Running tests in AdminServiceTest
+  - testEnsureAdminSuccess: PASSED
+  - testEnsureAdminFailure: PASSED
+node : WARNING: A 
+Java agent has been 
+loaded dynamically (C
+:\Users\DELL\.m2\repo
+sitory\net\bytebuddy\
+byte-buddy-agent\1.14
+.15\byte-buddy-agent-
+1.14.15.jar)
+At line:1 char:1
++ node run_tests.js 
+> test_output_logging
+.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (WARNING   
+ : A Java...nt-1.    
+14.15.jar):Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+WARNING: If a 
+serviceability tool 
+is in use, please 
+run with -XX:+EnableD
+ynamicAgentLoading 
+to hide this warning
+WARNING: If a 
+serviceability tool 
+is not in use, 
+please run with -Djdk
+.instrument.traceUsag
+e for more 
+information
+WARNING: Dynamic 
+loading of agents 
+will be disallowed 
+by default in a 
+future release
+  - testCreateUserAsAdmin: FAILED
+java.lang.Error: 
+Unresolved 
+compilation problem: 
+
+	at main.java.utils.D
+atabaseUtil.setAuthUs
+erDao(DatabaseUtil.ja
+va:94)
+	at main.java.service
+.AdminServiceTest.tes
+tCreateUserAsAdmin(Ad
+minServiceTest.java:3
+2)
+	at java.base/jdk.int
+ernal.reflect.DirectM
+ethodHandleAccessor.i
+nvoke(DirectMethodHan
+dleAccessor.java:103)
+	at java.base/java.la
+ng.reflect.Method.inv
+oke(Method.java:580)
+	at main.java.utils.M
+anualTestRunner.main(
+ManualTestRunner.java
+:30)
+  - testCreateUserAsNonAdmin: PASSED
+
+Test Results:
+Total:  12
+Passed: 11
+Failed: 1
+Command failed: java 
+-cp "target/classes;t
+arget/test-classes;sr
+c/test/resources;C:\U
+sers\DELL\.m2\reposit
+ory\org\junit\jupiter
+\junit-jupiter-api\5.
+10.2\junit-jupiter-ap
+i-5.10.2.jar;C:\Users
+\DELL\.m2\repository\
+org\junit\jupiter\jun
+it-jupiter-engine\5.1
+0.2\junit-jupiter-eng
+ine-5.10.2.jar;C:\Use
+rs\DELL\.m2\repositor
+y\org\junit\platform\
+junit-platform-common
+s\1.10.2\junit-platfo
+rm-commons-1.10.2.jar
+;C:\Users\DELL\.m2\re
+pository\org\junit\pl
+atform\junit-platform
+-engine\1.10.2\junit-
+platform-engine-1.10.
+2.jar;C:\Users\DELL\.
+m2\repository\org\ope
+ntest4j\opentest4j\1.
+3.0\opentest4j-1.3.0.
+jar;C:\Users\DELL\.m2
+\repository\org\apigu
+ardian\apiguardian-ap
+i\1.1.2\apiguardian-a
+pi-1.1.2.jar;C:\Users
+\DELL\.m2\repository\
+org\assertj\assertj-c
+ore\3.26.0\assertj-co
+re-3.26.0.jar;C:\User
+s\DELL\.m2\repository
+\org\mockito\mockito-
+core\5.12.0\mockito-c
+ore-5.12.0.jar;C:\Use
+rs\DELL\.m2\repositor
+y\net\bytebuddy\byte-
+buddy\1.14.15\byte-bu
+ddy-1.14.15.jar;C:\Us
+ers\DELL\.m2\reposito
+ry\net\bytebuddy\byte
+-buddy-agent\1.14.15\
+byte-buddy-agent-1.14
+.15.jar;C:\Users\DELL
+\.m2\repository\org\o
+bjenesis\objenesis\3.
+3\objenesis-3.3.jar;C
+:\Users\DELL\.m2\repo
+sitory\org\slf4j\slf4
+j-api\2.0.13\slf4j-ap
+i-2.0.13.jar;C:\Users
+\DELL\.m2\repository\
+ch\qos\logback\logbac
+k-classic\1.5.6\logba
+ck-classic-1.5.6.jar;
+C:\Users\DELL\.m2\rep
+ository\ch\qos\logbac
+k\logback-core\1.5.6\
+logback-core-1.5.6.ja
+r" main.java.utils.Ma
+nualTestRunner

@@ -31,6 +31,7 @@ public class SectionDialog extends JDialog {
     private JTextField endTimeField;
     private JTextField locationField;
     private JSpinner capacitySpinner;
+    private JCheckBox approvalCheck;
 
     public SectionDialog(JFrame parent, String title, Section section) {
         super(parent, title, true);

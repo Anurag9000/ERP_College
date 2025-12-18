@@ -16,6 +16,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import java.awt.BorderLayout;
+import java.awt.GridLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -67,7 +68,7 @@ public class InstructorAttendancePanel extends JPanel {
         this.instructor = instructor;
         this.sectionCombo = new JComboBox<>();
         this.dateField = new JTextField(LocalDate.now().format(DATE_FORMATTER), 10);
-        this.tableModel = new DefaultTableModel(new Object[]{"Student ID", "Name", "Status"}, 0) {
+        this.tableModel = new DefaultTableModel(new Object[] { "Student ID", "Name", "Status" }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return column == 2;
@@ -208,7 +209,7 @@ public class InstructorAttendancePanel extends JPanel {
         for (String studentId : section.getEnrolledStudentIds()) {
             Student student = DatabaseUtil.getStudent(studentId);
             AttendanceStatus status = statuses.getOrDefault(studentId, AttendanceStatus.PRESENT);
-            tableModel.addRow(new Object[]{
+            tableModel.addRow(new Object[] {
                     studentId,
                     student != null ? student.getFullName() : studentId,
                     status
@@ -242,7 +243,8 @@ public class InstructorAttendancePanel extends JPanel {
             return;
         }
         if (DatabaseUtil.isMaintenanceMode()) {
-            JOptionPane.showMessageDialog(this, "Cannot save during maintenance mode.", "Maintenance", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Cannot save during maintenance mode.", "Maintenance",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
         LocalDate date = resolveDate();
@@ -334,7 +336,8 @@ public class InstructorAttendancePanel extends JPanel {
                 payload.computeIfAbsent(date, d -> new HashMap<>()).put(studentId, status);
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Failed to import CSV: " + ex.getMessage(), "Import Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Failed to import CSV: " + ex.getMessage(), "Import Error",
+                    JOptionPane.ERROR_MESSAGE);
             return;
         }
         if (payload.isEmpty()) {
@@ -373,7 +376,8 @@ public class InstructorAttendancePanel extends JPanel {
             }
             JOptionPane.showMessageDialog(this, "Attendance exported.");
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Failed to export CSV: " + ex.getMessage(), "Export Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Failed to export CSV: " + ex.getMessage(), "Export Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -409,7 +413,7 @@ public class InstructorAttendancePanel extends JPanel {
     private final class StatusCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                                                       boolean hasFocus, int row, int column) {
+                boolean hasFocus, int row, int column) {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             AttendanceStatus status = value instanceof AttendanceStatus
                     ? (AttendanceStatus) value

@@ -60,9 +60,10 @@ public class BackupRestoreService {
     private static void backupDatabase(String dbName, String outputFile)
             throws IOException, InterruptedException {
 
-        String host = ConfigLoader.get("auth.datasource.jdbcUrl", "localhost:3306").split("/")[2].split(":")[0];
-        String user = ConfigLoader.get("auth.datasource.username", "root");
-        String password = ConfigLoader.get("auth.datasource.password", "");
+        String host = ConfigLoader.getOrDefault("auth.datasource.jdbcUrl", "localhost:3306").split("/")[2]
+                .split(":")[0];
+        String user = ConfigLoader.getOrDefault("auth.datasource.username", "root");
+        String password = ConfigLoader.getOrDefault("auth.datasource.password", "");
 
         ProcessBuilder pb = new ProcessBuilder(
                 "mysqldump",
@@ -83,9 +84,10 @@ public class BackupRestoreService {
     private static void restoreDatabase(String dbName, String inputFile)
             throws IOException, InterruptedException {
 
-        String host = ConfigLoader.get("auth.datasource.jdbcUrl", "localhost:3306").split("/")[2].split(":")[0];
-        String user = ConfigLoader.get("auth.datasource.username", "root");
-        String password = ConfigLoader.get("auth.datasource.password", "");
+        String host = ConfigLoader.getOrDefault("auth.datasource.jdbcUrl", "localhost:3306").split("/")[2]
+                .split(":")[0];
+        String user = ConfigLoader.getOrDefault("auth.datasource.username", "root");
+        String password = ConfigLoader.getOrDefault("auth.datasource.password", "");
 
         ProcessBuilder pb = new ProcessBuilder(
                 "mysql",

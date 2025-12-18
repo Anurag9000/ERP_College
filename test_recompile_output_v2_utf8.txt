@@ -1,0 +1,1790 @@
+﻿Executing: javac -d target/classes -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar" src\main\java\main\java\config\ConfigLoader.java src\main\java\main\java\config\DatabaseProperties.java src\main\java\main\java\config\DataSourceRegistry.java src\main\java\main\java\data\AuthUserDao.java src\main\java\main\java\data\dao\AnnouncementDao.java src\main\java\main\java\data\dao\AppointmentDao.java src\main\java\main\java\data\dao\AssessmentTemplateDao.java src\main\java\main\java\data\dao\AssignmentDao.java src\main\java\main\java\data\dao\AttendanceDao.java src\main\java\main\java\data\dao\AuditLogDao.java src\main\java\main\java\data\dao\BaseDao.java src\main\java\main\java\data\dao\CourseDao.java src\main\java\main\java\data\dao\CoursePrerequisiteDao.java src\main\java\main\java\data\dao\CourseRelationshipDao.java src\main\java\main\java\data\dao\EnrollmentDao.java src\main\java\main\java\data\dao\ExamDao.java src\main\java\main\java\data\dao\FeeInstallmentDao.java src\main\java\main\java\data\dao\FeeScheduleTemplateDao.java src\main\java\main\java\data\dao\InstructorDao.java src\main\java\main\java\data\dao\InstructorMessageDao.java src\main\java\main\java\data\dao\MaintenanceWindowDao.java src\main\java\main\java\data\dao\NotificationDao.java src\main\java\main\java\data\dao\NotificationPreferenceDao.java src\main\java\main\java\data\dao\PaymentTransactionDao.java src\main\java\main\java\data\dao\RegistrationRequestDao.java src\main\java\main\java\data\dao\SectionDao.java src\main\java\main\java\data\dao\SettingsDao.java src\main\java\main\java\data\dao\StudentDao.java src\main\java\main\java\data\dao\WaitlistDao.java src\main\java\main\java\data\DatabaseBootstrap.java src\main\java\main\java\data\migration\LegacyDataMigrator.java src\main\java\main\java\gui\components\JCard.java src\main\java\main\java\gui\dialogs\ChangePasswordDialog.java src\main\java\main\java\gui\dialogs\FacultyDialog.java src\main\java\main\java\gui\dialogs\SectionDialog.java src\main\java\main\java\gui\dialogs\StudentDialog.java src\main\java\main\java\gui\LoginFrame.java src\main\java\main\java\gui\panels\AnnouncementsHubPanel.java src\main\java\main\java\gui\panels\AssignmentsPanel.java src\main\java\main\java\gui\panels\AttendancePanel.java src\main\java\main\java\gui\panels\AuditLogPanel.java src\main\java\main\java\gui\panels\BulkOperationsPanel.java src\main\java\main\java\gui\panels\calendar\CalendarPanel.java src\main\java\main\java\gui\panels\calendar\WeeklyPlannerPanel.java src\main\java\main\java\gui\panels\CatalogManagementPanel.java src\main\java\main\java\gui\panels\CoursePanel.java src\main\java\main\java\gui\panels\DashboardPanel.java src\main\java\main\java\gui\panels\DiagnosticsPanel.java src\main\java\main\java\gui\panels\EnrollmentOversightPanel.java src\main\java\main\java\gui\panels\EnrollmentPanel.java src\main\java\main\java\gui\panels\ExaminationPanel.java src\main\java\main\java\gui\panels\faculty\FacultyConnectPanel.java src\main\java\main\java\gui\panels\FacultyPanel.java src\main\java\main\java\gui\panels\FeesPanel.java src\main\java\main\java\gui\panels\GradesTrackingPanel.java src\main\java\main\java\gui\panels\InstructorAttendancePanel.java src\main\java\main\java\gui\panels\InstructorMessagingPanel.java src\main\java\main\java\gui\panels\InstructorWorkspacePanel.java src\main\java\main\java\gui\panels\MaintenanceAware.java src\main\java\main\java\gui\panels\MaintenancePanel.java src\main\java\main\java\gui\panels\MeetingSlotsPanel.java src\main\java\main\java\gui\panels\NotificationPreferencesPanel.java src\main\java\main\java\gui\panels\NotificationsPanel.java src\main\java\main\java\gui\panels\RegistrationApprovalPanel.java src\main\java\main\java\gui\panels\ReportsPanel.java src\main\java\main\java\gui\panels\SectionPanel.java src\main\java\main\java\gui\panels\SectionPlannerPanel.java src\main\java\main\java\gui\panels\StudentAttendancePanel.java src\main\java\main\java\gui\panels\StudentPanel.java src\main\java\main\java\gui\panels\StudentSelfServicePanel.java src\main\java\main\java\gui\panels\ThemeCustomizationPanel.java src\main\java\main\java\gui\panels\TimetableConflictSimulator.java src\main\java\main\java\gui\panels\UserManagementPanel.java src\main\java\main\java\gui\panels\WaitlistApprovalPanel.java src\main\java\main\java\gui\style\PastelTheme.java src\main\java\main\java\Main.java src\main\java\main\java\models\Announcement.java src\main\java\main\java\models\Appointment.java src\main\java\main\java\models\Assignment.java src\main\java\main\java\models\AssignmentSubmission.java src\main\java\main\java\models\AttendanceRecord.java src\main\java\main\java\models\Course.java src\main\java\main\java\models\EnrollmentRecord.java src\main\java\main\java\models\ExamForm.java src\main\java\main\java\models\Faculty.java src\main\java\main\java\models\FeeInstallment.java src\main\java\main\java\models\MaintenanceWindow.java src\main\java\main\java\models\NotificationMessage.java src\main\java\main\java\models\NotificationPreference.java src\main\java\main\java\models\NotificationRequest.java src\main\java\main\java\models\OfficeHour.java src\main\java\main\java\models\PaymentTransaction.java src\main\java\main\java\models\Section.java src\main\java\main\java\models\Student.java src\main\java\main\java\models\User.java src\main\java\main\java\service\AdminService.java src\main\java\main\java\service\BackupRestoreService.java src\main\java\main\java\service\BulkImportExportService.java src\main\java\main\java\service\EnrollmentService.java src\main\java\main\java\service\FacultyService.java src\main\java\main\java\service\GradebookService.java src\main\java\main\java\service\InstructorService.java src\main\java\main\java\service\NotificationDeliveryService.java src\main\java\main\java\service\StudentService.java src\main\java\main\java\utils\AuditLogService.java src\main\java\main\java\utils\DatabaseUtil.java src\main\java\main\java\utils\FinanceReminderScheduler.java src\main\java\main\java\utils\HealthDiagnostics.java src\main\java\main\java\utils\PasswordPolicy.java src\main\java\main\java\utils\PasswordUtil.java
+node : src\main\java\
+main\java\config\Data
+SourceRegistry.java:3
+: error: package 
+com.zaxxer.hikari 
+does not exist
+At line:1 char:1
++ node run_tests.js 
+> test_recompile_outp
+ut_v2.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (src\mai   
+ n\java\m... does    
+ not exist:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+import com.zaxxer.hik
+ari.HikariConfig;
+                     
+   ^
+src\main\java\main\ja
+va\config\DataSourceR
+egistry.java:4: 
+error: package 
+com.zaxxer.hikari 
+does not exist
+import com.zaxxer.hik
+ari.HikariDataSource;
+                     
+   ^
+src\main\java\main\ja
+va\config\DataSourceR
+egistry.java:18: 
+error: cannot find 
+symbol
+    private static 
+final Map<String, 
+HikariDataSource> 
+DATA_SOURCES = new Co
+ncurrentHashMap<>();
+                     
+                ^
+  symbol:   class 
+HikariDataSource
+  location: class 
+DataSourceRegistry
+src\main\java\main\ja
+va\utils\AuditLogServ
+ice.java:4: error: 
+package org.apache.co
+mmons.csv does not 
+exist
+import org.apache.com
+mons.csv.CSVFormat;
+                     
+        ^
+src\main\java\main\ja
+va\utils\AuditLogServ
+ice.java:5: error: 
+package org.apache.co
+mmons.csv does not 
+exist
+import org.apache.com
+mons.csv.CSVPrinter;
+                     
+        ^
+src\main\java\main\ja
+va\data\DatabaseBoots
+trap.java:4: error: 
+package 
+org.flywaydb.core 
+does not exist
+import org.flywaydb.c
+ore.Flyway;
+                     
+   ^
+src\main\java\main\ja
+va\gui\panels\FeesPan
+el.java:10: error: 
+package org.apache.co
+mmons.csv does not 
+exist
+import org.apache.com
+mons.csv.CSVFormat;
+                     
+        ^
+src\main\java\main\ja
+va\gui\panels\FeesPan
+el.java:11: error: 
+package org.apache.co
+mmons.csv does not 
+exist
+import org.apache.com
+mons.csv.CSVPrinter;
+                     
+        ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torAttendancePanel.ja
+va:10: error: 
+package org.apache.co
+mmons.csv does not 
+exist
+import org.apache.com
+mons.csv.CSVFormat;
+                     
+        ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torAttendancePanel.ja
+va:11: error: 
+package org.apache.co
+mmons.csv does not 
+exist
+import org.apache.com
+mons.csv.CSVPrinter;
+                     
+        ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torAttendancePanel.ja
+va:12: error: 
+package org.apache.co
+mmons.csv does not 
+exist
+import org.apache.com
+mons.csv.CSVRecord;
+                     
+        ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:11: error: package 
+org.apache.commons.cs
+v does not exist
+import org.apache.com
+mons.csv.CSVFormat;
+                     
+        ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:12: error: package 
+org.apache.commons.cs
+v does not exist
+import org.apache.com
+mons.csv.CSVParser;
+                     
+        ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:13: error: package 
+org.apache.commons.cs
+v does not exist
+import org.apache.com
+mons.csv.CSVPrinter;
+                     
+        ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:14: error: package 
+org.apache.commons.cs
+v does not exist
+import org.apache.com
+mons.csv.CSVRecord;
+                     
+        ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:828: error: 
+reference to List is 
+ambiguous
+        private List<
+GradebookService.Atte
+ndanceSnapshot> 
+snapshots = 
+List.of();
+                ^
+  both interface 
+java.util.List in 
+java.util and class 
+java.awt.List in 
+java.awt match
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:837: error: 
+reference to List is 
+ambiguous
+        void setData(
+List<GradebookService
+.AttendanceSnapshot> 
+snapshots) {
+                     
+^
+  both interface 
+java.util.List in 
+java.util and class 
+java.awt.List in 
+java.awt match
+src\main\java\main\ja
+va\gui\panels\Student
+SelfServicePanel.java
+:54: error: package o
+rg.apache.pdfbox.pdmo
+del does not exist
+import org.apache.pdf
+box.pdmodel.PDDocumen
+t;
+                     
+           ^
+src\main\java\main\ja
+va\gui\panels\Student
+SelfServicePanel.java
+:55: error: package o
+rg.apache.pdfbox.pdmo
+del does not exist
+import org.apache.pdf
+box.pdmodel.PDPage;
+                     
+           ^
+src\main\java\main\ja
+va\gui\panels\Student
+SelfServicePanel.java
+:56: error: package o
+rg.apache.pdfbox.pdmo
+del.common does not 
+exist
+import org.apache.pdf
+box.pdmodel.common.PD
+Rectangle;
+                     
+                  ^
+src\main\java\main\ja
+va\gui\panels\Student
+SelfServicePanel.java
+:57: error: package o
+rg.apache.pdfbox.pdmo
+del.font does not 
+exist
+import org.apache.pdf
+box.pdmodel.font.PDTy
+pe1Font;
+                     
+                ^
+src\main\java\main\ja
+va\gui\panels\Student
+SelfServicePanel.java
+:58: error: package o
+rg.apache.pdfbox.pdmo
+del does not exist
+import org.apache.pdf
+box.pdmodel.PDPageCon
+tentStream;
+                     
+           ^
+src\main\java\main\ja
+va\gui\panels\Student
+SelfServicePanel.java
+:59: error: package o
+rg.apache.pdfbox.util
+ does not exist
+import org.apache.pdf
+box.util.Matrix;
+                     
+        ^
+src\main\java\main\ja
+va\gui\panels\Student
+SelfServicePanel.java
+:1889: error: cannot 
+find symbol
+    private void appl
+yWatermark(PDDocument
+ document, PDPage 
+page, String text) 
+throws IOException {
+                     
+           ^
+  symbol:   class 
+PDDocument
+  location: class Stu
+dentSelfServicePanel
+src\main\java\main\ja
+va\gui\panels\Student
+SelfServicePanel.java
+:1889: error: cannot 
+find symbol
+    private void appl
+yWatermark(PDDocument
+ document, PDPage 
+page, String text) 
+throws IOException {
+                     
+                     
+           ^
+  symbol:   class 
+PDPage
+  location: class Stu
+dentSelfServicePanel
+src\main\java\main\ja
+va\Main.java:3: 
+error: package 
+com.formdev.flatlaf 
+does not exist
+import com.formdev.fl
+atlaf.FlatLightLaf;
+                     
+     ^
+src\main\java\main\ja
+va\utils\DatabaseUtil
+.java:2694: error: 
+method findStudentByU
+sername(String) is 
+already defined in 
+class DatabaseUtil
+    private static 
+Student findStudentBy
+Username(String 
+username) {
+                     
+      ^
+src\main\java\main\ja
+va\utils\DatabaseUtil
+.java:2704: error: 
+method findFacultyByU
+sername(String) is 
+already defined in 
+class DatabaseUtil
+    private static 
+Faculty findFacultyBy
+Username(String 
+username) {
+                     
+      ^
+src\main\java\main\ja
+va\config\DataSourceR
+egistry.java:64: 
+error: cannot find 
+symbol
+        HikariConfig 
+config = new 
+HikariConfig();
+        ^
+  symbol:   class 
+HikariConfig
+  location: class 
+DataSourceRegistry
+src\main\java\main\ja
+va\config\DataSourceR
+egistry.java:64: 
+error: cannot find 
+symbol
+        HikariConfig 
+config = new 
+HikariConfig();
+                     
+             ^
+  symbol:   class 
+HikariConfig
+  location: class 
+DataSourceRegistry
+src\main\java\main\ja
+va\config\DataSourceR
+egistry.java:73: 
+error: cannot find 
+symbol
+        
+HikariDataSource 
+dataSource = new Hika
+riDataSource(config);
+        ^
+  symbol:   class 
+HikariDataSource
+  location: class 
+DataSourceRegistry
+src\main\java\main\ja
+va\config\DataSourceR
+egistry.java:73: 
+error: cannot find 
+symbol
+        
+HikariDataSource 
+dataSource = new Hika
+riDataSource(config);
+                     
+                     
+^
+  symbol:   class 
+HikariDataSource
+  location: class 
+DataSourceRegistry
+src\main\java\main\ja
+va\utils\AuditLogServ
+ice.java:102: error: 
+cannot find symbol
+             
+CSVPrinter printer = 
+new 
+CSVPrinter(writer,
+             ^
+  symbol:   class 
+CSVPrinter
+  location: class 
+AuditLogService
+src\main\java\main\ja
+va\utils\AuditLogServ
+ice.java:102: error: 
+cannot find symbol
+             
+CSVPrinter printer = 
+new 
+CSVPrinter(writer,
+                     
+                 ^
+  symbol:   class 
+CSVPrinter
+  location: class 
+AuditLogService
+src\main\java\main\ja
+va\utils\AuditLogServ
+ice.java:103: error: 
+cannot find symbol
+                     
+CSVFormat.Builder.cre
+ate(CSVFormat.DEFAULT
+)
+                     
+                     
+    ^
+  symbol:   variable 
+CSVFormat
+  location: class 
+AuditLogService
+src\main\java\main\ja
+va\utils\AuditLogServ
+ice.java:103: error: 
+package CSVFormat 
+does not exist
+                     
+CSVFormat.Builder.cre
+ate(CSVFormat.DEFAULT
+)
+                     
+         ^
+src\main\java\main\ja
+va\data\DatabaseBoots
+trap.java:30: error: 
+cannot find symbol
+            
+Flyway.configure()
+            ^
+  symbol:   variable 
+Flyway
+  location: class 
+DatabaseBootstrap
+src\main\java\main\ja
+va\gui\dialogs\Sectio
+nDialog.java:69: 
+error: cannot find 
+symbol
+        
+approvalCheck = new 
+JCheckBox("Requires 
+advisor approval");
+        ^
+  symbol:   variable 
+approvalCheck
+  location: class 
+SectionDialog
+src\main\java\main\ja
+va\gui\dialogs\Sectio
+nDialog.java:172: 
+error: cannot find 
+symbol
+        panel.add(app
+rovalCheck, gbc);
+                  ^
+  symbol:   variable 
+approvalCheck
+  location: class 
+SectionDialog
+src\main\java\main\ja
+va\gui\dialogs\Sectio
+nDialog.java:214: 
+error: cannot find 
+symbol
+        approvalCheck
+.setSelected(section.
+isRequiresAdvisorAppr
+oval());
+        ^
+  symbol:   variable 
+approvalCheck
+  location: class 
+SectionDialog
+src\main\java\main\ja
+va\gui\dialogs\Sectio
+nDialog.java:263: 
+error: cannot find 
+symbol
+            section.s
+etRequiresAdvisorAppr
+oval(approvalCheck.is
+Selected());
+                     
+                     
+     ^
+  symbol:   variable 
+approvalCheck
+  location: class 
+SectionDialog
+src\main\java\main\ja
+va\gui\dialogs\Sectio
+nDialog.java:273: 
+error: cannot find 
+symbol
+            section.s
+etRequiresAdvisorAppr
+oval(approvalCheck.is
+Selected());
+                     
+                     
+     ^
+  symbol:   variable 
+approvalCheck
+  location: class 
+SectionDialog
+src\main\java\main\ja
+va\gui\LoginFrame.jav
+a:161: error: cannot 
+find symbol
+                new M
+ainFrame(user).setVis
+ible(true);
+                    ^
+  symbol:   class 
+MainFrame
+  location: class 
+LoginFrame
+src\main\java\main\ja
+va\gui\panels\Catalog
+ManagementPanel.java:
+224: error: cannot 
+find symbol
+                
+warning.sectionId(),
+                     
+  ^
+  symbol:   method 
+sectionId()
+  location: variable 
+warning of type 
+CapacityWarning
+src\main\java\main\ja
+va\gui\panels\Catalog
+ManagementPanel.java:
+225: error: cannot 
+find symbol
+                
+warning.capacity(),
+                     
+  ^
+  symbol:   method 
+capacity()
+  location: variable 
+warning of type 
+CapacityWarning
+src\main\java\main\ja
+va\gui\panels\Catalog
+ManagementPanel.java:
+226: error: cannot 
+find symbol
+                
+warning.enrolled(),
+                     
+  ^
+  symbol:   method 
+enrolled()
+  location: variable 
+warning of type 
+CapacityWarning
+src\main\java\main\ja
+va\gui\panels\Enrollm
+entOversightPanel.jav
+a:376: error: cannot 
+find symbol
+                    
+view.id(),
+                     
+   ^
+  symbol:   method 
+id()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Enrollm
+entOversightPanel.jav
+a:377: error: cannot 
+find symbol
+                    
+view.studentId() + " 
+- " + 
+view.studentName(),
+                     
+   ^
+  symbol:   method 
+studentId()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Enrollm
+entOversightPanel.jav
+a:377: error: cannot 
+find symbol
+                    
+view.studentId() + " 
+- " + 
+view.studentName(),
+                     
+                     
+         ^
+  symbol:   method 
+studentName()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Enrollm
+entOversightPanel.jav
+a:378: error: cannot 
+find symbol
+                    
+view.sectionId(),
+                     
+   ^
+  symbol:   method 
+sectionId()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Enrollm
+entOversightPanel.jav
+a:379: error: cannot 
+find symbol
+                    
+view.requestedBy(),
+                     
+   ^
+  symbol:   method 
+requestedBy()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Enrollm
+entOversightPanel.jav
+a:380: error: cannot 
+find symbol
+                    v
+iew.requestedAt().atZ
+one(java.time.ZoneId.
+systemDefault()).form
+at(formatter)
+                     
+   ^
+  symbol:   method 
+requestedAt()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Enrollm
+entOversightPanel.jav
+a:440: error: cannot 
+find symbol
+                    
+entry.position(),
+                     
+    ^
+  symbol:   method 
+position()
+  location: variable 
+entry of type 
+WaitlistSnapshot
+src\main\java\main\ja
+va\gui\panels\Enrollm
+entOversightPanel.jav
+a:441: error: cannot 
+find symbol
+                    
+entry.studentId(),
+                     
+    ^
+  symbol:   method 
+studentId()
+  location: variable 
+entry of type 
+WaitlistSnapshot
+src\main\java\main\ja
+va\gui\panels\Enrollm
+entOversightPanel.jav
+a:442: error: cannot 
+find symbol
+                    
+entry.studentName(),
+                     
+    ^
+  symbol:   method 
+studentName()
+  location: variable 
+entry of type 
+WaitlistSnapshot
+src\main\java\main\ja
+va\gui\panels\Enrollm
+entOversightPanel.jav
+a:443: error: cannot 
+find symbol
+                    
+entry.approved() ? 
+"Yes" : "No"
+                     
+    ^
+  symbol:   method 
+approved()
+  location: variable 
+entry of type 
+WaitlistSnapshot
+src\main\java\main\ja
+va\gui\panels\FeesPan
+el.java:587: error: 
+cannot find symbol
+        try 
+(CSVPrinter printer 
+= new CSVPrinter(new 
+FileWriter(chooser.ge
+tSelectedFile()),
+             ^
+  symbol:   class 
+CSVPrinter
+  location: class 
+FeesPanel
+src\main\java\main\ja
+va\gui\panels\FeesPan
+el.java:587: error: 
+cannot find symbol
+        try 
+(CSVPrinter printer 
+= new CSVPrinter(new 
+FileWriter(chooser.ge
+tSelectedFile()),
+                     
+                 ^
+  symbol:   class 
+CSVPrinter
+  location: class 
+FeesPanel
+src\main\java\main\ja
+va\gui\panels\FeesPan
+el.java:588: error: 
+package CSVFormat 
+does not exist
+                CSVFo
+rmat.DEFAULT.withHead
+er("Student ID", 
+"Name", "Course", 
+"Total Fees", "Fees 
+Paid", 
+"Outstanding", 
+"Status", "Next 
+Due"))) {
+                     
+    ^
+src\main\java\main\ja
+va\gui\panels\FeesPan
+el.java:622: error: 
+cannot find symbol
+        try 
+(CSVPrinter printer 
+= new CSVPrinter(new 
+FileWriter(chooser.ge
+tSelectedFile()),
+             ^
+  symbol:   class 
+CSVPrinter
+  location: class 
+FeesPanel
+src\main\java\main\ja
+va\gui\panels\FeesPan
+el.java:622: error: 
+cannot find symbol
+        try 
+(CSVPrinter printer 
+= new CSVPrinter(new 
+FileWriter(chooser.ge
+tSelectedFile()),
+                     
+                 ^
+  symbol:   class 
+CSVPrinter
+  location: class 
+FeesPanel
+src\main\java\main\ja
+va\gui\panels\FeesPan
+el.java:623: error: 
+cannot find symbol
+                
+CSVFormat.DEFAULT)) {
+                ^
+  symbol:   variable 
+CSVFormat
+  location: class 
+FeesPanel
+src\main\java\main\ja
+va\gui\panels\Instruc
+torAttendancePanel.ja
+va:322: error: 
+cannot find symbol
+            
+Iterable<CSVRecord> 
+records = 
+CSVFormat.DEFAULT
+                     
+^
+  symbol:   class 
+CSVRecord
+  location: class Ins
+tructorAttendancePane
+l
+src\main\java\main\ja
+va\gui\panels\Instruc
+torAttendancePanel.ja
+va:322: error: 
+package CSVFormat 
+does not exist
+            
+Iterable<CSVRecord> 
+records = 
+CSVFormat.DEFAULT
+                     
+                     
+         ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torAttendancePanel.ja
+va:325: error: 
+cannot find symbol
+            for 
+(CSVRecord record : 
+records) {
+                 ^
+  symbol:   class 
+CSVRecord
+  location: class Ins
+tructorAttendancePane
+l
+src\main\java\main\ja
+va\gui\panels\Instruc
+torAttendancePanel.ja
+va:364: error: 
+cannot find symbol
+        try 
+(CSVPrinter printer 
+= new CSVPrinter(new 
+FileWriter(chooser.ge
+tSelectedFile()),
+             ^
+  symbol:   class 
+CSVPrinter
+  location: class Ins
+tructorAttendancePane
+l
+src\main\java\main\ja
+va\gui\panels\Instruc
+torAttendancePanel.ja
+va:364: error: 
+cannot find symbol
+        try 
+(CSVPrinter printer 
+= new CSVPrinter(new 
+FileWriter(chooser.ge
+tSelectedFile()),
+                     
+                 ^
+  symbol:   class 
+CSVPrinter
+  location: class Ins
+tructorAttendancePane
+l
+src\main\java\main\ja
+va\gui\panels\Instruc
+torAttendancePanel.ja
+va:365: error: 
+package CSVFormat 
+does not exist
+                CSVFo
+rmat.DEFAULT.withHead
+er("Date", "Student 
+ID", "Status"))) {
+                     
+    ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torAttendancePanel.ja
+va:442: error: 
+cannot find symbol
+            JPanel 
+metrics = new 
+JPanel(new 
+GridLayout(3, 1, 8, 
+8));
+                     
+                     
+  ^
+  symbol:   class 
+GridLayout
+  location: class Ins
+tructorAttendancePane
+l.AttendanceAnalytics
+Panel
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:353: error: cannot 
+find symbol
+                
+CSVPrinter printer = 
+new 
+CSVPrinter(writer,
+                ^
+  symbol:   class 
+CSVPrinter
+  location: class Ins
+tructorWorkspacePanel
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:353: error: cannot 
+find symbol
+                
+CSVPrinter printer = 
+new 
+CSVPrinter(writer,
+                     
+                    ^
+  symbol:   class 
+CSVPrinter
+  location: class Ins
+tructorWorkspacePanel
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:354: error: 
+package CSVFormat 
+does not exist
+                     
+   CSVFormat.DEFAULT.
+withHeader("Student 
+ID", "Component", 
+"Score", "Final 
+Grade", 
+"Feedback"))) {
+                     
+            ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:391: error: cannot 
+find symbol
+        try 
+(CSVParser parser = 
+CSVFormat.DEFAULT
+             ^
+  symbol:   class 
+CSVParser
+  location: class Ins
+tructorWorkspacePanel
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:391: error: 
+package CSVFormat 
+does not exist
+        try 
+(CSVParser parser = 
+CSVFormat.DEFAULT
+                     
+                    ^
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:395: error: cannot 
+find symbol
+            for 
+(CSVRecord record : 
+parser) {
+                 ^
+  symbol:   class 
+CSVRecord
+  location: class Ins
+tructorWorkspacePanel
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:531: error: 
+reference to List is 
+ambiguous
+            List<Asse
+ssmentTemplateDao.Ass
+essmentTemplate> 
+templates = Gradebook
+Service.listTemplates
+(instructor,
+            ^
+  both interface 
+java.util.List in 
+java.util and class 
+java.awt.List in 
+java.awt match
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:801: error: 
+reference to List is 
+ambiguous
+                chart
+.setData(List.of());
+                     
+         ^
+  both interface 
+java.util.List in 
+java.util and class 
+java.awt.List in 
+java.awt match
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:828: error: 
+reference to List is 
+ambiguous
+        private List<
+GradebookService.Atte
+ndanceSnapshot> 
+snapshots = 
+List.of();
+                     
+                     
+                     
+       ^
+  both interface 
+java.util.List in 
+java.util and class 
+java.awt.List in 
+java.awt match
+src\main\java\main\ja
+va\gui\panels\Instruc
+torWorkspacePanel.jav
+a:838: error: 
+reference to List is 
+ambiguous
+            
+this.snapshots = 
+snapshots == null ? 
+List.of() : 
+snapshots;
+                     
+                     
+       ^
+  both interface 
+java.util.List in 
+java.util and class 
+java.awt.List in 
+java.awt match
+src\main\java\main\ja
+va\gui\panels\Meeting
+SlotsPanel.java:66: 
+error: incompatible 
+types: 
+Collection<Faculty> 
+cannot be converted 
+to List<Faculty>
+        
+List<Faculty> 
+allFaculty = Database
+Util.getAllFaculty();
+                     
+                     
+                   ^
+src\main\java\main\ja
+va\gui\panels\Notific
+ationsPanel.java:354:
+ error: cannot find 
+symbol
+            if (stude
+nt.getDepartment() 
+!= null && !student.g
+etDepartment().isBlan
+k()) {
+                     
+  ^
+  symbol:   method 
+getDepartment()
+  location: variable 
+student of type 
+Student
+src\main\java\main\ja
+va\gui\panels\Notific
+ationsPanel.java:354:
+ error: cannot find 
+symbol
+            if (stude
+nt.getDepartment() 
+!= null && !student.g
+etDepartment().isBlan
+k()) {
+                     
+                     
+                 ^
+  symbol:   method 
+getDepartment()
+  location: variable 
+student of type 
+Student
+src\main\java\main\ja
+va\gui\panels\Notific
+ationsPanel.java:355:
+ error: cannot find 
+symbol
+                depar
+tments.add(student.ge
+tDepartment().trim())
+;
+                     
+                  ^
+  symbol:   method 
+getDepartment()
+  location: variable 
+student of type 
+Student
+src\main\java\main\ja
+va\gui\panels\Registr
+ationApprovalPanel.ja
+va:68: error: cannot 
+find symbol
+                    
+view.id(),
+                     
+   ^
+  symbol:   method 
+id()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Registr
+ationApprovalPanel.ja
+va:69: error: cannot 
+find symbol
+                    
+view.studentName() + 
+" (" + 
+view.studentId() + 
+")",
+                     
+   ^
+  symbol:   method 
+studentName()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Registr
+ationApprovalPanel.ja
+va:69: error: cannot 
+find symbol
+                    
+view.studentName() + 
+" (" + 
+view.studentId() + 
+")",
+                     
+                     
+          ^
+  symbol:   method 
+studentId()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Registr
+ationApprovalPanel.ja
+va:70: error: cannot 
+find symbol
+                    
+view.sectionTitle() 
++ " (" + 
+view.sectionId() + 
+")",
+                     
+   ^
+  symbol:   method 
+sectionTitle()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Registr
+ationApprovalPanel.ja
+va:70: error: cannot 
+find symbol
+                    
+view.sectionTitle() 
++ " (" + 
+view.sectionId() + 
+")",
+                     
+                     
+           ^
+  symbol:   method 
+sectionId()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Registr
+ationApprovalPanel.ja
+va:71: error: cannot 
+find symbol
+                    
+view.requestedBy(),
+                     
+   ^
+  symbol:   method 
+requestedBy()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Registr
+ationApprovalPanel.ja
+va:72: error: cannot 
+find symbol
+                    
+view.requestedAt()
+                     
+   ^
+  symbol:   method 
+requestedAt()
+  location: variable 
+view of type Registra
+tionRequestView
+src\main\java\main\ja
+va\gui\panels\Reports
+Panel.java:58: 
+error: incompatible 
+types: 
+Collection<Section> 
+cannot be converted 
+to List<Section>
+        
+List<Section> 
+allSections = Databas
+eUtil.getAllSections(
+);
+                     
+                     
+                     
+^
+src\main\java\main\ja
+va\gui\panels\Reports
+Panel.java:171: 
+error: incompatible 
+types: 
+Collection<Student> 
+cannot be converted 
+to List<Student>
+        
+List<Student> 
+students = DatabaseUt
+il.getAllStudents();
+                     
+                     
+                  ^
+src\main\java\main\ja
+va\gui\panels\Reports
+Panel.java:200: 
+error: incompatible 
+types: 
+Collection<Student> 
+cannot be converted 
+to List<Student>
+        
+List<Student> 
+students = DatabaseUt
+il.getAllStudents();
+                     
+                     
+                  ^
+src\main\java\main\ja
+va\gui\panels\Reports
+Panel.java:260: 
+error: incompatible 
+types: 
+Collection<Section> 
+cannot be converted 
+to List<Section>
+        
+List<Section> 
+sections = DatabaseUt
+il.getAllSections();
+                     
+                     
+                  ^
+src\main\java\main\ja
+va\gui\panels\Section
+PlannerPanel.java:124
+: error: cannot find 
+symbol
+                    c
+onflict.type().name()
+,
+                     
+       ^
+  symbol:   method 
+type()
+  location: variable 
+conflict of type 
+SectionConflict
+src\main\java\main\ja
+va\gui\panels\Section
+PlannerPanel.java:125
+: error: cannot find 
+symbol
+                    
+conflict.sectionA(),
+                     
+       ^
+  symbol:   method 
+sectionA()
+  location: variable 
+conflict of type 
+SectionConflict
+src\main\java\main\ja
+va\gui\panels\Section
+PlannerPanel.java:126
+: error: cannot find 
+symbol
+                    
+conflict.sectionB(),
+                     
+       ^
+  symbol:   method 
+sectionB()
+  location: variable 
+conflict of type 
+SectionConflict
+src\main\java\main\ja
+va\gui\panels\Section
+PlannerPanel.java:127
+: error: cannot find 
+symbol
+                    
+conflict.detail()
+                     
+       ^
+  symbol:   method 
+detail()
+  location: variable 
+conflict of type 
+SectionConflict
+src\main\java\main\ja
+va\gui\panels\Section
+PlannerPanel.java:137
+: error: cannot find 
+symbol
+                    
+warning.sectionId(),
+                     
+      ^
+  symbol:   method 
+sectionId()
+  location: variable 
+warning of type 
+CapacityWarning
+src\main\java\main\ja
+va\gui\panels\Section
+PlannerPanel.java:138
+: error: cannot find 
+symbol
+                    
+warning.capacity(),
+                     
+      ^
+  symbol:   method 
+capacity()
+  location: variable 
+warning of type 
+CapacityWarning
+Note: src\main\java\m
+ain\java\data\migrati
+on\LegacyDataMigrator
+.java uses or 
+overrides a 
+deprecated API.
+Note: Recompile with 
+-Xlint:deprecation 
+for details.
+Note: Some input 
+files use unchecked 
+or unsafe operations.
+Note: Recompile with 
+-Xlint:unchecked for 
+details.
+100 errors
+only showing the 
+first 100 errors, of 
+175 total; use 
+-Xmaxerrs if you 
+would like to see 
+more
+Command failed: 
+javac -d 
+target/classes -cp "t
+arget/classes;target/
+test-classes;src/test
+/resources;C:\Users\D
+ELL\.m2\repository\or
+g\junit\jupiter\junit
+-jupiter-api\5.10.2\j
+unit-jupiter-api-5.10
+.2.jar;C:\Users\DELL\
+.m2\repository\org\ju
+nit\jupiter\junit-jup
+iter-engine\5.10.2\ju
+nit-jupiter-engine-5.
+10.2.jar;C:\Users\DEL
+L\.m2\repository\org\
+junit\platform\junit-
+platform-commons\1.10
+.2\junit-platform-com
+mons-1.10.2.jar;C:\Us
+ers\DELL\.m2\reposito
+ry\org\junit\platform
+\junit-platform-engin
+e\1.10.2\junit-platfo
+rm-engine-1.10.2.jar;
+C:\Users\DELL\.m2\rep
+ository\org\opentest4
+j\opentest4j\1.3.0\op
+entest4j-1.3.0.jar;C:
+\Users\DELL\.m2\repos
+itory\org\apiguardian
+\apiguardian-api\1.1.
+2\apiguardian-api-1.1
+.2.jar;C:\Users\DELL\
+.m2\repository\org\as
+sertj\assertj-core\3.
+26.0\assertj-core-3.2
+6.0.jar;C:\Users\DELL
+\.m2\repository\org\m
+ockito\mockito-core\5
+.12.0\mockito-core-5.
+12.0.jar;C:\Users\DEL
+L\.m2\repository\net\
+bytebuddy\byte-buddy\
+1.14.15\byte-buddy-1.
+14.15.jar;C:\Users\DE
+LL\.m2\repository\net
+\bytebuddy\byte-buddy
+-agent\1.14.15\byte-b
+uddy-agent-1.14.15.ja
+r;C:\Users\DELL\.m2\r
+epository\org\objenes
+is\objenesis\3.3\obje
+nesis-3.3.jar;C:\User
+s\DELL\.m2\repository
+\org\slf4j\slf4j-api\
+2.0.13\slf4j-api-2.0.
+13.jar;C:\Users\DELL\
+.m2\repository\ch\qos
+\logback\logback-clas
+sic\1.5.6\logback-cla
+ssic-1.5.6.jar;C:\Use
+rs\DELL\.m2\repositor
+y\ch\qos\logback\logb
+ack-core\1.5.6\logbac
+k-core-1.5.6.jar" src
+\main\java\main\java\
+config\ConfigLoader.j
+ava src\main\java\mai
+n\java\config\Databas
+eProperties.java src\
+main\java\main\java\c
+onfig\DataSourceRegis
+try.java src\main\jav
+a\main\java\data\Auth
+UserDao.java src\main
+\java\main\java\data\
+dao\AnnouncementDao.j
+ava src\main\java\mai
+n\java\data\dao\Appoi
+ntmentDao.java src\ma
+in\java\main\java\dat
+a\dao\AssessmentTempl
+ateDao.java src\main\
+java\main\java\data\d
+ao\AssignmentDao.java
+ src\main\java\main\j
+ava\data\dao\Attendan
+ceDao.java src\main\j
+ava\main\java\data\da
+o\AuditLogDao.java sr
+c\main\java\main\java
+\data\dao\BaseDao.jav
+a src\main\java\main\
+java\data\dao\CourseD
+ao.java src\main\java
+\main\java\data\dao\C
+oursePrerequisiteDao.
+java src\main\java\ma
+in\java\data\dao\Cour
+seRelationshipDao.jav
+a src\main\java\main\
+java\data\dao\Enrollm
+entDao.java src\main\
+java\main\java\data\d
+ao\ExamDao.java src\m
+ain\java\main\java\da
+ta\dao\FeeInstallment
+Dao.java src\main\jav
+a\main\java\data\dao\
+FeeScheduleTemplateDa
+o.java src\main\java\
+main\java\data\dao\In
+structorDao.java src\
+main\java\main\java\d
+ata\dao\InstructorMes
+sageDao.java src\main
+\java\main\java\data\
+dao\MaintenanceWindow
+Dao.java src\main\jav
+a\main\java\data\dao\
+NotificationDao.java 
+src\main\java\main\ja
+va\data\dao\Notificat
+ionPreferenceDao.java
+ src\main\java\main\j
+ava\data\dao\PaymentT
+ransactionDao.java sr
+c\main\java\main\java
+\data\dao\Registratio
+nRequestDao.java src\
+main\java\main\java\d
+ata\dao\SectionDao.ja
+va src\main\java\main
+\java\data\dao\Settin
+gsDao.java src\main\j
+ava\main\java\data\da
+o\StudentDao.java src
+\main\java\main\java\
+data\dao\WaitlistDao.
+java src\main\java\ma
+in\java\data\Database
+Bootstrap.java src\ma
+in\java\main\java\dat
+a\migration\LegacyDat
+aMigrator.java src\ma
+in\java\main\java\gui
+\components\JCard.jav
+a src\main\java\main\
+java\gui\dialogs\Chan
+gePasswordDialog.java
+ src\main\java\main\j
+ava\gui\dialogs\Facul
+tyDialog.java src\mai
+n\java\main\java\gui\
+dialogs\SectionDialog
+.java src\main\java\m
+ain\java\gui\dialogs\
+StudentDialog.java sr
+c\main\java\main\java
+\gui\LoginFrame.java 
+src\main\java\main\ja
+va\gui\panels\Announc
+ementsHubPanel.java s
+rc\main\java\main\jav
+a\gui\panels\Assignme
+ntsPanel.java src\mai
+n\java\main\java\gui\
+panels\AttendancePane
+l.java src\main\java\
+main\java\gui\panels\
+AuditLogPanel.java sr
+c\main\java\main\java
+\gui\panels\BulkOpera
+tionsPanel.java src\m
+ain\java\main\java\gu
+i\panels\calendar\Cal
+endarPanel.java src\m
+ain\java\main\java\gu
+i\panels\calendar\Wee
+klyPlannerPanel.java 
+src\main\java\main\ja
+va\gui\panels\Catalog
+ManagementPanel.java 
+src\main\java\main\ja
+va\gui\panels\CourseP
+anel.java src\main\ja
+va\main\java\gui\pane
+ls\DashboardPanel.jav
+a src\main\java\main\
+java\gui\panels\Diagn
+osticsPanel.java src\
+main\java\main\java\g
+ui\panels\EnrollmentO
+versightPanel.java sr
+c\main\java\main\java
+\gui\panels\Enrollmen
+tPanel.java src\main\
+java\main\java\gui\pa
+nels\ExaminationPanel
+.java src\main\java\m
+ain\java\gui\panels\f
+aculty\FacultyConnect
+Panel.java src\main\j
+ava\main\java\gui\pan
+els\FacultyPanel.java
+ src\main\java\main\j
+ava\gui\panels\FeesPa
+nel.java src\main\jav
+a\main\java\gui\panel
+s\GradesTrackingPanel
+.java src\main\java\m
+ain\java\gui\panels\I
+nstructorAttendancePa
+nel.java src\main\jav
+a\main\java\gui\panel
+s\InstructorMessaging
+Panel.java src\main\j
+ava\main\java\gui\pan
+els\InstructorWorkspa
+cePanel.java src\main
+\java\main\java\gui\p
+anels\MaintenanceAwar
+e.java src\main\java\
+main\java\gui\panels\
+MaintenancePanel.java
+ src\main\java\main\j
+ava\gui\panels\Meetin
+gSlotsPanel.java src\
+main\java\main\java\g
+ui\panels\Notificatio
+nPreferencesPanel.jav
+a src\main\java\main\
+java\gui\panels\Notif
+icationsPanel.java sr
+c\main\java\main\java
+\gui\panels\Registrat
+ionApprovalPanel.java
+ src\main\java\main\j
+ava\gui\panels\Report
+sPanel.java src\main\
+java\main\java\gui\pa
+nels\SectionPanel.jav
+a src\main\java\main\
+java\gui\panels\Secti
+onPlannerPanel.java s
+rc\main\java\main\jav
+a\gui\panels\StudentA
+ttendancePanel.java s
+rc\main\java\main\jav
+a\gui\panels\StudentP
+anel.java src\main\ja
+va\main\java\gui\pane
+ls\StudentSelfService
+Panel.java src\main\j
+ava\main\java\gui\pan
+els\ThemeCustomizatio
+nPanel.java src\main\
+java\main\java\gui\pa
+nels\TimetableConflic
+tSimulator.java src\m
+ain\java\main\java\gu
+i\panels\UserManageme
+ntPanel.java src\main
+\java\main\java\gui\p
+anels\WaitlistApprova
+lPanel.java src\main\
+java\main\java\gui\st
+yle\PastelTheme.java 
+src\main\java\main\ja
+va\Main.java src\main
+\java\main\java\model
+s\Announcement.java s
+rc\main\java\main\jav
+a\models\Appointment.
+java src\main\java\ma
+in\java\models\Assign
+ment.java src\main\ja
+va\main\java\models\A
+ssignmentSubmission.j
+ava src\main\java\mai
+n\java\models\Attenda
+nceRecord.java src\ma
+in\java\main\java\mod
+els\Course.java src\m
+ain\java\main\java\mo
+dels\EnrollmentRecord
+.java src\main\java\m
+ain\java\models\ExamF
+orm.java src\main\jav
+a\main\java\models\Fa
+culty.java src\main\j
+ava\main\java\models\
+FeeInstallment.java s
+rc\main\java\main\jav
+a\models\MaintenanceW
+indow.java src\main\j
+ava\main\java\models\
+NotificationMessage.j
+ava src\main\java\mai
+n\java\models\Notific
+ationPreference.java 
+src\main\java\main\ja
+va\models\Notificatio
+nRequest.java src\mai
+n\java\main\java\mode
+ls\OfficeHour.java sr
+c\main\java\main\java
+\models\PaymentTransa
+ction.java src\main\j
+ava\main\java\models\
+Section.java src\main
+\java\main\java\model
+s\Student.java src\ma
+in\java\main\java\mod
+els\User.java src\mai
+n\java\main\java\serv
+ice\AdminService.java
+ src\main\java\main\j
+ava\service\BackupRes
+toreService.java src\
+main\java\main\java\s
+ervice\BulkImportExpo
+rtService.java src\ma
+in\java\main\java\ser
+vice\EnrollmentServic
+e.java src\main\java\
+main\java\service\Fac
+ultyService.java src\
+main\java\main\java\s
+ervice\GradebookServi
+ce.java src\main\java
+\main\java\service\In
+structorService.java 
+src\main\java\main\ja
+va\service\Notificati
+onDeliveryService.jav
+a src\main\java\main\
+java\service\StudentS
+ervice.java src\main\
+java\main\java\utils\
+AuditLogService.java 
+src\main\java\main\ja
+va\utils\DatabaseUtil
+.java src\main\java\m
+ain\java\utils\Financ
+eReminderScheduler.ja
+va src\main\java\main
+\java\utils\HealthDia
+gnostics.java src\mai
+n\java\main\java\util
+s\PasswordPolicy.java
+ src\main\java\main\j
+ava\utils\PasswordUti
+l.java

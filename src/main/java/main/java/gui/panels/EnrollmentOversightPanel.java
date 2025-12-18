@@ -41,6 +41,7 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
     private final JCheckBox ignoreCapacityCheck;
     private final JCheckBox ignoreConflictsCheck;
     private final JCheckBox ignoreRequisitesCheck;
+    private final JCheckBox ignoreCreditsCheck;
     private final JButton forceEnrollButton;
     private final JButton forceDropButton;
     private final JTextField enrollmentDeadlineField;
@@ -64,7 +65,7 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
         this.sectionSearchField = new JTextField(20);
         studentCombo.setPreferredSize(new Dimension(220, 26));
 
-        this.sectionModel = new DefaultTableModel(new Object[]{
+        this.sectionModel = new DefaultTableModel(new Object[] {
                 "Section", "Course", "Title", "Day", "Time", "Room", "Capacity", "Enrolled"
         }, 0) {
             @Override
@@ -74,7 +75,7 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
         };
         this.sectionTable = new JTable(sectionModel);
         sectionTable.setRowHeight(22);
-        this.studentScheduleModel = new DefaultTableModel(new Object[]{
+        this.studentScheduleModel = new DefaultTableModel(new Object[] {
                 "Section", "Status"
         }, 0) {
             @Override
@@ -88,13 +89,14 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
         this.ignoreCapacityCheck = new JCheckBox("Ignore capacity");
         this.ignoreConflictsCheck = new JCheckBox("Ignore conflicts");
         this.ignoreRequisitesCheck = new JCheckBox("Ignore prerequisites");
+        this.ignoreCreditsCheck = new JCheckBox("Ignore credits");
         this.forceEnrollButton = new JButton("Force Enroll");
         this.forceDropButton = new JButton("Force Drop");
         this.enrollmentDeadlineField = new JTextField(10);
         this.dropDeadlineField = new JTextField(10);
         this.updateDeadlinesButton = new JButton("Update Deadlines");
 
-        this.approvalsModel = new DefaultTableModel(new Object[]{
+        this.approvalsModel = new DefaultTableModel(new Object[] {
                 "Request ID", "Student", "Section", "Requested By", "Created"
         }, 0) {
             @Override
@@ -108,7 +110,7 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
         this.rejectRequestButton = new JButton("Reject");
 
         this.waitlistSectionCombo = new JComboBox<>();
-        this.waitlistModel = new DefaultTableModel(new Object[]{
+        this.waitlistModel = new DefaultTableModel(new Object[] {
                 "Position", "Student ID", "Name", "Approved"
         }, 0) {
             @Override
@@ -154,6 +156,7 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
         checkboxRow.add(ignoreCapacityCheck);
         checkboxRow.add(ignoreConflictsCheck);
         checkboxRow.add(ignoreRequisitesCheck);
+        checkboxRow.add(ignoreCreditsCheck);
 
         JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         buttonRow.add(forceEnrollButton);
@@ -243,7 +246,7 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
     private void refreshSections() {
         sectionModel.setRowCount(0);
         for (Section section : DatabaseUtil.getAllSections()) {
-            sectionModel.addRow(new Object[]{
+            sectionModel.addRow(new Object[] {
                     section.getSectionId(),
                     section.getCourseId(),
                     section.getTitle(),
@@ -264,7 +267,7 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
         }
         String studentId = selection.split(" - ")[0];
         for (EnrollmentRecord record : DatabaseUtil.getEnrollmentsForStudent(studentId)) {
-            studentScheduleModel.addRow(new Object[]{
+            studentScheduleModel.addRow(new Object[] {
                     record.getSectionId(),
                     record.getStatus().name()
             });
@@ -308,7 +311,8 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
                     sectionId,
                     ignoreCapacityCheck.isSelected(),
                     ignoreConflictsCheck.isSelected(),
-                    ignoreRequisitesCheck.isSelected());
+                    ignoreRequisitesCheck.isSelected(),
+                    ignoreCreditsCheck.isSelected());
             JOptionPane.showMessageDialog(this, "Override enrollment completed.");
             refreshStudentSchedule();
         } catch (Exception ex) {
@@ -352,7 +356,8 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
             AdminService.updateSectionDeadlines(adminUser, sectionId, enrollmentDate, dropDate);
             JOptionPane.showMessageDialog(this, "Deadlines updated.");
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update deadlines", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update deadlines",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -367,7 +372,7 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
         approvalsModel.setRowCount(0);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm");
         for (DatabaseUtil.RegistrationRequestView view : DatabaseUtil.getPendingRegistrationRequests()) {
-            approvalsModel.addRow(new Object[]{
+            approvalsModel.addRow(new Object[] {
                     view.id(),
                     view.studentId() + " - " + view.studentName(),
                     view.sectionId(),
@@ -425,14 +430,13 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
 
     private void refreshWaitlistTable() {
         waitlistModel.setRowCount(0);
-    }
         String selection = (String) waitlistSectionCombo.getSelectedItem();
         if (selection == null) {
             return;
         }
         String sectionId = selection.split(" - ")[0];
         for (DatabaseUtil.WaitlistSnapshot entry : DatabaseUtil.getWaitlistSnapshot(sectionId)) {
-            waitlistModel.addRow(new Object[]{
+            waitlistModel.addRow(new Object[] {
                     entry.position(),
                     entry.studentId(),
                     entry.studentName(),

@@ -1,0 +1,297 @@
+﻿Executing: javac -d target/test-classes -cp "target/classes;target/test-classes;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar" src/test/java/main/java/utils/*.java
+Executing: java -cp "target/classes;target/test-classes;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar" main.java.utils.ManualTestRunner
+Running tests in PasswordUtilTest
+  - testVerifyPasswordInvalid: PASSED
+  - testHashPassword: PASSED
+Running tests in PasswordPolicyTest
+  - testNoDigit: PASSED
+  - testNoSpecialChar: PASSED
+  - testNoUppercase: PASSED
+  - testTooShort: PASSED
+  - testNoLowercase: PASSED
+  - testValidPassword: PASSED
+Running tests in AdminServiceTest
+  - testEnsureAdminSuccess: PASSED
+  - testEnsureAdminFailure: PASSED
+node : WARNING: A 
+Java agent has been 
+loaded dynamically (C
+:\Users\DELL\.m2\repo
+sitory\net\bytebuddy\
+byte-buddy-agent\1.14
+.15\byte-buddy-agent-
+1.14.15.jar)
+At line:1 char:1
++ node run_tests.js 
+> test_output_injecti
+on_v2.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (WARNING   
+ : A Java...nt-1.    
+14.15.jar):Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+WARNING: If a 
+serviceability tool 
+is in use, please 
+run with -XX:+EnableD
+ynamicAgentLoading 
+to hide this warning
+WARNING: If a 
+serviceability tool 
+is not in use, 
+please run with -Djdk
+.instrument.traceUsag
+e for more 
+information
+WARNING: Dynamic 
+loading of agents 
+will be disallowed 
+by default in a 
+future release
+OpenJDK 64-Bit 
+Server VM warning: 
+Sharing is only 
+supported for boot 
+loader classes 
+because bootstrap 
+classpath has been 
+appended
+  - testCreateUserAsAdmin: FAILED
+org.mockito.exception
+s.base.MockitoExcepti
+on: 
+Mockito cannot mock 
+this class: class mai
+n.java.data.AuthUserD
+ao.
+
+If you're not sure 
+why you're getting 
+this error, please 
+open an issue on 
+GitHub.
+
+
+Java               : 
+21
+JVM vendor name    : 
+Eclipse Adoptium
+JVM vendor version : 
+21.0.6+7-LTS
+JVM name           : 
+OpenJDK 64-Bit 
+Server VM
+JVM version        : 
+21.0.6+7-LTS
+JVM info           : 
+mixed mode, sharing
+OS name            : 
+Windows 11
+OS version         : 
+10.0
+
+
+You are seeing this 
+disclaimer because 
+Mockito is 
+configured to create 
+inlined mocks.
+You can learn about 
+inline mocks and 
+their limitations 
+under item #39 of 
+the Mockito class 
+javadoc.
+
+Underlying exception 
+: java.lang.IllegalAr
+gumentException: 
+Could not create type
+	at main.java.service
+.AdminServiceTest.tes
+tCreateUserAsAdmin(Ad
+minServiceTest.java:3
+1)
+	at java.base/jdk.int
+ernal.reflect.DirectM
+ethodHandleAccessor.i
+nvoke(DirectMethodHan
+dleAccessor.java:103)
+	at java.base/java.la
+ng.reflect.Method.inv
+oke(Method.java:580)
+	at main.java.utils.M
+anualTestRunner.main(
+ManualTestRunner.java
+:30)
+Caused by: java.lang.
+IllegalArgumentExcept
+ion: Could not 
+create type
+	at net.bytebuddy.Typ
+eCache.findOrInsert(T
+ypeCache.java:170)
+	at net.bytebuddy.Typ
+eCache$WithInlineExpu
+nction.findOrInsert(T
+ypeCache.java:399)
+	at net.bytebuddy.Typ
+eCache.findOrInsert(T
+ypeCache.java:190)
+	at net.bytebuddy.Typ
+eCache$WithInlineExpu
+nction.findOrInsert(T
+ypeCache.java:410)
+	at org.mockito.inter
+nal.creation.bytebudd
+y.TypeCachingBytecode
+Generator.mockClass(T
+ypeCachingBytecodeGen
+erator.java:75)
+	at org.mockito.inter
+nal.creation.bytebudd
+y.InlineDelegateByteB
+uddyMockMaker.createM
+ockType(InlineDelegat
+eByteBuddyMockMaker.j
+ava:414)
+	at org.mockito.inter
+nal.creation.bytebudd
+y.InlineDelegateByteB
+uddyMockMaker.doCreat
+eMock(InlineDelegateB
+yteBuddyMockMaker.jav
+a:373)
+	at org.mockito.inter
+nal.creation.bytebudd
+y.InlineDelegateByteB
+uddyMockMaker.createM
+ock(InlineDelegateByt
+eBuddyMockMaker.java:
+352)
+	at org.mockito.inter
+nal.creation.bytebudd
+y.InlineByteBuddyMock
+Maker.createMock(Inli
+neByteBuddyMockMaker.
+java:56)
+	at org.mockito.inter
+nal.util.MockUtil.cre
+ateMock(MockUtil.java
+:99)
+	at org.mockito.inter
+nal.MockitoCore.mock(
+MockitoCore.java:84)
+	at org.mockito.Mocki
+to.mock(Mockito.java:
+2104)
+	at org.mockito.Mocki
+to.mock(Mockito.java:
+2019)
+	... 4 more
+Caused by: java.lang.
+InternalError: class 
+redefinition failed: 
+invalid class
+	at java.instrument/s
+un.instrument.Instrum
+entationImpl.retransf
+ormClasses0(Native 
+Method)
+	at java.instrument/s
+un.instrument.Instrum
+entationImpl.retransf
+ormClasses(Instrument
+ationImpl.java:225)
+	at org.mockito.inter
+nal.creation.bytebudd
+y.InlineBytecodeGener
+ator.triggerRetransfo
+rmation(InlineBytecod
+eGenerator.java:281)
+	at org.mockito.inter
+nal.creation.bytebudd
+y.InlineBytecodeGener
+ator.mockClass(Inline
+BytecodeGenerator.jav
+a:218)
+	at org.mockito.inter
+nal.creation.bytebudd
+y.TypeCachingBytecode
+Generator.lambda$mock
+Class$0(TypeCachingBy
+tecodeGenerator.java:
+78)
+	at net.bytebuddy.Typ
+eCache.findOrInsert(T
+ypeCache.java:168)
+	... 16 more
+  - testCreateUserAsNonAdmin: PASSED
+
+Test Results:
+Total:  12
+Passed: 11
+Failed: 1
+Command failed: java 
+-cp "target/classes;t
+arget/test-classes;C:
+\Users\DELL\.m2\repos
+itory\org\junit\jupit
+er\junit-jupiter-api\
+5.10.2\junit-jupiter-
+api-5.10.2.jar;C:\Use
+rs\DELL\.m2\repositor
+y\org\junit\jupiter\j
+unit-jupiter-engine\5
+.10.2\junit-jupiter-e
+ngine-5.10.2.jar;C:\U
+sers\DELL\.m2\reposit
+ory\org\junit\platfor
+m\junit-platform-comm
+ons\1.10.2\junit-plat
+form-commons-1.10.2.j
+ar;C:\Users\DELL\.m2\
+repository\org\junit\
+platform\junit-platfo
+rm-engine\1.10.2\juni
+t-platform-engine-1.1
+0.2.jar;C:\Users\DELL
+\.m2\repository\org\o
+pentest4j\opentest4j\
+1.3.0\opentest4j-1.3.
+0.jar;C:\Users\DELL\.
+m2\repository\org\api
+guardian\apiguardian-
+api\1.1.2\apiguardian
+-api-1.1.2.jar;C:\Use
+rs\DELL\.m2\repositor
+y\org\assertj\assertj
+-core\3.26.0\assertj-
+core-3.26.0.jar;C:\Us
+ers\DELL\.m2\reposito
+ry\org\mockito\mockit
+o-core\5.12.0\mockito
+-core-5.12.0.jar;C:\U
+sers\DELL\.m2\reposit
+ory\net\bytebuddy\byt
+e-buddy\1.14.15\byte-
+buddy-1.14.15.jar;C:\
+Users\DELL\.m2\reposi
+tory\net\bytebuddy\by
+te-buddy-agent\1.14.1
+5\byte-buddy-agent-1.
+14.15.jar;C:\Users\DE
+LL\.m2\repository\org
+\objenesis\objenesis\
+3.3\objenesis-3.3.jar
+" main.java.utils.Man
+ualTestRunner

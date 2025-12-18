@@ -1,4 +1,4 @@
-﻿package main.java.data.dao;
+package main.java.data.dao;
 
 import main.java.config.DataSourceRegistry;
 import java.sql.Connection;
