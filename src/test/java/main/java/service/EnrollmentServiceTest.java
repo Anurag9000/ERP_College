@@ -1,7 +1,7 @@
 package main.java.service;
 
 import main.java.data.dao.*;
-import main.java.data.AuthUserDao;
+import main.java.data.dao.AuthUserDao;
 import main.java.models.*;
 import main.java.utils.DatabaseUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +15,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 public class EnrollmentServiceTest {
@@ -27,6 +26,7 @@ public class EnrollmentServiceTest {
     private CourseDao mockCourseDao;
     private NotificationDao mockNotificationDao;
     private AuthUserDao mockAuthUserDao;
+    private MaintenanceWindowDao mockMaintenanceWindowDao;
 
     @BeforeEach
     void setUp() {
@@ -44,6 +44,10 @@ public class EnrollmentServiceTest {
         DatabaseUtil.setWaitlistDao(mockWaitlistDao);
         DatabaseUtil.setCourseDao(mockCourseDao);
         DatabaseUtil.setNotificationDao(mockNotificationDao);
+        mockMaintenanceWindowDao = mock(MaintenanceWindowDao.class);
+        DatabaseUtil.setMaintenanceWindowDao(mockMaintenanceWindowDao);
+        when(mockMaintenanceWindowDao.findAll()).thenReturn(Collections.emptyList());
+
         DatabaseUtil.setAuthUserDao(mockAuthUserDao); // For Maintenance checks
 
         // Ensure not in maintenance mode by default

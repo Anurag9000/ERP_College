@@ -1,0 +1,229 @@
+﻿Executing: javac -d target/classes -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar;C:\Users\DELL\.m2\repository\com\zaxxer\HikariCP\5.1.0\HikariCP-5.1.0.jar;C:\Users\DELL\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.3.3\mariadb-java-client-3.3.3.jar;C:\Users\DELL\.m2\repository\org\flywaydb\flyway-core\10.12.0\flyway-core-10.12.0.jar;C:\Users\DELL\.m2\repository\org\apache\commons\commons-csv\1.11.0\commons-csv-1.11.0.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\pdfbox\2.0.32\pdfbox-2.0.32.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\fontbox\2.0.32\fontbox-2.0.32.jar;C:\Users\DELL\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\DELL\.m2\repository\com\formdev\flatlaf\3.5\flatlaf-3.5.jar" src\main\java\main\java\config\ConfigLoader.java src\main\java\main\java\config\DatabaseProperties.java src\main\java\main\java\config\DataSourceRegistry.java src\main\java\main\java\data\dao\AnnouncementDao.java src\main\java\main\java\data\dao\AppointmentDao.java src\main\java\main\java\data\dao\AssessmentTemplateDao.java src\main\java\main\java\data\dao\AssignmentDao.java src\main\java\main\java\data\dao\AttendanceDao.java src\main\java\main\java\data\dao\AuditLogDao.java src\main\java\main\java\data\dao\AuthUserDao.java src\main\java\main\java\data\dao\BaseDao.java src\main\java\main\java\data\dao\CourseDao.java src\main\java\main\java\data\dao\CoursePrerequisiteDao.java src\main\java\main\java\data\dao\CourseRelationshipDao.java src\main\java\main\java\data\dao\EnrollmentDao.java src\main\java\main\java\data\dao\ExamDao.java src\main\java\main\java\data\dao\FeeInstallmentDao.java src\main\java\main\java\data\dao\FeeScheduleTemplateDao.java src\main\java\main\java\data\dao\InstructorDao.java src\main\java\main\java\data\dao\InstructorMessageDao.java src\main\java\main\java\data\dao\MaintenanceWindowDao.java src\main\java\main\java\data\dao\NotificationDao.java src\main\java\main\java\data\dao\NotificationPreferenceDao.java src\main\java\main\java\data\dao\PaymentTransactionDao.java src\main\java\main\java\data\dao\RegistrationRequestDao.java src\main\java\main\java\data\dao\SectionDao.java src\main\java\main\java\data\dao\SettingsDao.java src\main\java\main\java\data\dao\StudentDao.java src\main\java\main\java\data\dao\WaitlistDao.java src\main\java\main\java\data\DatabaseBootstrap.java src\main\java\main\java\data\migration\LegacyDataMigrator.java src\main\java\main\java\gui\components\JCard.java src\main\java\main\java\gui\dialogs\ChangePasswordDialog.java src\main\java\main\java\gui\dialogs\FacultyDialog.java src\main\java\main\java\gui\dialogs\SectionDialog.java src\main\java\main\java\gui\dialogs\StudentDialog.java src\main\java\main\java\gui\LoginFrame.java src\main\java\main\java\gui\MainFrame.java src\main\java\main\java\gui\panels\AnnouncementsHubPanel.java src\main\java\main\java\gui\panels\AssignmentsPanel.java src\main\java\main\java\gui\panels\AttendancePanel.java src\main\java\main\java\gui\panels\AuditLogPanel.java src\main\java\main\java\gui\panels\BulkOperationsPanel.java src\main\java\main\java\gui\panels\calendar\CalendarPanel.java src\main\java\main\java\gui\panels\calendar\WeeklyPlannerPanel.java src\main\java\main\java\gui\panels\CatalogManagementPanel.java src\main\java\main\java\gui\panels\CoursePanel.java src\main\java\main\java\gui\panels\DashboardPanel.java src\main\java\main\java\gui\panels\DiagnosticsPanel.java src\main\java\main\java\gui\panels\EnrollmentOversightPanel.java src\main\java\main\java\gui\panels\EnrollmentPanel.java src\main\java\main\java\gui\panels\ExaminationPanel.java src\main\java\main\java\gui\panels\faculty\FacultyConnectPanel.java src\main\java\main\java\gui\panels\FacultyPanel.java src\main\java\main\java\gui\panels\FeesPanel.java src\main\java\main\java\gui\panels\GradesTrackingPanel.java src\main\java\main\java\gui\panels\InstructorAttendancePanel.java src\main\java\main\java\gui\panels\InstructorMessagingPanel.java src\main\java\main\java\gui\panels\InstructorWorkspacePanel.java src\main\java\main\java\gui\panels\MaintenanceAware.java src\main\java\main\java\gui\panels\MaintenancePanel.java src\main\java\main\java\gui\panels\MeetingSlotsPanel.java src\main\java\main\java\gui\panels\NotificationPreferencesPanel.java src\main\java\main\java\gui\panels\NotificationsPanel.java src\main\java\main\java\gui\panels\RegistrationApprovalPanel.java src\main\java\main\java\gui\panels\ReportsPanel.java src\main\java\main\java\gui\panels\SectionPanel.java src\main\java\main\java\gui\panels\SectionPlannerPanel.java src\main\java\main\java\gui\panels\StudentAttendancePanel.java src\main\java\main\java\gui\panels\StudentPanel.java src\main\java\main\java\gui\panels\StudentSelfServicePanel.java src\main\java\main\java\gui\panels\ThemeCustomizationPanel.java src\main\java\main\java\gui\panels\TimetableConflictSimulator.java src\main\java\main\java\gui\panels\UserManagementPanel.java src\main\java\main\java\gui\panels\WaitlistApprovalPanel.java src\main\java\main\java\gui\style\PastelTheme.java src\main\java\main\java\Main.java src\main\java\main\java\models\Announcement.java src\main\java\main\java\models\Appointment.java src\main\java\main\java\models\Assignment.java src\main\java\main\java\models\AssignmentSubmission.java src\main\java\main\java\models\AttendanceRecord.java src\main\java\main\java\models\Course.java src\main\java\main\java\models\EnrollmentRecord.java src\main\java\main\java\models\ExamForm.java src\main\java\main\java\models\Faculty.java src\main\java\main\java\models\FeeInstallment.java src\main\java\main\java\models\MaintenanceWindow.java src\main\java\main\java\models\NotificationMessage.java src\main\java\main\java\models\NotificationPreference.java src\main\java\main\java\models\NotificationRequest.java src\main\java\main\java\models\OfficeHour.java src\main\java\main\java\models\PaymentTransaction.java src\main\java\main\java\models\Section.java src\main\java\main\java\models\Student.java src\main\java\main\java\models\User.java src\main\java\main\java\service\AdminService.java src\main\java\main\java\service\BackupRestoreService.java src\main\java\main\java\service\BulkImportExportService.java src\main\java\main\java\service\EnrollmentService.java src\main\java\main\java\service\FacultyService.java src\main\java\main\java\service\GradebookService.java src\main\java\main\java\service\InstructorService.java src\main\java\main\java\service\NotificationDeliveryService.java src\main\java\main\java\service\StudentService.java src\main\java\main\java\utils\AuditLogService.java src\main\java\main\java\utils\DatabaseUtil.java src\main\java\main\java\utils\FinanceReminderScheduler.java src\main\java\main\java\utils\HealthDiagnostics.java src\main\java\main\java\utils\PasswordPolicy.java src\main\java\main\java\utils\PasswordUtil.java
+node : Note: Some 
+input files use or 
+override a 
+deprecated API.
+At line:1 char:1
++ node 
+run_tests.js > test
+_recompile_output_v
+5.txt 2>&1
++ ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo 
+             : No  
+  tSpecified: (N   
+ ote: Some inpu    
+...deprecated     
+API.:String) [    
+], RemoteExcep    
+tion
+    + FullyQualifi 
+   edErrorId : Na  
+  tiveCommandErr   
+ or
+ 
+Note: Recompile 
+with 
+-Xlint:deprecation 
+for details.
+Note: Some input 
+files use 
+unchecked or 
+unsafe operations.
+Note: Recompile 
+with 
+-Xlint:unchecked 
+for details.
+Executing: javac -d target/test-classes -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar;C:\Users\DELL\.m2\repository\com\zaxxer\HikariCP\5.1.0\HikariCP-5.1.0.jar;C:\Users\DELL\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.3.3\mariadb-java-client-3.3.3.jar;C:\Users\DELL\.m2\repository\org\flywaydb\flyway-core\10.12.0\flyway-core-10.12.0.jar;C:\Users\DELL\.m2\repository\org\apache\commons\commons-csv\1.11.0\commons-csv-1.11.0.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\pdfbox\2.0.32\pdfbox-2.0.32.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\fontbox\2.0.32\fontbox-2.0.32.jar;C:\Users\DELL\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\DELL\.m2\repository\com\formdev\flatlaf\3.5\flatlaf-3.5.jar" src\test\java\main\java\service\AdminServiceTest.java src\test\java\main\java\service\EnrollmentServiceTest.java src\test\java\main\java\service\FacultyServiceTest.java src\test\java\main\java\service\GradebookServiceTest.java src\test\java\main\java\service\StudentServiceTest.java src\test\java\main\java\utils\ManualTestRunner.java src\test\java\main\java\utils\PasswordPolicyTest.java src\test\java\main\java\utils\PasswordUtilTest.java
+src\test\java\main\
+java\service\AdminS
+erviceTest.java:5: 
+error: cannot find 
+symbol
+import main.java.da
+ta.AuthUserDao;
+                   
+  ^
+  symbol:   class 
+AuthUserDao
+  location: 
+package 
+main.java.data
+src\test\java\main\
+java\service\Enroll
+mentServiceTest.jav
+a:4: error: cannot 
+find symbol
+import main.java.da
+ta.AuthUserDao;
+                   
+  ^
+  symbol:   class 
+AuthUserDao
+  location: 
+package 
+main.java.data
+src\test\java\main\
+java\service\AdminS
+erviceTest.java:31:
+ error: cannot 
+find symbol
+        
+AuthUserDao 
+mockDao = mock(Auth
+UserDao.class);
+        ^
+  symbol:   class 
+AuthUserDao
+  location: class 
+AdminServiceTest
+src\test\java\main\
+java\service\AdminS
+erviceTest.java:31:
+ error: cannot 
+find symbol
+        
+AuthUserDao 
+mockDao = mock(Auth
+UserDao.class);
+                   
+                ^
+  symbol:   class 
+AuthUserDao
+  location: class 
+AdminServiceTest
+4 errors
+Command failed: 
+javac -d target/tes
+t-classes -cp "targ
+et/classes;target/t
+est-classes;src/tes
+t/resources;C:\User
+s\DELL\.m2\reposito
+ry\org\junit\jupite
+r\junit-jupiter-api
+\5.10.2\junit-jupit
+er-api-5.10.2.jar;C
+:\Users\DELL\.m2\re
+pository\org\junit\
+jupiter\junit-jupit
+er-engine\5.10.2\ju
+nit-jupiter-engine-
+5.10.2.jar;C:\Users
+\DELL\.m2\repositor
+y\org\junit\platfor
+m\junit-platform-co
+mmons\1.10.2\junit-
+platform-commons-1.
+10.2.jar;C:\Users\D
+ELL\.m2\repository\
+org\junit\platform\
+junit-platform-engi
+ne\1.10.2\junit-pla
+tform-engine-1.10.2
+.jar;C:\Users\DELL\
+.m2\repository\org\
+opentest4j\opentest
+4j\1.3.0\opentest4j
+-1.3.0.jar;C:\Users
+\DELL\.m2\repositor
+y\org\apiguardian\a
+piguardian-api\1.1.
+2\apiguardian-api-1
+.1.2.jar;C:\Users\D
+ELL\.m2\repository\
+org\assertj\assertj
+-core\3.26.0\assert
+j-core-3.26.0.jar;C
+:\Users\DELL\.m2\re
+pository\org\mockit
+o\mockito-core\5.12
+.0\mockito-core-5.1
+2.0.jar;C:\Users\DE
+LL\.m2\repository\n
+et\bytebuddy\byte-b
+uddy\1.14.15\byte-b
+uddy-1.14.15.jar;C:
+\Users\DELL\.m2\rep
+ository\net\bytebud
+dy\byte-buddy-agent
+\1.14.15\byte-buddy
+-agent-1.14.15.jar;
+C:\Users\DELL\.m2\r
+epository\org\objen
+esis\objenesis\3.3\
+objenesis-3.3.jar;C
+:\Users\DELL\.m2\re
+pository\org\slf4j\
+slf4j-api\2.0.13\sl
+f4j-api-2.0.13.jar;
+C:\Users\DELL\.m2\r
+epository\ch\qos\lo
+gback\logback-class
+ic\1.5.6\logback-cl
+assic-1.5.6.jar;C:\
+Users\DELL\.m2\repo
+sitory\ch\qos\logba
+ck\logback-core\1.5
+.6\logback-core-1.5
+.6.jar;C:\Users\DEL
+L\.m2\repository\co
+m\zaxxer\HikariCP\5
+.1.0\HikariCP-5.1.0
+.jar;C:\Users\DELL\
+.m2\repository\org\
+mariadb\jdbc\mariad
+b-java-client\3.3.3
+\mariadb-java-clien
+t-3.3.3.jar;C:\User
+s\DELL\.m2\reposito
+ry\org\flywaydb\fly
+way-core\10.12.0\fl
+yway-core-10.12.0.j
+ar;C:\Users\DELL\.m
+2\repository\org\ap
+ache\commons\common
+s-csv\1.11.0\common
+s-csv-1.11.0.jar;C:
+\Users\DELL\.m2\rep
+ository\org\apache\
+pdfbox\pdfbox\2.0.3
+2\pdfbox-2.0.32.jar
+;C:\Users\DELL\.m2\
+repository\org\apac
+he\pdfbox\fontbox\2
+.0.32\fontbox-2.0.3
+2.jar;C:\Users\DELL
+\.m2\repository\com
+mons-logging\common
+s-logging\1.2\commo
+ns-logging-1.2.jar;
+C:\Users\DELL\.m2\r
+epository\com\formd
+ev\flatlaf\3.5\flat
+laf-3.5.jar" src\te
+st\java\main\java\s
+ervice\AdminService
+Test.java src\test\
+java\main\java\serv
+ice\EnrollmentServi
+ceTest.java src\tes
+t\java\main\java\se
+rvice\FacultyServic
+eTest.java src\test
+\java\main\java\ser
+vice\GradebookServi
+ceTest.java src\tes
+t\java\main\java\se
+rvice\StudentServic
+eTest.java src\test
+\java\main\java\uti
+ls\ManualTestRunner
+.java src\test\java
+\main\java\utils\Pa
+sswordPolicyTest.ja
+va src\test\java\ma
+in\java\utils\Passw
+ordUtilTest.java

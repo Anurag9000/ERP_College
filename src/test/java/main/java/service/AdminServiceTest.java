@@ -2,7 +2,7 @@ package main.java.service;
 
 import main.java.models.User;
 import main.java.utils.DatabaseUtil;
-import main.java.data.AuthUserDao;
+import main.java.data.dao.AuthUserDao;
 import org.junit.jupiter.api.Test;
 import java.util.Optional;
 

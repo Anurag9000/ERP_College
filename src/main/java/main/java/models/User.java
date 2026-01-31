@@ -157,6 +157,7 @@ public class User implements java.io.Serializable {
         while (passwordHistory.size() > maxHistory) {
             passwordHistory.removeLast();
         }
+    }
 
     @Override
     public boolean equals(Object o) {

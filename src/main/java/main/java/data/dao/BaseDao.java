@@ -19,6 +19,10 @@ public abstract class BaseDao {
     }
 
     protected Connection getConnection() throws SQLException {
-        return dataSource.getConnection();
+        Connection conn = dataSource.getConnection();
+        if (conn == null || conn.isClosed()) {
+            throw new SQLException("Failed to obtain a valid database connection.");
+        }
+        return conn;
     }
 }

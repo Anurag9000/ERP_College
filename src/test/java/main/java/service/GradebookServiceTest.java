@@ -21,6 +21,7 @@ public class GradebookServiceTest {
     private EnrollmentDao mockEnrollmentDao;
     private AuditLogDao mockAuditLogDao;
     private SettingsDao mockSettingsDao;
+    private MaintenanceWindowDao mockMaintenanceWindowDao;
 
     @BeforeEach
     void setUp() {
@@ -34,7 +35,10 @@ public class GradebookServiceTest {
         DatabaseUtil.setInstructorDao(mockInstructorDao);
         DatabaseUtil.setEnrollmentDao(mockEnrollmentDao);
         DatabaseUtil.setAuditLogDao(mockAuditLogDao);
+        mockMaintenanceWindowDao = mock(MaintenanceWindowDao.class);
         DatabaseUtil.setSettingsDao(mockSettingsDao);
+        DatabaseUtil.setMaintenanceWindowDao(mockMaintenanceWindowDao);
+        when(mockMaintenanceWindowDao.findAll()).thenReturn(Collections.emptyList());
     }
 
     @Test

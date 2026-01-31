@@ -1,6 +1,5 @@
 package main.java.utils;
 
-import main.java.data.dao.AuditLogDao;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
@@ -76,7 +75,7 @@ public final class AuditLogService {
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger("AUDIT");
-    private static final AuditLogDao AUDIT_LOG_DAO = new AuditLogDao();
+
     private static final int DEFAULT_RECENT_LIMIT = 250;
 
     private AuditLogService() {
@@ -85,31 +84,30 @@ public final class AuditLogService {
     public static void log(EventType type, String actor, String details) {
         AuditEvent event = new AuditEvent(type, actor, details);
         LOGGER.info("[{}] {} - {}", type, actor, details);
-        AUDIT_LOG_DAO.insert(event);
+        DatabaseUtil.getAuditLogDao().insert(event);
     }
 
     public static List<AuditEvent> recentEvents() {
-        return AUDIT_LOG_DAO.findRecent(DEFAULT_RECENT_LIMIT);
+        return DatabaseUtil.getAuditLogDao().findRecent(DEFAULT_RECENT_LIMIT);
     }
 
     public static List<AuditEvent> findBetween(LocalDateTime from, LocalDateTime to) {
-        return AUDIT_LOG_DAO.findRange(from, to);
+        return DatabaseUtil.getAuditLogDao().findRange(from, to);
     }
 
     public static void exportToCsv(Path path, List<AuditEvent> events) throws IOException {
         List<AuditEvent> source = events != null ? events : Collections.emptyList();
         try (Writer writer = Files.newBufferedWriter(path);
-             CSVPrinter printer = new CSVPrinter(writer,
-                     CSVFormat.Builder.create(CSVFormat.DEFAULT)
-                             .setHeader("Timestamp", "Type", "Actor", "Details")
-                             .build())) {
+                CSVPrinter printer = new CSVPrinter(writer,
+                        CSVFormat.Builder.create(CSVFormat.DEFAULT)
+                                .setHeader("Timestamp", "Type", "Actor", "Details")
+                                .build())) {
             for (AuditEvent event : source) {
                 printer.printRecord(
                         event.getTimestamp(),
                         event.getType().name(),
                         event.getActor(),
-                        event.getDetails()
-                );
+                        event.getDetails());
             }
         }
     }
@@ -131,7 +129,8 @@ public final class AuditLogService {
         String needle = username.trim();
         return recentEvents().stream()
                 .filter(event -> needle.equalsIgnoreCase(event.getActor())
-                        || (event.getDetails() != null && event.getDetails().toLowerCase().contains(needle.toLowerCase())))
+                        || (event.getDetails() != null
+                                && event.getDetails().toLowerCase().contains(needle.toLowerCase())))
                 .collect(Collectors.toList());
     }
 }

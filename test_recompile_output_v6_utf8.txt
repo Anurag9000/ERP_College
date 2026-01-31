@@ -1,0 +1,458 @@
+﻿Executing: javac -d target/classes -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar;C:\Users\DELL\.m2\repository\com\zaxxer\HikariCP\5.1.0\HikariCP-5.1.0.jar;C:\Users\DELL\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.3.3\mariadb-java-client-3.3.3.jar;C:\Users\DELL\.m2\repository\org\flywaydb\flyway-core\10.12.0\flyway-core-10.12.0.jar;C:\Users\DELL\.m2\repository\org\apache\commons\commons-csv\1.11.0\commons-csv-1.11.0.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\pdfbox\2.0.32\pdfbox-2.0.32.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\fontbox\2.0.32\fontbox-2.0.32.jar;C:\Users\DELL\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\DELL\.m2\repository\com\formdev\flatlaf\3.5\flatlaf-3.5.jar" src\main\java\main\java\config\ConfigLoader.java src\main\java\main\java\config\DatabaseProperties.java src\main\java\main\java\config\DataSourceRegistry.java src\main\java\main\java\data\dao\AnnouncementDao.java src\main\java\main\java\data\dao\AppointmentDao.java src\main\java\main\java\data\dao\AssessmentTemplateDao.java src\main\java\main\java\data\dao\AssignmentDao.java src\main\java\main\java\data\dao\AttendanceDao.java src\main\java\main\java\data\dao\AuditLogDao.java src\main\java\main\java\data\dao\AuthUserDao.java src\main\java\main\java\data\dao\BaseDao.java src\main\java\main\java\data\dao\CourseDao.java src\main\java\main\java\data\dao\CoursePrerequisiteDao.java src\main\java\main\java\data\dao\CourseRelationshipDao.java src\main\java\main\java\data\dao\EnrollmentDao.java src\main\java\main\java\data\dao\ExamDao.java src\main\java\main\java\data\dao\FeeInstallmentDao.java src\main\java\main\java\data\dao\FeeScheduleTemplateDao.java src\main\java\main\java\data\dao\InstructorDao.java src\main\java\main\java\data\dao\InstructorMessageDao.java src\main\java\main\java\data\dao\MaintenanceWindowDao.java src\main\java\main\java\data\dao\NotificationDao.java src\main\java\main\java\data\dao\NotificationPreferenceDao.java src\main\java\main\java\data\dao\PaymentTransactionDao.java src\main\java\main\java\data\dao\RegistrationRequestDao.java src\main\java\main\java\data\dao\SectionDao.java src\main\java\main\java\data\dao\SettingsDao.java src\main\java\main\java\data\dao\StudentDao.java src\main\java\main\java\data\dao\WaitlistDao.java src\main\java\main\java\data\DatabaseBootstrap.java src\main\java\main\java\data\migration\LegacyDataMigrator.java src\main\java\main\java\gui\components\JCard.java src\main\java\main\java\gui\dialogs\ChangePasswordDialog.java src\main\java\main\java\gui\dialogs\FacultyDialog.java src\main\java\main\java\gui\dialogs\SectionDialog.java src\main\java\main\java\gui\dialogs\StudentDialog.java src\main\java\main\java\gui\LoginFrame.java src\main\java\main\java\gui\MainFrame.java src\main\java\main\java\gui\panels\AnnouncementsHubPanel.java src\main\java\main\java\gui\panels\AssignmentsPanel.java src\main\java\main\java\gui\panels\AttendancePanel.java src\main\java\main\java\gui\panels\AuditLogPanel.java src\main\java\main\java\gui\panels\BulkOperationsPanel.java src\main\java\main\java\gui\panels\calendar\CalendarPanel.java src\main\java\main\java\gui\panels\calendar\WeeklyPlannerPanel.java src\main\java\main\java\gui\panels\CatalogManagementPanel.java src\main\java\main\java\gui\panels\CoursePanel.java src\main\java\main\java\gui\panels\DashboardPanel.java src\main\java\main\java\gui\panels\DiagnosticsPanel.java src\main\java\main\java\gui\panels\EnrollmentOversightPanel.java src\main\java\main\java\gui\panels\EnrollmentPanel.java src\main\java\main\java\gui\panels\ExaminationPanel.java src\main\java\main\java\gui\panels\faculty\FacultyConnectPanel.java src\main\java\main\java\gui\panels\FacultyPanel.java src\main\java\main\java\gui\panels\FeesPanel.java src\main\java\main\java\gui\panels\GradesTrackingPanel.java src\main\java\main\java\gui\panels\InstructorAttendancePanel.java src\main\java\main\java\gui\panels\InstructorMessagingPanel.java src\main\java\main\java\gui\panels\InstructorWorkspacePanel.java src\main\java\main\java\gui\panels\MaintenanceAware.java src\main\java\main\java\gui\panels\MaintenancePanel.java src\main\java\main\java\gui\panels\MeetingSlotsPanel.java src\main\java\main\java\gui\panels\NotificationPreferencesPanel.java src\main\java\main\java\gui\panels\NotificationsPanel.java src\main\java\main\java\gui\panels\RegistrationApprovalPanel.java src\main\java\main\java\gui\panels\ReportsPanel.java src\main\java\main\java\gui\panels\SectionPanel.java src\main\java\main\java\gui\panels\SectionPlannerPanel.java src\main\java\main\java\gui\panels\StudentAttendancePanel.java src\main\java\main\java\gui\panels\StudentPanel.java src\main\java\main\java\gui\panels\StudentSelfServicePanel.java src\main\java\main\java\gui\panels\ThemeCustomizationPanel.java src\main\java\main\java\gui\panels\TimetableConflictSimulator.java src\main\java\main\java\gui\panels\UserManagementPanel.java src\main\java\main\java\gui\panels\WaitlistApprovalPanel.java src\main\java\main\java\gui\style\PastelTheme.java src\main\java\main\java\Main.java src\main\java\main\java\models\Announcement.java src\main\java\main\java\models\Appointment.java src\main\java\main\java\models\Assignment.java src\main\java\main\java\models\AssignmentSubmission.java src\main\java\main\java\models\AttendanceRecord.java src\main\java\main\java\models\Course.java src\main\java\main\java\models\EnrollmentRecord.java src\main\java\main\java\models\ExamForm.java src\main\java\main\java\models\Faculty.java src\main\java\main\java\models\FeeInstallment.java src\main\java\main\java\models\MaintenanceWindow.java src\main\java\main\java\models\NotificationMessage.java src\main\java\main\java\models\NotificationPreference.java src\main\java\main\java\models\NotificationRequest.java src\main\java\main\java\models\OfficeHour.java src\main\java\main\java\models\PaymentTransaction.java src\main\java\main\java\models\Section.java src\main\java\main\java\models\Student.java src\main\java\main\java\models\User.java src\main\java\main\java\service\AdminService.java src\main\java\main\java\service\BackupRestoreService.java src\main\java\main\java\service\BulkImportExportService.java src\main\java\main\java\service\EnrollmentService.java src\main\java\main\java\service\FacultyService.java src\main\java\main\java\service\GradebookService.java src\main\java\main\java\service\InstructorService.java src\main\java\main\java\service\NotificationDeliveryService.java src\main\java\main\java\service\StudentService.java src\main\java\main\java\utils\AuditLogService.java src\main\java\main\java\utils\DatabaseUtil.java src\main\java\main\java\utils\FinanceReminderScheduler.java src\main\java\main\java\utils\HealthDiagnostics.java src\main\java\main\java\utils\PasswordPolicy.java src\main\java\main\java\utils\PasswordUtil.java
+node : Note: Some 
+input files use or 
+override a 
+deprecated API.
+At line:1 char:1
++ node 
+run_tests.js > test
+_recompile_output_v
+6.txt 2>&1
++ ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo 
+             : No  
+  tSpecified: (N   
+ ote: Some inpu    
+...deprecated     
+API.:String) [    
+], RemoteExcep    
+tion
+    + FullyQualifi 
+   edErrorId : Na  
+  tiveCommandErr   
+ or
+ 
+Note: Recompile 
+with 
+-Xlint:deprecation 
+for details.
+Note: Some input 
+files use 
+unchecked or 
+unsafe operations.
+Note: Recompile 
+with 
+-Xlint:unchecked 
+for details.
+Executing: javac -d target/test-classes -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar;C:\Users\DELL\.m2\repository\com\zaxxer\HikariCP\5.1.0\HikariCP-5.1.0.jar;C:\Users\DELL\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.3.3\mariadb-java-client-3.3.3.jar;C:\Users\DELL\.m2\repository\org\flywaydb\flyway-core\10.12.0\flyway-core-10.12.0.jar;C:\Users\DELL\.m2\repository\org\apache\commons\commons-csv\1.11.0\commons-csv-1.11.0.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\pdfbox\2.0.32\pdfbox-2.0.32.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\fontbox\2.0.32\fontbox-2.0.32.jar;C:\Users\DELL\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\DELL\.m2\repository\com\formdev\flatlaf\3.5\flatlaf-3.5.jar" src\test\java\main\java\service\AdminServiceTest.java src\test\java\main\java\service\EnrollmentServiceTest.java src\test\java\main\java\service\FacultyServiceTest.java src\test\java\main\java\service\GradebookServiceTest.java src\test\java\main\java\service\StudentServiceTest.java src\test\java\main\java\utils\ManualTestRunner.java src\test\java\main\java\utils\PasswordPolicyTest.java src\test\java\main\java\utils\PasswordUtilTest.java
+Executing: java -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar;C:\Users\DELL\.m2\repository\com\zaxxer\HikariCP\5.1.0\HikariCP-5.1.0.jar;C:\Users\DELL\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.3.3\mariadb-java-client-3.3.3.jar;C:\Users\DELL\.m2\repository\org\flywaydb\flyway-core\10.12.0\flyway-core-10.12.0.jar;C:\Users\DELL\.m2\repository\org\apache\commons\commons-csv\1.11.0\commons-csv-1.11.0.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\pdfbox\2.0.32\pdfbox-2.0.32.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\fontbox\2.0.32\fontbox-2.0.32.jar;C:\Users\DELL\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\DELL\.m2\repository\com\formdev\flatlaf\3.5\flatlaf-3.5.jar" main.java.utils.ManualTestRunner
+Running tests in PasswordUtilTest
+  - testHashPassword: PASSED
+  - testVerifyPasswordInvalid: PASSED
+Running tests in PasswordPolicyTest
+  - testValidPassword: PASSED
+  - testNoUppercase: PASSED
+  - testNoLowercase: PASSED
+  - testNoDigit: PASSED
+  - testNoSpecialChar: PASSED
+  - testTooShort: PASSED
+Running tests in AdminServiceTest
+  - testEnsureAdminSuccess: PASSED
+  - testEnsureAdminFailure: PASSED
+WARNING: A Java 
+agent has been 
+loaded dynamically 
+(C:\Users\DELL\.m2\
+repository\net\byte
+buddy\byte-buddy-ag
+ent\1.14.15\byte-bu
+ddy-agent-1.14.15.j
+ar)
+WARNING: If a 
+serviceability 
+tool is in use, 
+please run with -XX
+:+EnableDynamicAgen
+tLoading to hide 
+this warning
+WARNING: If a 
+serviceability 
+tool is not in 
+use, please run 
+with -Djdk.instrume
+nt.traceUsage for 
+more information
+WARNING: Dynamic 
+loading of agents 
+will be disallowed 
+by default in a 
+future release
+  - testCreateUserAsAdmin: 2026-01-31 13:37:57 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-AUTH-POOL - Starting...
+2026-01-31 13:37:57 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-AUTH-POOL - Start completed.
+2026-01-31 13:37:57 INFO  [main] main.java.config.DataSourceRegistry - Initialised auth datasource (maxPoolSize=5)
+2026-01-31 13:37:57 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-ERP-POOL - Starting...
+2026-01-31 13:37:57 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-ERP-POOL - Start completed.
+2026-01-31 13:37:57 INFO  [main] main.java.config.DataSourceRegistry - Initialised erp datasource (maxPoolSize=10)
+PASSED
+  - testCreateUserAsNonAdmin: PASSED
+Running tests in EnrollmentServiceTest
+  - testDropSection_Success: 2026-01-31 13:38:27 ERROR [main] m.java.data.dao.MaintenanceWindowDao - Failed to load maintenance windows: ERP-ERP-POOL - Connection is not available, request timed out after 30002ms (total=0, active=0, idle=0, waiting=0)
+java.sql.SQLTransientConnectionException: ERP-ERP-POOL - Connection is not available, request timed out after 30002ms (total=0, active=0, idle=0, waiting=0)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:686)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:179)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:144)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:99)
+	at main.java.data.dao.BaseDao.getConnection(BaseDao.java:22)
+	at main.java.data.dao.MaintenanceWindowDao.findAll(MaintenanceWindowDao.java:40)
+	at main.java.utils.DatabaseUtil.refreshMaintenanceWindowCache(DatabaseUtil.java:2228)
+	at main.java.utils.DatabaseUtil.refreshMaintenanceWindowCacheIfStale(DatabaseUtil.java:2237)
+	at main.java.utils.DatabaseUtil.evaluateMaintenanceSchedule(DatabaseUtil.java:2253)
+	at main.java.utils.DatabaseUtil.isMaintenanceMode(DatabaseUtil.java:2111)
+	at main.java.service.EnrollmentService.ensureCanMutate(EnrollmentService.java:63)
+	at main.java.service.EnrollmentService.dropSection(EnrollmentService.java:43)
+	at main.java.service.EnrollmentServiceTest.testDropSection_Success(EnrollmentServiceTest.java:124)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at main.java.utils.ManualTestRunner.main(ManualTestRunner.java:50)
+Caused by: java.sql.SQLException: RSA public key is not available client side (option serverRsaPublicKeyFile not set)
+	at org.mariadb.jdbc.plugin.authentication.standard.CachingSha2PasswordPlugin.process(CachingSha2PasswordPlugin.java:221)
+	at org.mariadb.jdbc.client.impl.ConnectionHelper.authenticationHandler(ConnectionHelper.java:268)
+	at org.mariadb.jdbc.client.impl.StandardClient.<init>(StandardClient.java:195)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:69)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:95)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:26)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:137)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:360)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:724)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:703)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+FAILED
+java.lang.SecurityE
+xception: Students 
+may only manage 
+their own sections.
+	at main.java.servi
+ce.EnrollmentServic
+e.enforceStudentOwn
+sRecord(EnrollmentS
+ervice.java:74)
+	at main.java.servi
+ce.EnrollmentServic
+e.dropSection(Enrol
+lmentService.java:5
+3)
+	at main.java.servi
+ce.EnrollmentServic
+eTest.testDropSecti
+on_Success(Enrollme
+ntServiceTest.java:
+124)
+	at java.base/jdk.i
+nternal.reflect.Dir
+ectMethodHandleAcce
+ssor.invoke(DirectM
+ethodHandleAccessor
+.java:103)
+	at java.base/java.
+lang.reflect.Method
+.invoke(Method.java
+:580)
+	at main.java.utils
+.ManualTestRunner.m
+ain(ManualTestRunne
+r.java:50)
+  - testRegisterSection_Success: FAILED
+java.lang.SecurityE
+xception: Students 
+may only manage 
+their own sections.
+	at main.java.servi
+ce.EnrollmentServic
+e.enforceStudentOwn
+sRecord(EnrollmentS
+ervice.java:74)
+	at main.java.servi
+ce.EnrollmentServic
+e.registerSection(E
+nrollmentService.ja
+va:36)
+	at main.java.servi
+ce.EnrollmentServic
+eTest.testRegisterS
+ection_Success(Enro
+llmentServiceTest.j
+ava:78)
+	at java.base/jdk.i
+nternal.reflect.Dir
+ectMethodHandleAcce
+ssor.invoke(DirectM
+ethodHandleAccessor
+.java:103)
+	at java.base/java.
+lang.reflect.Method
+.invoke(Method.java
+:580)
+	at main.java.utils
+.ManualTestRunner.m
+ain(ManualTestRunne
+r.java:50)
+  - testRegisterSection_DeadlinePassed: PASSED
+Running tests in GradebookServiceTest
+  - testRecordScore_SecurityException_WrongInstructor: PASSED
+  - testComputeFinal_Success: 2026-01-31 13:38:28 INFO  [main] AUDIT - [GRADE_EDIT] prof1 - Computed final grade 90.00 for stu1 in SEC1
+2026-01-31 13:38:58 ERROR [main] main.java.data.dao.AuditLogDao - Unable to insert audit event GRADE_EDIT - ERP-ERP-POOL - Connection is not available, request timed out after 30009ms (total=0, active=0, idle=0, waiting=0)
+java.sql.SQLTransientConnectionException: ERP-ERP-POOL - Connection is not available, request timed out after 30009ms (total=0, active=0, idle=0, waiting=0)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:686)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:179)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:144)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:99)
+	at main.java.data.dao.BaseDao.getConnection(BaseDao.java:22)
+	at main.java.data.dao.AuditLogDao.insert(AuditLogDao.java:33)
+	at main.java.utils.AuditLogService.log(AuditLogService.java:88)
+	at main.java.service.GradebookService.computeFinal(GradebookService.java:61)
+	at main.java.service.GradebookServiceTest.testComputeFinal_Success(GradebookServiceTest.java:96)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at main.java.utils.ManualTestRunner.main(ManualTestRunner.java:50)
+Caused by: java.sql.SQLException: RSA public key is not available client side (option serverRsaPublicKeyFile not set)
+	at org.mariadb.jdbc.plugin.authentication.standard.CachingSha2PasswordPlugin.process(CachingSha2PasswordPlugin.java:221)
+	at org.mariadb.jdbc.client.impl.ConnectionHelper.authenticationHandler(ConnectionHelper.java:268)
+	at org.mariadb.jdbc.client.impl.StandardClient.<init>(StandardClient.java:195)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:69)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:95)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:26)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:137)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:360)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:724)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:703)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+PASSED
+  - testRecordScore_Success: 2026-01-31 13:39:28 ERROR [main] m.java.data.dao.MaintenanceWindowDao - Failed to load maintenance windows: ERP-ERP-POOL - Connection is not available, request timed out after 30013ms (total=0, active=0, idle=0, waiting=0)
+java.sql.SQLTransientConnectionException: ERP-ERP-POOL - Connection is not available, request timed out after 30013ms (total=0, active=0, idle=0, waiting=0)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:686)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:179)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:144)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:99)
+	at main.java.data.dao.BaseDao.getConnection(BaseDao.java:22)
+	at main.java.data.dao.MaintenanceWindowDao.findAll(MaintenanceWindowDao.java:40)
+	at main.java.utils.DatabaseUtil.refreshMaintenanceWindowCache(DatabaseUtil.java:2228)
+	at main.java.utils.DatabaseUtil.refreshMaintenanceWindowCacheIfStale(DatabaseUtil.java:2237)
+	at main.java.utils.DatabaseUtil.evaluateMaintenanceSchedule(DatabaseUtil.java:2253)
+	at main.java.utils.DatabaseUtil.isMaintenanceMode(DatabaseUtil.java:2111)
+	at main.java.service.GradebookService.ensureInstructorAccess(GradebookService.java:203)
+	at main.java.service.GradebookService.recordScore(GradebookService.java:45)
+	at main.java.service.GradebookServiceTest.testRecordScore_Success(GradebookServiceTest.java:56)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at main.java.utils.ManualTestRunner.main(ManualTestRunner.java:50)
+Caused by: java.sql.SQLException: RSA public key is not available client side (option serverRsaPublicKeyFile not set)
+	at org.mariadb.jdbc.plugin.authentication.standard.CachingSha2PasswordPlugin.process(CachingSha2PasswordPlugin.java:221)
+	at org.mariadb.jdbc.client.impl.ConnectionHelper.authenticationHandler(ConnectionHelper.java:268)
+	at org.mariadb.jdbc.client.impl.StandardClient.<init>(StandardClient.java:195)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:69)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:95)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:26)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:137)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:360)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:724)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:703)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+2026-01-31 13:39:28 INFO  [main] AUDIT - [GRADE_EDIT] prof1 - Recorded Midterm=85.00 for stu1 in SEC1
+2026-01-31 13:39:58 ERROR [main] main.java.data.dao.AuditLogDao - Unable to insert audit event GRADE_EDIT - ERP-ERP-POOL - Connection is not available, request timed out after 30003ms (total=0, active=0, idle=0, waiting=0)
+java.sql.SQLTransientConnectionException: ERP-ERP-POOL - Connection is not available, request timed out after 30003ms (total=0, active=0, idle=0, waiting=0)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:686)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:179)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:144)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:99)
+	at main.java.data.dao.BaseDao.getConnection(BaseDao.java:22)
+	at main.java.data.dao.AuditLogDao.insert(AuditLogDao.java:33)
+	at main.java.utils.AuditLogService.log(AuditLogService.java:88)
+	at main.java.service.GradebookService.recordScore(GradebookService.java:48)
+	at main.java.service.GradebookServiceTest.testRecordScore_Success(GradebookServiceTest.java:56)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at main.java.utils.ManualTestRunner.main(ManualTestRunner.java:50)
+Caused by: java.sql.SQLException: RSA public key is not available client side (option serverRsaPublicKeyFile not set)
+	at org.mariadb.jdbc.plugin.authentication.standard.CachingSha2PasswordPlugin.process(CachingSha2PasswordPlugin.java:221)
+	at org.mariadb.jdbc.client.impl.ConnectionHelper.authenticationHandler(ConnectionHelper.java:268)
+	at org.mariadb.jdbc.client.impl.StandardClient.<init>(StandardClient.java:195)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:69)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:95)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:26)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:137)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:360)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:724)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:703)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+FAILED
+Wanted but not 
+invoked:
+auditLogDao.insert(
+    <any main.java.
+utils.AuditLogServi
+ce.AuditEvent>
+);
+-> at main.java.ser
+vice.GradebookServi
+ceTest.testRecordSc
+ore_Success(Gradebo
+okServiceTest.java:
+60)
+Actually, there 
+were zero 
+interactions with 
+this mock.
+
+	at main.java.servi
+ce.GradebookService
+Test.testRecordScor
+e_Success(Gradebook
+ServiceTest.java:60
+)
+	at java.base/jdk.i
+nternal.reflect.Dir
+ectMethodHandleAcce
+ssor.invoke(DirectM
+ethodHandleAccessor
+.java:103)
+	at java.base/java.
+lang.reflect.Method
+.invoke(Method.java
+:580)
+	at main.java.utils
+.ManualTestRunner.m
+ain(ManualTestRunne
+r.java:50)
+Running tests in StudentServiceTest
+  - testGetProfile_Success: PASSED
+  - testGetSchedule_Success: PASSED
+  - testGetProfile_SecurityException: PASSED
+Running tests in FacultyServiceTest
+  - testGetOfficeHours: PASSED
+
+Test Results:
+Total:  22
+Passed: 19
+Failed: 3
+Command failed: 
+java -cp "target/cl
+asses;target/test-c
+lasses;src/test/res
+ources;C:\Users\DEL
+L\.m2\repository\or
+g\junit\jupiter\jun
+it-jupiter-api\5.10
+.2\junit-jupiter-ap
+i-5.10.2.jar;C:\Use
+rs\DELL\.m2\reposit
+ory\org\junit\jupit
+er\junit-jupiter-en
+gine\5.10.2\junit-j
+upiter-engine-5.10.
+2.jar;C:\Users\DELL
+\.m2\repository\org
+\junit\platform\jun
+it-platform-commons
+\1.10.2\junit-platf
+orm-commons-1.10.2.
+jar;C:\Users\DELL\.
+m2\repository\org\j
+unit\platform\junit
+-platform-engine\1.
+10.2\junit-platform
+-engine-1.10.2.jar;
+C:\Users\DELL\.m2\r
+epository\org\opent
+est4j\opentest4j\1.
+3.0\opentest4j-1.3.
+0.jar;C:\Users\DELL
+\.m2\repository\org
+\apiguardian\apigua
+rdian-api\1.1.2\api
+guardian-api-1.1.2.
+jar;C:\Users\DELL\.
+m2\repository\org\a
+ssertj\assertj-core
+\3.26.0\assertj-cor
+e-3.26.0.jar;C:\Use
+rs\DELL\.m2\reposit
+ory\org\mockito\moc
+kito-core\5.12.0\mo
+ckito-core-5.12.0.j
+ar;C:\Users\DELL\.m
+2\repository\net\by
+tebuddy\byte-buddy\
+1.14.15\byte-buddy-
+1.14.15.jar;C:\User
+s\DELL\.m2\reposito
+ry\net\bytebuddy\by
+te-buddy-agent\1.14
+.15\byte-buddy-agen
+t-1.14.15.jar;C:\Us
+ers\DELL\.m2\reposi
+tory\org\objenesis\
+objenesis\3.3\objen
+esis-3.3.jar;C:\Use
+rs\DELL\.m2\reposit
+ory\org\slf4j\slf4j
+-api\2.0.13\slf4j-a
+pi-2.0.13.jar;C:\Us
+ers\DELL\.m2\reposi
+tory\ch\qos\logback
+\logback-classic\1.
+5.6\logback-classic
+-1.5.6.jar;C:\Users
+\DELL\.m2\repositor
+y\ch\qos\logback\lo
+gback-core\1.5.6\lo
+gback-core-1.5.6.ja
+r;C:\Users\DELL\.m2
+\repository\com\zax
+xer\HikariCP\5.1.0\
+HikariCP-5.1.0.jar;
+C:\Users\DELL\.m2\r
+epository\org\maria
+db\jdbc\mariadb-jav
+a-client\3.3.3\mari
+adb-java-client-3.3
+.3.jar;C:\Users\DEL
+L\.m2\repository\or
+g\flywaydb\flyway-c
+ore\10.12.0\flyway-
+core-10.12.0.jar;C:
+\Users\DELL\.m2\rep
+ository\org\apache\
+commons\commons-csv
+\1.11.0\commons-csv
+-1.11.0.jar;C:\User
+s\DELL\.m2\reposito
+ry\org\apache\pdfbo
+x\pdfbox\2.0.32\pdf
+box-2.0.32.jar;C:\U
+sers\DELL\.m2\repos
+itory\org\apache\pd
+fbox\fontbox\2.0.32
+\fontbox-2.0.32.jar
+;C:\Users\DELL\.m2\
+repository\commons-
+logging\commons-log
+ging\1.2\commons-lo
+gging-1.2.jar;C:\Us
+ers\DELL\.m2\reposi
+tory\com\formdev\fl
+atlaf\3.5\flatlaf-3
+.5.jar" main.java.u
+tils.ManualTestRunn
+er

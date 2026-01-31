@@ -1,0 +1,512 @@
+﻿Executing: javac -d target/classes -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar;C:\Users\DELL\.m2\repository\com\zaxxer\HikariCP\5.1.0\HikariCP-5.1.0.jar;C:\Users\DELL\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.3.3\mariadb-java-client-3.3.3.jar;C:\Users\DELL\.m2\repository\org\flywaydb\flyway-core\10.12.0\flyway-core-10.12.0.jar;C:\Users\DELL\.m2\repository\org\apache\commons\commons-csv\1.11.0\commons-csv-1.11.0.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\pdfbox\2.0.32\pdfbox-2.0.32.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\fontbox\2.0.32\fontbox-2.0.32.jar;C:\Users\DELL\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\DELL\.m2\repository\com\formdev\flatlaf\3.5\flatlaf-3.5.jar" src\main\java\main\java\config\ConfigLoader.java src\main\java\main\java\config\DatabaseProperties.java src\main\java\main\java\config\DataSourceRegistry.java src\main\java\main\java\data\dao\AnnouncementDao.java src\main\java\main\java\data\dao\AppointmentDao.java src\main\java\main\java\data\dao\AssessmentTemplateDao.java src\main\java\main\java\data\dao\AssignmentDao.java src\main\java\main\java\data\dao\AttendanceDao.java src\main\java\main\java\data\dao\AuditLogDao.java src\main\java\main\java\data\dao\AuthUserDao.java src\main\java\main\java\data\dao\BaseDao.java src\main\java\main\java\data\dao\CourseDao.java src\main\java\main\java\data\dao\CoursePrerequisiteDao.java src\main\java\main\java\data\dao\CourseRelationshipDao.java src\main\java\main\java\data\dao\EnrollmentDao.java src\main\java\main\java\data\dao\ExamDao.java src\main\java\main\java\data\dao\FeeInstallmentDao.java src\main\java\main\java\data\dao\FeeScheduleTemplateDao.java src\main\java\main\java\data\dao\InstructorDao.java src\main\java\main\java\data\dao\InstructorMessageDao.java src\main\java\main\java\data\dao\MaintenanceWindowDao.java src\main\java\main\java\data\dao\NotificationDao.java src\main\java\main\java\data\dao\NotificationPreferenceDao.java src\main\java\main\java\data\dao\PaymentTransactionDao.java src\main\java\main\java\data\dao\RegistrationRequestDao.java src\main\java\main\java\data\dao\SectionDao.java src\main\java\main\java\data\dao\SettingsDao.java src\main\java\main\java\data\dao\StudentDao.java src\main\java\main\java\data\dao\WaitlistDao.java src\main\java\main\java\data\DatabaseBootstrap.java src\main\java\main\java\data\migration\LegacyDataMigrator.java src\main\java\main\java\gui\components\JCard.java src\main\java\main\java\gui\dialogs\ChangePasswordDialog.java src\main\java\main\java\gui\dialogs\FacultyDialog.java src\main\java\main\java\gui\dialogs\SectionDialog.java src\main\java\main\java\gui\dialogs\StudentDialog.java src\main\java\main\java\gui\LoginFrame.java src\main\java\main\java\gui\MainFrame.java src\main\java\main\java\gui\panels\AnnouncementsHubPanel.java src\main\java\main\java\gui\panels\AssignmentsPanel.java src\main\java\main\java\gui\panels\AttendancePanel.java src\main\java\main\java\gui\panels\AuditLogPanel.java src\main\java\main\java\gui\panels\BulkOperationsPanel.java src\main\java\main\java\gui\panels\calendar\CalendarPanel.java src\main\java\main\java\gui\panels\calendar\WeeklyPlannerPanel.java src\main\java\main\java\gui\panels\CatalogManagementPanel.java src\main\java\main\java\gui\panels\CoursePanel.java src\main\java\main\java\gui\panels\DashboardPanel.java src\main\java\main\java\gui\panels\DiagnosticsPanel.java src\main\java\main\java\gui\panels\EnrollmentOversightPanel.java src\main\java\main\java\gui\panels\EnrollmentPanel.java src\main\java\main\java\gui\panels\ExaminationPanel.java src\main\java\main\java\gui\panels\faculty\FacultyConnectPanel.java src\main\java\main\java\gui\panels\FacultyPanel.java src\main\java\main\java\gui\panels\FeesPanel.java src\main\java\main\java\gui\panels\GradesTrackingPanel.java src\main\java\main\java\gui\panels\InstructorAttendancePanel.java src\main\java\main\java\gui\panels\InstructorMessagingPanel.java src\main\java\main\java\gui\panels\InstructorWorkspacePanel.java src\main\java\main\java\gui\panels\MaintenanceAware.java src\main\java\main\java\gui\panels\MaintenancePanel.java src\main\java\main\java\gui\panels\MeetingSlotsPanel.java src\main\java\main\java\gui\panels\NotificationPreferencesPanel.java src\main\java\main\java\gui\panels\NotificationsPanel.java src\main\java\main\java\gui\panels\RegistrationApprovalPanel.java src\main\java\main\java\gui\panels\ReportsPanel.java src\main\java\main\java\gui\panels\SectionPanel.java src\main\java\main\java\gui\panels\SectionPlannerPanel.java src\main\java\main\java\gui\panels\StudentAttendancePanel.java src\main\java\main\java\gui\panels\StudentPanel.java src\main\java\main\java\gui\panels\StudentSelfServicePanel.java src\main\java\main\java\gui\panels\ThemeCustomizationPanel.java src\main\java\main\java\gui\panels\TimetableConflictSimulator.java src\main\java\main\java\gui\panels\UserManagementPanel.java src\main\java\main\java\gui\panels\WaitlistApprovalPanel.java src\main\java\main\java\gui\style\PastelTheme.java src\main\java\main\java\Main.java src\main\java\main\java\models\Announcement.java src\main\java\main\java\models\Appointment.java src\main\java\main\java\models\Assignment.java src\main\java\main\java\models\AssignmentSubmission.java src\main\java\main\java\models\AttendanceRecord.java src\main\java\main\java\models\Course.java src\main\java\main\java\models\EnrollmentRecord.java src\main\java\main\java\models\ExamForm.java src\main\java\main\java\models\Faculty.java src\main\java\main\java\models\FeeInstallment.java src\main\java\main\java\models\MaintenanceWindow.java src\main\java\main\java\models\NotificationMessage.java src\main\java\main\java\models\NotificationPreference.java src\main\java\main\java\models\NotificationRequest.java src\main\java\main\java\models\OfficeHour.java src\main\java\main\java\models\PaymentTransaction.java src\main\java\main\java\models\Section.java src\main\java\main\java\models\Student.java src\main\java\main\java\models\User.java src\main\java\main\java\service\AdminService.java src\main\java\main\java\service\BackupRestoreService.java src\main\java\main\java\service\BulkImportExportService.java src\main\java\main\java\service\EnrollmentService.java src\main\java\main\java\service\FacultyService.java src\main\java\main\java\service\GradebookService.java src\main\java\main\java\service\InstructorService.java src\main\java\main\java\service\NotificationDeliveryService.java src\main\java\main\java\service\StudentService.java src\main\java\main\java\utils\AuditLogService.java src\main\java\main\java\utils\DatabaseUtil.java src\main\java\main\java\utils\FinanceReminderScheduler.java src\main\java\main\java\utils\HealthDiagnostics.java src\main\java\main\java\utils\PasswordPolicy.java src\main\java\main\java\utils\PasswordUtil.java
+node : src\main\jav
+a\main\java\data\mi
+gration\LegacyDataM
+igrator.java:3: 
+error: cannot find 
+symbol
+At line:1 char:1
++ node 
+run_tests.js > test
+_recompile_output_v
+4.txt 2>&1
++ ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo 
+             : No  
+  tSpecified: (s   
+ rc\main\java\m    
+...not find sy    
+mbol:String) [    
+], RemoteExcep    
+tion
+    + FullyQualifi 
+   edErrorId : Na  
+  tiveCommandErr   
+ or
+ 
+import main.java.da
+ta.AuthUserDao;
+                   
+  ^
+  symbol:   class 
+AuthUserDao
+  location: 
+package 
+main.java.data
+src\main\java\main\
+java\data\migration
+\LegacyDataMigrator
+.java:41: error: 
+cannot find symbol
+    private final 
+AuthUserDao 
+authUserDao;
+                  ^
+  symbol:   class 
+AuthUserDao
+  location: class 
+LegacyDataMigrator
+src\main\java\main\
+java\data\migration
+\LegacyDataMigrator
+.java:52: error: 
+cannot find symbol
+        
+this.authUserDao = 
+new AuthUserDao();
+                   
+            ^
+  symbol:   class 
+AuthUserDao
+  location: class 
+LegacyDataMigrator
+Note: Some input 
+files use or 
+override a 
+deprecated API.
+Note: Recompile 
+with 
+-Xlint:deprecation 
+for details.
+Note: Some input 
+files use 
+unchecked or 
+unsafe operations.
+Note: Recompile 
+with 
+-Xlint:unchecked 
+for details.
+3 errors
+Command failed: 
+javac -d 
+target/classes -cp 
+"target/classes;tar
+get/test-classes;sr
+c/test/resources;C:
+\Users\DELL\.m2\rep
+ository\org\junit\j
+upiter\junit-jupite
+r-api\5.10.2\junit-
+jupiter-api-5.10.2.
+jar;C:\Users\DELL\.
+m2\repository\org\j
+unit\jupiter\junit-
+jupiter-engine\5.10
+.2\junit-jupiter-en
+gine-5.10.2.jar;C:\
+Users\DELL\.m2\repo
+sitory\org\junit\pl
+atform\junit-platfo
+rm-commons\1.10.2\j
+unit-platform-commo
+ns-1.10.2.jar;C:\Us
+ers\DELL\.m2\reposi
+tory\org\junit\plat
+form\junit-platform
+-engine\1.10.2\juni
+t-platform-engine-1
+.10.2.jar;C:\Users\
+DELL\.m2\repository
+\org\opentest4j\ope
+ntest4j\1.3.0\opent
+est4j-1.3.0.jar;C:\
+Users\DELL\.m2\repo
+sitory\org\apiguard
+ian\apiguardian-api
+\1.1.2\apiguardian-
+api-1.1.2.jar;C:\Us
+ers\DELL\.m2\reposi
+tory\org\assertj\as
+sertj-core\3.26.0\a
+ssertj-core-3.26.0.
+jar;C:\Users\DELL\.
+m2\repository\org\m
+ockito\mockito-core
+\5.12.0\mockito-cor
+e-5.12.0.jar;C:\Use
+rs\DELL\.m2\reposit
+ory\net\bytebuddy\b
+yte-buddy\1.14.15\b
+yte-buddy-1.14.15.j
+ar;C:\Users\DELL\.m
+2\repository\net\by
+tebuddy\byte-buddy-
+agent\1.14.15\byte-
+buddy-agent-1.14.15
+.jar;C:\Users\DELL\
+.m2\repository\org\
+objenesis\objenesis
+\3.3\objenesis-3.3.
+jar;C:\Users\DELL\.
+m2\repository\org\s
+lf4j\slf4j-api\2.0.
+13\slf4j-api-2.0.13
+.jar;C:\Users\DELL\
+.m2\repository\ch\q
+os\logback\logback-
+classic\1.5.6\logba
+ck-classic-1.5.6.ja
+r;C:\Users\DELL\.m2
+\repository\ch\qos\
+logback\logback-cor
+e\1.5.6\logback-cor
+e-1.5.6.jar;C:\User
+s\DELL\.m2\reposito
+ry\com\zaxxer\Hikar
+iCP\5.1.0\HikariCP-
+5.1.0.jar;C:\Users\
+DELL\.m2\repository
+\org\mariadb\jdbc\m
+ariadb-java-client\
+3.3.3\mariadb-java-
+client-3.3.3.jar;C:
+\Users\DELL\.m2\rep
+ository\org\flywayd
+b\flyway-core\10.12
+.0\flyway-core-10.1
+2.0.jar;C:\Users\DE
+LL\.m2\repository\o
+rg\apache\commons\c
+ommons-csv\1.11.0\c
+ommons-csv-1.11.0.j
+ar;C:\Users\DELL\.m
+2\repository\org\ap
+ache\pdfbox\pdfbox\
+2.0.32\pdfbox-2.0.3
+2.jar;C:\Users\DELL
+\.m2\repository\org
+\apache\pdfbox\font
+box\2.0.32\fontbox-
+2.0.32.jar;C:\Users
+\DELL\.m2\repositor
+y\commons-logging\c
+ommons-logging\1.2\
+commons-logging-1.2
+.jar;C:\Users\DELL\
+.m2\repository\com\
+formdev\flatlaf\3.5
+\flatlaf-3.5.jar" s
+rc\main\java\main\j
+ava\config\ConfigLo
+ader.java src\main\
+java\main\java\conf
+ig\DatabaseProperti
+es.java src\main\ja
+va\main\java\config
+\DataSourceRegistry
+.java src\main\java
+\main\java\data\dao
+\AnnouncementDao.ja
+va src\main\java\ma
+in\java\data\dao\Ap
+pointmentDao.java s
+rc\main\java\main\j
+ava\data\dao\Assess
+mentTemplateDao.jav
+a src\main\java\mai
+n\java\data\dao\Ass
+ignmentDao.java src
+\main\java\main\jav
+a\data\dao\Attendan
+ceDao.java src\main
+\java\main\java\dat
+a\dao\AuditLogDao.j
+ava src\main\java\m
+ain\java\data\dao\A
+uthUserDao.java src
+\main\java\main\jav
+a\data\dao\BaseDao.
+java src\main\java\
+main\java\data\dao\
+CourseDao.java src\
+main\java\main\java
+\data\dao\CoursePre
+requisiteDao.java s
+rc\main\java\main\j
+ava\data\dao\Course
+RelationshipDao.jav
+a src\main\java\mai
+n\java\data\dao\Enr
+ollmentDao.java src
+\main\java\main\jav
+a\data\dao\ExamDao.
+java src\main\java\
+main\java\data\dao\
+FeeInstallmentDao.j
+ava src\main\java\m
+ain\java\data\dao\F
+eeScheduleTemplateD
+ao.java src\main\ja
+va\main\java\data\d
+ao\InstructorDao.ja
+va src\main\java\ma
+in\java\data\dao\In
+structorMessageDao.
+java src\main\java\
+main\java\data\dao\
+MaintenanceWindowDa
+o.java src\main\jav
+a\main\java\data\da
+o\NotificationDao.j
+ava src\main\java\m
+ain\java\data\dao\N
+otificationPreferen
+ceDao.java src\main
+\java\main\java\dat
+a\dao\PaymentTransa
+ctionDao.java src\m
+ain\java\main\java\
+data\dao\Registrati
+onRequestDao.java s
+rc\main\java\main\j
+ava\data\dao\Sectio
+nDao.java src\main\
+java\main\java\data
+\dao\SettingsDao.ja
+va src\main\java\ma
+in\java\data\dao\St
+udentDao.java src\m
+ain\java\main\java\
+data\dao\WaitlistDa
+o.java src\main\jav
+a\main\java\data\Da
+tabaseBootstrap.jav
+a src\main\java\mai
+n\java\data\migrati
+on\LegacyDataMigrat
+or.java src\main\ja
+va\main\java\gui\co
+mponents\JCard.java
+ src\main\java\main
+\java\gui\dialogs\C
+hangePasswordDialog
+.java src\main\java
+\main\java\gui\dial
+ogs\FacultyDialog.j
+ava src\main\java\m
+ain\java\gui\dialog
+s\SectionDialog.jav
+a src\main\java\mai
+n\java\gui\dialogs\
+StudentDialog.java 
+src\main\java\main\
+java\gui\LoginFrame
+.java src\main\java
+\main\java\gui\Main
+Frame.java src\main
+\java\main\java\gui
+\panels\Announcemen
+tsHubPanel.java src
+\main\java\main\jav
+a\gui\panels\Assign
+mentsPanel.java src
+\main\java\main\jav
+a\gui\panels\Attend
+ancePanel.java src\
+main\java\main\java
+\gui\panels\AuditLo
+gPanel.java src\mai
+n\java\main\java\gu
+i\panels\BulkOperat
+ionsPanel.java src\
+main\java\main\java
+\gui\panels\calenda
+r\CalendarPanel.jav
+a src\main\java\mai
+n\java\gui\panels\c
+alendar\WeeklyPlann
+erPanel.java src\ma
+in\java\main\java\g
+ui\panels\CatalogMa
+nagementPanel.java 
+src\main\java\main\
+java\gui\panels\Cou
+rsePanel.java src\m
+ain\java\main\java\
+gui\panels\Dashboar
+dPanel.java src\mai
+n\java\main\java\gu
+i\panels\Diagnostic
+sPanel.java src\mai
+n\java\main\java\gu
+i\panels\Enrollment
+OversightPanel.java
+ src\main\java\main
+\java\gui\panels\En
+rollmentPanel.java 
+src\main\java\main\
+java\gui\panels\Exa
+minationPanel.java 
+src\main\java\main\
+java\gui\panels\fac
+ulty\FacultyConnect
+Panel.java src\main
+\java\main\java\gui
+\panels\FacultyPane
+l.java src\main\jav
+a\main\java\gui\pan
+els\FeesPanel.java 
+src\main\java\main\
+java\gui\panels\Gra
+desTrackingPanel.ja
+va src\main\java\ma
+in\java\gui\panels\
+InstructorAttendanc
+ePanel.java src\mai
+n\java\main\java\gu
+i\panels\Instructor
+MessagingPanel.java
+ src\main\java\main
+\java\gui\panels\In
+structorWorkspacePa
+nel.java src\main\j
+ava\main\java\gui\p
+anels\MaintenanceAw
+are.java src\main\j
+ava\main\java\gui\p
+anels\MaintenancePa
+nel.java src\main\j
+ava\main\java\gui\p
+anels\MeetingSlotsP
+anel.java src\main\
+java\main\java\gui\
+panels\Notification
+PreferencesPanel.ja
+va src\main\java\ma
+in\java\gui\panels\
+NotificationsPanel.
+java src\main\java\
+main\java\gui\panel
+s\RegistrationAppro
+valPanel.java src\m
+ain\java\main\java\
+gui\panels\ReportsP
+anel.java src\main\
+java\main\java\gui\
+panels\SectionPanel
+.java src\main\java
+\main\java\gui\pane
+ls\SectionPlannerPa
+nel.java src\main\j
+ava\main\java\gui\p
+anels\StudentAttend
+ancePanel.java src\
+main\java\main\java
+\gui\panels\Student
+Panel.java src\main
+\java\main\java\gui
+\panels\StudentSelf
+ServicePanel.java s
+rc\main\java\main\j
+ava\gui\panels\Them
+eCustomizationPanel
+.java src\main\java
+\main\java\gui\pane
+ls\TimetableConflic
+tSimulator.java src
+\main\java\main\jav
+a\gui\panels\UserMa
+nagementPanel.java 
+src\main\java\main\
+java\gui\panels\Wai
+tlistApprovalPanel.
+java src\main\java\
+main\java\gui\style
+\PastelTheme.java s
+rc\main\java\main\j
+ava\Main.java src\m
+ain\java\main\java\
+models\Announcement
+.java src\main\java
+\main\java\models\A
+ppointment.java src
+\main\java\main\jav
+a\models\Assignment
+.java src\main\java
+\main\java\models\A
+ssignmentSubmission
+.java src\main\java
+\main\java\models\A
+ttendanceRecord.jav
+a src\main\java\mai
+n\java\models\Cours
+e.java src\main\jav
+a\main\java\models\
+EnrollmentRecord.ja
+va src\main\java\ma
+in\java\models\Exam
+Form.java src\main\
+java\main\java\mode
+ls\Faculty.java src
+\main\java\main\jav
+a\models\FeeInstall
+ment.java src\main\
+java\main\java\mode
+ls\MaintenanceWindo
+w.java src\main\jav
+a\main\java\models\
+NotificationMessage
+.java src\main\java
+\main\java\models\N
+otificationPreferen
+ce.java src\main\ja
+va\main\java\models
+\NotificationReques
+t.java src\main\jav
+a\main\java\models\
+OfficeHour.java src
+\main\java\main\jav
+a\models\PaymentTra
+nsaction.java src\m
+ain\java\main\java\
+models\Section.java
+ src\main\java\main
+\java\models\Studen
+t.java src\main\jav
+a\main\java\models\
+User.java src\main\
+java\main\java\serv
+ice\AdminService.ja
+va src\main\java\ma
+in\java\service\Bac
+kupRestoreService.j
+ava src\main\java\m
+ain\java\service\Bu
+lkImportExportServi
+ce.java src\main\ja
+va\main\java\servic
+e\EnrollmentService
+.java src\main\java
+\main\java\service\
+FacultyService.java
+ src\main\java\main
+\java\service\Grade
+bookService.java sr
+c\main\java\main\ja
+va\service\Instruct
+orService.java src\
+main\java\main\java
+\service\Notificati
+onDeliveryService.j
+ava src\main\java\m
+ain\java\service\St
+udentService.java s
+rc\main\java\main\j
+ava\utils\AuditLogS
+ervice.java src\mai
+n\java\main\java\ut
+ils\DatabaseUtil.ja
+va src\main\java\ma
+in\java\utils\Finan
+ceReminderScheduler
+.java src\main\java
+\main\java\utils\He
+althDiagnostics.jav
+a src\main\java\mai
+n\java\utils\Passwo
+rdPolicy.java src\m
+ain\java\main\java\
+utils\PasswordUtil.
+java

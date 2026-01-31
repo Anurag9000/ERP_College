@@ -53,7 +53,7 @@ public class Student implements java.io.Serializable {
         this.creditsInProgress = 0;
         this.nextFeeDueDate = LocalDate.now().plusMonths(1);
         this.academicStanding = "Good";
-        this.username = null;
+        this.username = studentId;
     }
 
     // Getters and Setters
@@ -239,6 +239,7 @@ public class Student implements java.io.Serializable {
             return 0.0;
         }
         return Math.min(100.0, (creditsCompleted * 100.0) / Math.max(total, 1));
+    }
 
     @Override
     public boolean equals(Object o) {

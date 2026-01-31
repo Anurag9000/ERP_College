@@ -1,6 +1,6 @@
 package main.java.data.migration;
 
-import main.java.data.AuthUserDao;
+import main.java.data.dao.AuthUserDao;
 import main.java.data.dao.AttendanceDao;
 import main.java.data.dao.CourseDao;
 import main.java.data.dao.EnrollmentDao;

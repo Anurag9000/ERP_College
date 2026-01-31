@@ -23,20 +23,13 @@ import main.java.data.dao.NotificationPreferenceDao;
 import main.java.data.dao.InstructorMessageDao;
 import main.java.data.dao.RegistrationRequestDao;
 import main.java.data.migration.LegacyDataMigrator;
-import main.java.utils.PasswordPolicy;
 import main.java.data.dao.AuditLogDao;
-import main.java.utils.AuditLogService;
 import main.java.service.NotificationDeliveryService;
 
 import main.java.models.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.*;
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -61,6 +54,8 @@ public class DatabaseUtil {
     private static final String DATA_DIR = "data/";
 
     private static final Map<String, String> settings = new ConcurrentHashMap<>();
+    private static Map<String, Student> students = new ConcurrentHashMap<>();
+    private static Map<String, Course> courses = new ConcurrentHashMap<>();
 
     private static final int MAX_FAILED_ATTEMPTS = parseIntConfig("security.maxFailedAttempts", 5);
     private static final int LOCKOUT_MINUTES = parseIntConfig("security.lockoutMinutes", 15);
@@ -172,6 +167,14 @@ public class DatabaseUtil {
 
     public static void setAuditLogDao(AuditLogDao dao) {
         auditLogDao = dao;
+    }
+
+    public static AuditLogDao getAuditLogDao() {
+        return auditLogDao;
+    }
+
+    public static MaintenanceWindowDao getMaintenanceWindowDao() {
+        return maintenanceWindowDao;
     }
 
     private static final Map<String, List<String>> coursePrerequisiteCache = new ConcurrentHashMap<>();
@@ -375,7 +378,6 @@ public class DatabaseUtil {
                 "Registration"));
     }
 
-    @SuppressWarnings("unchecked")
     private static void loadData() {
         settingsDao.findAll().forEach(settings::put);
     }
@@ -513,18 +515,27 @@ public class DatabaseUtil {
     // Student operations
     public static void addStudent(Student student) {
         studentDao.insert(student);
+        students.put(student.getStudentId(), student);
     }
 
     public static void updateStudent(Student student) {
         studentDao.update(student);
+        students.put(student.getStudentId(), student);
     }
 
     public static void deleteStudent(String studentId) {
         studentDao.delete(studentId);
+        students.remove(studentId);
     }
 
     public static Student getStudent(String studentId) {
-        return studentDao.findByCode(studentId).orElse(null);
+        Student cached = students.get(studentId);
+        if (cached != null)
+            return cached;
+        Student s = studentDao.findByCode(studentId).orElse(null);
+        if (s != null)
+            students.put(studentId, s);
+        return s;
     }
 
     public static List<Student> getAllStudents() {
@@ -962,21 +973,30 @@ public class DatabaseUtil {
     // Course operations
     public static void addCourse(Course course) {
         courseDao.insert(course);
+        courses.put(course.getCourseId(), course);
         clearCourseRelationshipCaches(course.getCourseId());
     }
 
     public static void updateCourse(Course course) {
         courseDao.update(course);
+        courses.put(course.getCourseId(), course);
         clearCourseRelationshipCaches(course.getCourseId());
     }
 
     public static void deleteCourse(String courseId) {
         courseDao.delete(courseId);
+        courses.remove(courseId);
         coursePrerequisiteCache.remove(courseId);
     }
 
     public static Course getCourse(String courseId) {
-        return courseDao.findByCode(courseId).orElse(null);
+        Course cached = courses.get(courseId);
+        if (cached != null)
+            return cached;
+        Course c = courseDao.findByCode(courseId).orElse(null);
+        if (c != null)
+            courses.put(courseId, c);
+        return c;
     }
 
     public static List<Course> getAllCourses() {
@@ -1254,7 +1274,7 @@ public class DatabaseUtil {
         if (a.getDayOfWeek() != b.getDayOfWeek()) {
             return false;
         }
-        return !(b.getEndTime().isBefore(a.getStartTime()) || b.getStartTime().isAfter(a.getEndTime()));
+        return a.getStartTime().isBefore(b.getEndTime()) && b.getStartTime().isBefore(a.getEndTime());
     }
 
     private static void enforceRoomScheduleClash(Section candidate) {
@@ -2370,20 +2390,6 @@ public class DatabaseUtil {
         return authUserDao.findByUsername(username)
                 .map(user -> Math.max(0, MAX_FAILED_ATTEMPTS - user.getFailedAttempts()))
                 .orElse(MAX_FAILED_ATTEMPTS);
-    }
-
-    private static void refreshStudentCache() {
-        students = new ConcurrentHashMap<>();
-        for (Student student : studentDao.findAll()) {
-            students.put(student.getStudentId(), student);
-        }
-    }
-
-    private static void refreshCourseCache() {
-        courses = new ConcurrentHashMap<>();
-        for (Course course : courseDao.findAll()) {
-            courses.put(course.getCourseId(), course);
-        }
     }
 
     private static void clearCourseRelationshipCaches(String courseId) {
