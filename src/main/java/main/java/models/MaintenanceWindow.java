@@ -7,7 +7,9 @@ import java.util.Objects;
 /**
  * Represents a scheduled maintenance window with lifecycle state.
  */
-public class MaintenanceWindow {
+public class MaintenanceWindow implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+
     public enum Status {
         SCHEDULED,
         ACTIVE,
@@ -24,12 +26,12 @@ public class MaintenanceWindow {
     private final LocalDateTime createdAt;
 
     public MaintenanceWindow(long id,
-                             LocalDateTime startAt,
-                             LocalDateTime endAt,
-                             String message,
-                             Status status,
-                             String createdBy,
-                             LocalDateTime createdAt) {
+            LocalDateTime startAt,
+            LocalDateTime endAt,
+            String message,
+            Status status,
+            String createdBy,
+            LocalDateTime createdAt) {
         this.id = id;
         this.startAt = startAt;
         this.endAt = endAt;
@@ -96,5 +98,20 @@ public class MaintenanceWindow {
             return this;
         }
         return new MaintenanceWindow(id, startAt, endAt, message, newStatus, createdBy, createdAt);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof MaintenanceWindow))
+            return false;
+        MaintenanceWindow that = (MaintenanceWindow) o;
+        return id == that.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(id);
     }
 }

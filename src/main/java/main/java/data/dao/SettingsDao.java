@@ -1,7 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,15 +16,15 @@ public class SettingsDao extends BaseDao {
             "ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)";
 
     public SettingsDao() {
-        super(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
     public Map<String, String> findAll() {
         Map<String, String> map = new HashMap<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_ALL_SQL);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_ALL_SQL);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 map.put(rs.getString("setting_key"), rs.getString("setting_value"));
             }
@@ -38,7 +36,7 @@ public class SettingsDao extends BaseDao {
 
     public void upsert(String key, String value) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPSERT_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(UPSERT_SQL)) {
             ps.setString(1, key);
             ps.setString(2, value);
             ps.executeUpdate();

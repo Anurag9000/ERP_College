@@ -1,6 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.Section;
 
 import java.sql.Connection;
@@ -10,8 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalTime;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,15 +23,15 @@ public class SectionDao extends BaseDao {
     private static final String DELETE = "DELETE FROM sections WHERE section_code = ?";
 
     public SectionDao() {
-        super(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
     public List<Section> findAll() {
         List<Section> sections = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 sections.add(mapSection(rs));
             }
@@ -45,7 +43,7 @@ public class SectionDao extends BaseDao {
 
     public Optional<Section> findByCode(String code) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_CODE)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_CODE)) {
             ps.setString(1, code);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -60,7 +58,7 @@ public class SectionDao extends BaseDao {
 
     public void insert(Section section) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT)) {
             bind(ps, section, true);
             ps.executeUpdate();
         } catch (SQLException ex) {
@@ -71,7 +69,7 @@ public class SectionDao extends BaseDao {
 
     public void update(Section section) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             bind(ps, section, false);
             ps.setString(13, section.getSectionId());
             ps.executeUpdate();
@@ -83,7 +81,7 @@ public class SectionDao extends BaseDao {
 
     public void delete(String sectionCode) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setString(1, sectionCode);
             ps.executeUpdate();
         } catch (SQLException ex) {

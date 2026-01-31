@@ -1,20 +1,25 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.Announcement;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AnnouncementDao {
+public class AnnouncementDao extends BaseDao {
+
+    public AnnouncementDao() {
+        super(main.java.config.DataSourceRegistry.erpDataSource()
+                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+    }
 
     public void insertAnnouncement(Announcement announcement) {
         String sql = "INSERT INTO announcements (category, department, title, content, posted_by, expires_at, priority) "
                 +
                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setString(1, announcement.getCategory().name());
             stmt.setString(2, announcement.getDepartment());
             stmt.setString(3, announcement.getTitle());
@@ -42,9 +47,10 @@ public class AnnouncementDao {
         String sql = "SELECT * FROM announcements WHERE expires_at IS NULL OR expires_at > NOW() " +
                 "ORDER BY priority DESC, posted_at DESC";
         List<Announcement> list = new ArrayList<>();
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql)) {
+
             while (rs.next()) {
                 list.add(mapAnnouncement(rs));
             }
@@ -58,8 +64,9 @@ public class AnnouncementDao {
         String sql = "SELECT * FROM announcements WHERE category = ? AND (expires_at IS NULL OR expires_at > NOW()) " +
                 "ORDER BY posted_at DESC";
         List<Announcement> list = new ArrayList<>();
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, category.name());
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -77,8 +84,9 @@ public class AnnouncementDao {
                 +
                 "ORDER BY posted_at DESC";
         List<Announcement> list = new ArrayList<>();
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, department);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -95,8 +103,9 @@ public class AnnouncementDao {
         String sql = "INSERT INTO announcement_subscriptions (student_code, category, department, subscribed) " +
                 "VALUES (?, ?, ?, TRUE) " +
                 "ON DUPLICATE KEY UPDATE subscribed = TRUE";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, studentCode);
             stmt.setString(2, category.name());
             stmt.setString(3, department);
@@ -109,8 +118,9 @@ public class AnnouncementDao {
     public void unsubscribeFromCategory(String studentCode, Announcement.Category category, String department) {
         String sql = "UPDATE announcement_subscriptions SET subscribed = FALSE " +
                 "WHERE student_code = ? AND category = ? AND department = ?";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, studentCode);
             stmt.setString(2, category.name());
             stmt.setString(3, department);

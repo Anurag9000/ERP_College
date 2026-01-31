@@ -1,6 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.EnrollmentRecord;
 
 import java.sql.Connection;
@@ -19,7 +18,7 @@ public class EnrollmentDao extends BaseDao {
     private static final String DELETE_BY_SECTION = "DELETE FROM enrollments WHERE section_code = ?";
 
     public EnrollmentDao() {
-        super(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
@@ -33,7 +32,7 @@ public class EnrollmentDao extends BaseDao {
 
     public void insert(EnrollmentRecord record) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT)) {
             ps.setString(1, record.getStudentId());
             ps.setString(2, record.getSectionId());
             ps.setString(3, record.getStatus().name());
@@ -44,14 +43,15 @@ public class EnrollmentDao extends BaseDao {
             }
             ps.executeUpdate();
         } catch (SQLException ex) {
-            logger.error("Error inserting enrollment {}:{} - {}", record.getStudentId(), record.getSectionId(), ex.getMessage(), ex);
+            logger.error("Error inserting enrollment {}:{} - {}", record.getStudentId(), record.getSectionId(),
+                    ex.getMessage(), ex);
             throw new IllegalStateException("Unable to insert enrollment", ex);
         }
     }
 
     public void updateStatus(EnrollmentRecord record) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
             ps.setString(1, record.getStatus().name());
             if (record.getFinalGrade() > 0) {
                 ps.setDouble(2, record.getFinalGrade());
@@ -62,14 +62,15 @@ public class EnrollmentDao extends BaseDao {
             ps.setString(4, record.getSectionId());
             ps.executeUpdate();
         } catch (SQLException ex) {
-            logger.error("Error updating enrollment {}:{} - {}", record.getStudentId(), record.getSectionId(), ex.getMessage(), ex);
+            logger.error("Error updating enrollment {}:{} - {}", record.getStudentId(), record.getSectionId(),
+                    ex.getMessage(), ex);
             throw new IllegalStateException("Unable to update enrollment", ex);
         }
     }
 
     public void deleteBySection(String sectionCode) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE_BY_SECTION)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE_BY_SECTION)) {
             ps.setString(1, sectionCode);
             ps.executeUpdate();
         } catch (SQLException ex) {
@@ -80,7 +81,7 @@ public class EnrollmentDao extends BaseDao {
     private List<EnrollmentRecord> fetchList(String sql, String param) {
         List<EnrollmentRecord> list = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, param);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

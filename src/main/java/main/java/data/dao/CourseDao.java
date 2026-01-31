@@ -1,10 +1,9 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.Course;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,15 +19,15 @@ public class CourseDao extends BaseDao {
     private static final String DELETE = "DELETE FROM courses WHERE course_code = ?";
 
     public CourseDao() {
-        super(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
     public List<Course> findAll() {
         List<Course> courses = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 courses.add(mapCourse(rs));
             }
@@ -40,7 +39,7 @@ public class CourseDao extends BaseDao {
 
     public Optional<Course> findByCode(String courseCode) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_CODE)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_CODE)) {
             ps.setString(1, courseCode);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -55,7 +54,7 @@ public class CourseDao extends BaseDao {
 
     public void insert(Course course) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT)) {
             ps.setString(1, course.getCourseId());
             ps.setString(2, course.getCourseName());
             ps.setString(3, course.getDepartment());
@@ -74,7 +73,7 @@ public class CourseDao extends BaseDao {
 
     public void update(Course course) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             ps.setString(1, course.getCourseName());
             ps.setString(2, course.getDepartment());
             ps.setInt(3, course.getDuration());
@@ -93,7 +92,7 @@ public class CourseDao extends BaseDao {
 
     public void delete(String courseCode) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setString(1, courseCode);
             ps.executeUpdate();
         } catch (SQLException ex) {

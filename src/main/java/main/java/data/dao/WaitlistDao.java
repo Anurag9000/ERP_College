@@ -1,7 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,7 +15,7 @@ public class WaitlistDao extends BaseDao {
     private static final String DELETE_SECTION = "DELETE FROM section_waitlist WHERE section_code = ?";
 
     public WaitlistDao() {
-        super(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
@@ -32,7 +30,7 @@ public class WaitlistDao extends BaseDao {
     public List<WaitlistEntry> findEntries(String sectionCode) {
         List<WaitlistEntry> list = new LinkedList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_SECTION)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_SECTION)) {
             ps.setString(1, sectionCode);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -50,7 +48,7 @@ public class WaitlistDao extends BaseDao {
 
     public void insert(String sectionCode, String studentCode, int position, boolean approved) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT)) {
             ps.setString(1, sectionCode);
             ps.setString(2, studentCode);
             ps.setInt(3, position);
@@ -63,7 +61,7 @@ public class WaitlistDao extends BaseDao {
 
     public void updateApproval(String sectionCode, String studentCode, boolean approved) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE_APPROVAL)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE_APPROVAL)) {
             ps.setBoolean(1, approved);
             ps.setString(2, sectionCode);
             ps.setString(3, studentCode);
@@ -76,7 +74,7 @@ public class WaitlistDao extends BaseDao {
 
     public void delete(String sectionCode, String studentCode) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setString(1, sectionCode);
             ps.setString(2, studentCode);
             ps.executeUpdate();
@@ -87,7 +85,7 @@ public class WaitlistDao extends BaseDao {
 
     public void deleteAll(String sectionCode) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE_SECTION)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE_SECTION)) {
             ps.setString(1, sectionCode);
             ps.executeUpdate();
         } catch (SQLException ex) {

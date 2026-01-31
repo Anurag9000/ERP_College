@@ -16,12 +16,10 @@ import java.util.List;
  * DAO for persisting and querying audit events.
  */
 public class AuditLogDao extends BaseDao {
-    private static final String INSERT_SQL =
-            "INSERT INTO audit_events (event_type, actor, details, created_at) VALUES (?, ?, ?, ?)";
-    private static final String SELECT_RECENT_SQL =
-            "SELECT id, event_type, actor, details, created_at FROM audit_events ORDER BY created_at DESC LIMIT ?";
-    private static final String SELECT_RANGE_SQL =
-            "SELECT id, event_type, actor, details, created_at " +
+
+    private static final String INSERT_SQL = "INSERT INTO audit_events (event_type, actor, details, created_at) VALUES (?, ?, ?, ?)";
+    private static final String SELECT_RECENT_SQL = "SELECT id, event_type, actor, details, created_at FROM audit_events ORDER BY created_at DESC LIMIT ?";
+    private static final String SELECT_RANGE_SQL = "SELECT id, event_type, actor, details, created_at " +
             "FROM audit_events " +
             "WHERE (? IS NULL OR created_at >= ?) AND (? IS NULL OR created_at <= ?) " +
             "ORDER BY created_at DESC";
@@ -33,7 +31,7 @@ public class AuditLogDao extends BaseDao {
 
     public void insert(AuditLogService.AuditEvent event) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
             ps.setString(1, event.getType().name());
             ps.setString(2, event.getActor());
             ps.setString(3, event.getDetails());
@@ -47,7 +45,7 @@ public class AuditLogDao extends BaseDao {
     public List<AuditLogService.AuditEvent> findRecent(int limit) {
         List<AuditLogService.AuditEvent> events = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_RECENT_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_RECENT_SQL)) {
             ps.setInt(1, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -63,7 +61,7 @@ public class AuditLogDao extends BaseDao {
     public List<AuditLogService.AuditEvent> findRange(LocalDateTime from, LocalDateTime to) {
         List<AuditLogService.AuditEvent> events = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_RANGE_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_RANGE_SQL)) {
             if (from != null) {
                 ps.setTimestamp(1, Timestamp.valueOf(from));
                 ps.setTimestamp(2, Timestamp.valueOf(from));

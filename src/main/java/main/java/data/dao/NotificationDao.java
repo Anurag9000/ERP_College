@@ -1,6 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.NotificationMessage;
 
 import java.sql.Connection;
@@ -19,26 +18,23 @@ import java.util.Locale;
  */
 public class NotificationDao extends BaseDao {
     private static final String INSERT_SQL = "INSERT INTO notifications (audience, target_id, message, category, is_read, read_at) VALUES (?, ?, ?, ?, ?, ?)";
-    private static final String SELECT_ALL_SQL =
-            "SELECT id, audience, target_id, message, category, created_at, is_read, read_at FROM notifications ORDER BY created_at DESC";
-    private static final String SELECT_VISIBLE_SQL =
-            "SELECT id, audience, target_id, message, category, created_at, is_read, read_at " +
+    private static final String SELECT_ALL_SQL = "SELECT id, audience, target_id, message, category, created_at, is_read, read_at FROM notifications ORDER BY created_at DESC";
+    private static final String SELECT_VISIBLE_SQL = "SELECT id, audience, target_id, message, category, created_at, is_read, read_at "
+            +
             "FROM notifications " +
             "WHERE audience = 'ALL' OR audience = ? OR (audience = 'USER' AND target_id = ?) " +
             "ORDER BY created_at DESC";
-    private static final String SELECT_BY_ID_SQL =
-            "SELECT id, audience, target_id, message, category, created_at, is_read, read_at FROM notifications WHERE id = ?";
-    private static final String UPDATE_READ_SQL =
-            "UPDATE notifications SET is_read = ?, read_at = ? WHERE id = ?";
+    private static final String SELECT_BY_ID_SQL = "SELECT id, audience, target_id, message, category, created_at, is_read, read_at FROM notifications WHERE id = ?";
+    private static final String UPDATE_READ_SQL = "UPDATE notifications SET is_read = ?, read_at = ? WHERE id = ?";
 
     public NotificationDao() {
-        super(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
     public NotificationMessage insert(NotificationMessage notification) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, notification.getAudience().name());
             if (notification.getTargetId() != null) {
                 ps.setString(2, notification.getTargetId());
@@ -88,8 +84,8 @@ public class NotificationDao extends BaseDao {
     public List<NotificationMessage> findAll() {
         List<NotificationMessage> list = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_ALL_SQL);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_ALL_SQL);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 list.add(mapNotification(rs));
             }
@@ -102,7 +98,7 @@ public class NotificationDao extends BaseDao {
     public List<NotificationMessage> findVisible(NotificationMessage.Audience audience, String targetId) {
         List<NotificationMessage> list = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_VISIBLE_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_VISIBLE_SQL)) {
             ps.setString(1, audience.name());
             if (targetId != null) {
                 ps.setString(2, targetId);
@@ -122,7 +118,7 @@ public class NotificationDao extends BaseDao {
 
     public void markRead(long id, boolean read) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE_READ_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE_READ_SQL)) {
             ps.setBoolean(1, read);
             if (read) {
                 ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
@@ -138,9 +134,9 @@ public class NotificationDao extends BaseDao {
     }
 
     public List<NotificationMessage> findAdminHistory(NotificationMessage.Audience audience,
-                                                      LocalDateTime from,
-                                                      LocalDateTime to,
-                                                      String category) {
+            LocalDateTime from,
+            LocalDateTime to,
+            String category) {
         List<NotificationMessage> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "SELECT id, audience, target_id, message, category, created_at, is_read, read_at FROM notifications WHERE 1=1");
@@ -163,7 +159,7 @@ public class NotificationDao extends BaseDao {
         }
         sql.append(" ORDER BY created_at DESC");
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
                 Object param = params.get(i);
                 if (param instanceof Timestamp ts) {
@@ -212,8 +208,7 @@ public class NotificationDao extends BaseDao {
                 category,
                 createdAt,
                 isRead,
-                readTs != null ? readTs.toLocalDateTime() : null
-        );
+                readTs != null ? readTs.toLocalDateTime() : null);
         return notification;
     }
 }

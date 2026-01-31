@@ -12,7 +12,6 @@ import main.java.utils.DatabaseUtil;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.Collections;
 import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -41,11 +40,11 @@ public final class GradebookService {
                 String.format("Defined assessments for %s (%d components)", sectionId, weights.size()));
     }
 
-    public static void recordScore(User instructor, String sectionId, String studentId, String component, double score) {
+    public static void recordScore(User instructor, String sectionId, String studentId, String component,
+            double score) {
         ensureInstructorAccess(instructor, sectionId);
         EnrollmentRecord record = locateEnrollment(sectionId, studentId);
         record.putScore(component, score);
-        DatabaseUtil.saveData();
         AuditLogService.log(AuditLogService.EventType.GRADE_EDIT,
                 instructor.getUsername(),
                 String.format("Recorded %s=%.2f for %s in %s", component, score, studentId, sectionId));
@@ -59,7 +58,6 @@ public final class GradebookService {
         record.setFinalGrade(finalGrade);
         record.setWeighting(new HashMap<>(section.getAssessmentWeights()));
         record.setUpdatedAt(LocalDateTime.now());
-        DatabaseUtil.saveData();
         AuditLogService.log(AuditLogService.EventType.GRADE_EDIT,
                 instructor.getUsername(),
                 String.format("Computed final grade %.2f for %s in %s", finalGrade, studentId, sectionId));
@@ -150,9 +148,9 @@ public final class GradebookService {
     }
 
     public static AssessmentTemplateDao.AssessmentTemplate saveTemplate(User instructor,
-                                                                        String courseCode,
-                                                                        String templateName,
-                                                                        Map<String, Double> weights) {
+            String courseCode,
+            String templateName,
+            Map<String, Double> weights) {
         if (instructor == null) {
             throw new SecurityException("Missing instructor session.");
         }
@@ -192,7 +190,8 @@ public final class GradebookService {
                 feedback == null ? Collections.emptyMap() : feedback);
     }
 
-    public static void saveFeedback(User instructor, String sectionId, String studentId, String component, String comment) {
+    public static void saveFeedback(User instructor, String sectionId, String studentId, String component,
+            String comment) {
         ensureInstructorAccess(instructor, sectionId);
         DatabaseUtil.saveComponentFeedbackEntry(sectionId, studentId, component, comment);
     }
@@ -238,15 +237,15 @@ public final class GradebookService {
     }
 
     public record GradeAnalytics(double average, double max, double min,
-                                 long passCount, long failCount,
-                                 Map<String, Long> buckets) {
+            long passCount, long failCount,
+            Map<String, Long> buckets) {
     }
 
     public record AttendanceSnapshot(LocalDate date, double percentage) {
     }
 
     public record AttendanceAnalytics(double averagePercent,
-                                      long sessions,
-                                      List<AttendanceSnapshot> snapshots) {
+            long sessions,
+            List<AttendanceSnapshot> snapshots) {
     }
 }

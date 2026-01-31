@@ -3,7 +3,9 @@ package main.java.models;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 
-public class OfficeHour {
+public class OfficeHour implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+
     private long officeHourId;
     private String facultyId; // Mapping to instructor_code
     private DayOfWeek dayOfWeek;
@@ -65,5 +67,20 @@ public class OfficeHour {
     public String getDisplayText() {
         return String.format("%s %s - %s @ %s",
                 dayOfWeek.name(), startTime, endTime, location != null ? location : "Office");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof OfficeHour))
+            return false;
+        OfficeHour that = (OfficeHour) o;
+        return officeHourId == that.officeHourId;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(officeHourId);
     }
 }

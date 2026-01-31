@@ -2,7 +2,9 @@ package main.java.models;
 
 import java.time.LocalDateTime;
 
-public class Announcement {
+public class Announcement implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+
     public enum Category {
         DEPARTMENT, UNION, COLLEGE, UNIVERSITY, SOCIETY
     }
@@ -94,5 +96,20 @@ public class Announcement {
 
     public void setPriority(Priority priority) {
         this.priority = priority;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof Announcement))
+            return false;
+        Announcement that = (Announcement) o;
+        return announcementId == that.announcementId;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(announcementId);
     }
 }

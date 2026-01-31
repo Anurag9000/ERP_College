@@ -1,6 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.Faculty;
 
 import java.sql.Connection;
@@ -22,15 +21,15 @@ public class InstructorDao extends BaseDao {
     private static final String DELETE = "DELETE FROM instructors WHERE instructor_code = ?";
 
     public InstructorDao() {
-        super(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
     public List<Faculty> findAll() {
         List<Faculty> list = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 list.add(mapFaculty(rs));
             }
@@ -50,7 +49,7 @@ public class InstructorDao extends BaseDao {
 
     public void insert(Faculty faculty) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT)) {
             bind(ps, faculty, true);
             ps.executeUpdate();
         } catch (SQLException ex) {
@@ -61,7 +60,7 @@ public class InstructorDao extends BaseDao {
 
     public void update(Faculty faculty) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             bind(ps, faculty, false);
             ps.setString(11, faculty.getFacultyId());
             ps.executeUpdate();
@@ -73,7 +72,7 @@ public class InstructorDao extends BaseDao {
 
     public void delete(String code) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setString(1, code);
             ps.executeUpdate();
         } catch (SQLException ex) {
@@ -84,7 +83,7 @@ public class InstructorDao extends BaseDao {
 
     private Optional<Faculty> fetchSingle(String sql, String param) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, param);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {

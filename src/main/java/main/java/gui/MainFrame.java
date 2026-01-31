@@ -43,12 +43,26 @@ public class MainFrame extends JFrame {
 
         getContentPane().add(tabbedPane, BorderLayout.CENTER);
 
-        // Add a simple status bar at the bottom
-        JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        statusBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY));
+        // Add a styled status bar at the bottom
+        JPanel statusBar = new JPanel(new BorderLayout());
+        statusBar.setBackground(main.java.gui.style.PastelTheme.PASTEL_BG);
+        statusBar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, main.java.gui.style.PastelTheme.PASTEL_BLUE_DARK),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)));
+
         JLabel userLabel = new JLabel("Logged in as: " + (currentUser != null ? currentUser.getFullName() : "Guest"));
-        userLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-        statusBar.add(userLabel);
+        userLabel.setFont(main.java.gui.style.PastelTheme.BODY_FONT);
+        userLabel.setForeground(main.java.gui.style.PastelTheme.TEXT_PRIMARY);
+
+        JButton logoutButton = new JButton("Logout");
+        main.java.gui.style.PastelTheme.styleButtonSecondary(logoutButton);
+        logoutButton.addActionListener(e -> {
+            dispose();
+            new LoginFrame().setVisible(true);
+        });
+
+        statusBar.add(userLabel, BorderLayout.WEST);
+        statusBar.add(logoutButton, BorderLayout.EAST);
         getContentPane().add(statusBar, BorderLayout.SOUTH);
     }
 

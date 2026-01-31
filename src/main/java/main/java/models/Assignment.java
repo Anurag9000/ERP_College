@@ -2,7 +2,9 @@ package main.java.models;
 
 import java.time.LocalDateTime;
 
-public class Assignment {
+public class Assignment implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+
     public enum AssignmentType {
         ASSIGNMENT, TEST, QUIZ, PROJECT
     }
@@ -85,5 +87,20 @@ public class Assignment {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof Assignment))
+            return false;
+        Assignment that = (Assignment) o;
+        return assignmentId == that.assignmentId;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(assignmentId);
     }
 }

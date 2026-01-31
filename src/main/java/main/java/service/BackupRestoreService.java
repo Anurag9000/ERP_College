@@ -60,12 +60,15 @@ public class BackupRestoreService {
     private static void backupDatabase(String dbName, String outputFile)
             throws IOException, InterruptedException {
 
-        String host = ConfigLoader.getOrDefault("auth.datasource.jdbcUrl", "localhost:3306").split("/")[2]
-                .split(":")[0];
+        String host = parseHostFromUrl(
+                ConfigLoader.getOrDefault("auth.datasource.jdbcUrl", "jdbc:mysql://localhost:3306/college_auth"));
         String user = ConfigLoader.getOrDefault("auth.datasource.username", "root");
         String password = ConfigLoader.getOrDefault("auth.datasource.password", "");
 
+        validateToolExists("mysqldump");
+
         ProcessBuilder pb = new ProcessBuilder(
+
                 "mysqldump",
                 "-h", host,
                 "-u", user,
@@ -84,12 +87,15 @@ public class BackupRestoreService {
     private static void restoreDatabase(String dbName, String inputFile)
             throws IOException, InterruptedException {
 
-        String host = ConfigLoader.getOrDefault("auth.datasource.jdbcUrl", "localhost:3306").split("/")[2]
-                .split(":")[0];
+        String host = parseHostFromUrl(
+                ConfigLoader.getOrDefault("auth.datasource.jdbcUrl", "jdbc:mysql://localhost:3306/college_auth"));
         String user = ConfigLoader.getOrDefault("auth.datasource.username", "root");
         String password = ConfigLoader.getOrDefault("auth.datasource.password", "");
 
+        validateToolExists("mysql");
+
         ProcessBuilder pb = new ProcessBuilder(
+
                 "mysql",
                 "-h", host,
                 "-u", user,
@@ -109,7 +115,48 @@ public class BackupRestoreService {
      * Archive old data (move to archive tables)
      */
     public static void archiveOldData(int yearsOld) {
-        // TODO: Implement archival logic
-        // Move enrollments/grades older than N years to archive tables
+        LocalDateTime cutoff = LocalDateTime.now().minusYears(yearsOld);
+        // This is a placeholder for actual archival logic which would move data to
+        // different tables
+        // For now, we'll just log the intent as we don't have secondary archive tables
+        // yet.
+        System.out.println("Archiving data older than " + cutoff);
+    }
+
+    private static String parseHostFromUrl(String url) {
+        try {
+            if (url.startsWith("jdbc:mysql://")) {
+                String parts = url.substring(13);
+                int slashIndex = parts.indexOf('/');
+                if (slashIndex != -1) {
+                    parts = parts.substring(0, slashIndex);
+                }
+                int colonIndex = parts.indexOf(':');
+                if (colonIndex != -1) {
+                    return parts.substring(0, colonIndex);
+                }
+                return parts;
+            }
+            return "localhost";
+        } catch (Exception e) {
+            return "localhost";
+        }
+    }
+
+    private static void validateToolExists(String tool) throws IOException {
+        String os = System.getProperty("os.name").toLowerCase();
+        ProcessBuilder checkPb = os.contains("win")
+                ? new ProcessBuilder("where", tool)
+                : new ProcessBuilder("which", tool);
+
+        Process check = checkPb.start();
+        try {
+            if (check.waitFor() != 0) {
+                throw new IOException(tool + " not found in system PATH.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Tool validation interrupted", e);
+        }
     }
 }

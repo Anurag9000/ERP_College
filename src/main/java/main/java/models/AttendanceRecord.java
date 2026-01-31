@@ -60,19 +60,21 @@ public class AttendanceRecord implements Serializable {
     }
 
     /**
-     * Legacy accessor for boolean attendance maps. Converts internally stored statuses to booleans.
+     * Legacy accessor for boolean attendance maps. Converts internally stored
+     * statuses to booleans.
+     * 
      * @deprecated Prefer {@link #getStatusByStudent()}.
      */
     @Deprecated
     public Map<String, Boolean> getAttendanceByStudent() {
         Map<String, Boolean> snapshot = new HashMap<>();
-        statuses().forEach((studentId, status) ->
-                snapshot.put(studentId, status != AttendanceStatus.ABSENT));
+        statuses().forEach((studentId, status) -> snapshot.put(studentId, status != AttendanceStatus.ABSENT));
         return snapshot;
     }
 
     /**
      * Legacy mutator accepting boolean presence, translates into status map.
+     * 
      * @deprecated Prefer {@link #setStatusByStudent(Map)}.
      */
     @Deprecated
@@ -117,5 +119,21 @@ public class AttendanceRecord implements Serializable {
             statusByStudent = new HashMap<>();
         }
         return statusByStudent;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof AttendanceRecord))
+            return false;
+        AttendanceRecord that = (AttendanceRecord) o;
+        return java.util.Objects.equals(sectionId, that.sectionId) &&
+                java.util.Objects.equals(date, that.date);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(sectionId, date);
     }
 }

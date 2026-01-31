@@ -18,9 +18,10 @@ public class User implements java.io.Serializable {
     private int failedAttempts;
     private boolean mustChangePassword;
     private java.util.Deque<String> passwordHistory; // Entries stored as salt:hash
-    
-    public User() {}
-    
+
+    public User() {
+    }
+
     public User(String username, String passwordHash, String salt, String role, String fullName, String email) {
         this.username = username;
         this.passwordHash = passwordHash;
@@ -33,10 +34,15 @@ public class User implements java.io.Serializable {
         this.mustChangePassword = false;
         this.passwordHistory = new java.util.ArrayDeque<>();
     }
-    
+
     // Getters and Setters
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     public Long getId() {
         return id;
@@ -45,24 +51,54 @@ public class User implements java.io.Serializable {
     public void setId(Long id) {
         this.id = id;
     }
-    
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
 
-    public String getSalt() { return salt; }
-    public void setSalt(String salt) { this.salt = salt; }
-    
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-    
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
-    
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public String getSalt() {
+        return salt;
+    }
+
+    public void setSalt(String salt) {
+        this.salt = salt;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
 
     public java.time.LocalDateTime getLastLogin() {
         return lastLogin;
@@ -121,5 +157,19 @@ public class User implements java.io.Serializable {
         while (passwordHistory.size() > maxHistory) {
             passwordHistory.removeLast();
         }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof User))
+            return false;
+        User user = (User) o;
+        return java.util.Objects.equals(username, user.username);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(username);
     }
 }

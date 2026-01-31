@@ -1,6 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.Appointment;
 import main.java.models.OfficeHour;
 
@@ -10,14 +9,20 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AppointmentDao {
+public class AppointmentDao extends BaseDao {
+
+    public AppointmentDao() {
+        super(main.java.config.DataSourceRegistry.erpDataSource()
+                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+    }
 
     public void insertAppointment(Appointment apt) {
         String sql = "INSERT INTO appointments (student_code, instructor_code, office_hour_id, appointment_date, start_time, end_time, purpose, status) "
                 +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setString(1, apt.getStudentId());
             stmt.setString(2, apt.getFacultyId());
             if (apt.getOfficeHourId() != null) {
@@ -47,8 +52,9 @@ public class AppointmentDao {
                 "JOIN instructors i ON a.instructor_code = i.instructor_code " +
                 "WHERE a.student_code = ? ORDER BY a.appointment_date DESC, a.start_time DESC";
         List<Appointment> list = new ArrayList<>();
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, studentId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -66,8 +72,9 @@ public class AppointmentDao {
     public List<OfficeHour> getOfficeHours(String facultyId) {
         String sql = "SELECT * FROM instructor_office_hours WHERE instructor_code = ?";
         List<OfficeHour> list = new ArrayList<>();
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, facultyId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {

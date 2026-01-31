@@ -1,15 +1,12 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.Student;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -24,15 +21,15 @@ public class StudentDao extends BaseDao {
     private static final String DELETE = "DELETE FROM students WHERE student_code = ?";
 
     public StudentDao() {
-        super(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
     public List<Student> findAll() {
         List<Student> students = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 students.add(mapStudent(rs));
             }
@@ -52,7 +49,7 @@ public class StudentDao extends BaseDao {
 
     private Optional<Student> fetchSingle(String sql, String param) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, param);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -67,7 +64,7 @@ public class StudentDao extends BaseDao {
 
     public void insert(Student student) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT)) {
             ps.setString(1, student.getStudentId());
             ps.setString(2, student.getUsername());
             ps.setString(3, student.getFirstName());
@@ -104,7 +101,7 @@ public class StudentDao extends BaseDao {
 
     public void update(Student student) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             ps.setString(1, student.getUsername());
             ps.setString(2, student.getFirstName());
             ps.setString(3, student.getLastName());
@@ -141,7 +138,7 @@ public class StudentDao extends BaseDao {
 
     public void delete(String studentCode) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setString(1, studentCode);
             ps.executeUpdate();
         } catch (SQLException ex) {

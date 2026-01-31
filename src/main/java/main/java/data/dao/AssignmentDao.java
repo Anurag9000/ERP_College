@@ -1,6 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.Assignment;
 import main.java.models.AssignmentSubmission;
 
@@ -9,14 +8,20 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AssignmentDao {
+public class AssignmentDao extends BaseDao {
+
+    public AssignmentDao() {
+        super(main.java.config.DataSourceRegistry.erpDataSource()
+                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+    }
 
     public void insertAssignment(Assignment assignment) {
         String sql = "INSERT INTO assignments (section_code, title, description, due_date, max_marks, assignment_type) "
                 +
                 "VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setString(1, assignment.getSectionCode());
             stmt.setString(2, assignment.getTitle());
             stmt.setString(3, assignment.getDescription());
@@ -38,8 +43,9 @@ public class AssignmentDao {
     public List<Assignment> getAssignmentsBySection(String sectionCode) {
         String sql = "SELECT * FROM assignments WHERE section_code = ? ORDER BY due_date";
         List<Assignment> list = new ArrayList<>();
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, sectionCode);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -58,8 +64,9 @@ public class AssignmentDao {
                 "WHERE e.student_code = ? AND a.due_date > NOW() " +
                 "ORDER BY a.due_date LIMIT 10";
         List<Assignment> list = new ArrayList<>();
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, studentCode);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -76,8 +83,9 @@ public class AssignmentDao {
         String sql = "INSERT INTO assignment_submissions (assignment_id, student_code, file_path, status) " +
                 "VALUES (?, ?, ?, ?) " +
                 "ON DUPLICATE KEY UPDATE file_path = ?, submitted_at = NOW(), status = ?";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setLong(1, submission.getAssignmentId());
             stmt.setString(2, submission.getStudentCode());
             stmt.setString(3, submission.getFilePath());
@@ -99,8 +107,9 @@ public class AssignmentDao {
     public void gradeSubmission(long submissionId, double marks, String feedback) {
         String sql = "UPDATE assignment_submissions SET marks_obtained = ?, feedback = ?, status = 'GRADED' " +
                 "WHERE submission_id = ?";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setDouble(1, marks);
             stmt.setString(2, feedback);
             stmt.setLong(3, submissionId);
@@ -115,8 +124,9 @@ public class AssignmentDao {
                 "JOIN students st ON s.student_code = st.student_code " +
                 "WHERE s.assignment_id = ?";
         List<AssignmentSubmission> list = new ArrayList<>();
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setLong(1, assignmentId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -133,8 +143,9 @@ public class AssignmentDao {
 
     public AssignmentSubmission getSubmission(long assignmentId, String studentCode) {
         String sql = "SELECT * FROM assignment_submissions WHERE assignment_id = ? AND student_code = ?";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setLong(1, assignmentId);
             stmt.setString(2, studentCode);
             try (ResultSet rs = stmt.executeQuery()) {

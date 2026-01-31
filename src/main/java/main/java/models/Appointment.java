@@ -4,7 +4,9 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
 
-public class Appointment {
+public class Appointment implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+
     public enum Status {
         PENDING, APPROVED, REJECTED, CANCELLED, COMPLETED
     }
@@ -130,5 +132,20 @@ public class Appointment {
 
     public void setFacultyName(String facultyName) {
         this.facultyName = facultyName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof Appointment))
+            return false;
+        Appointment that = (Appointment) o;
+        return appointmentId == that.appointmentId;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(appointmentId);
     }
 }

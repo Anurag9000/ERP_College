@@ -1,8 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -33,18 +30,14 @@ public class AssessmentTemplateDao extends BaseDao {
             """;
 
     public AssessmentTemplateDao() {
-        this(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
-    }
-
-    public AssessmentTemplateDao(DataSource dataSource) {
-        super(dataSource);
     }
 
     public List<AssessmentTemplate> findByCourse(String courseCode) {
         List<AssessmentTemplate> results = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_COURSE)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_COURSE)) {
             ps.setString(1, courseCode);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -59,7 +52,7 @@ public class AssessmentTemplateDao extends BaseDao {
 
     public AssessmentTemplate insert(String courseCode, String templateName, String weightsJson, String createdBy) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, courseCode);
             ps.setString(2, templateName);
             ps.setString(3, weightsJson);
@@ -68,11 +61,13 @@ public class AssessmentTemplateDao extends BaseDao {
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 if (keys.next()) {
                     long id = keys.getLong(1);
-                    return new AssessmentTemplate(id, courseCode, templateName, weightsJson, createdBy, LocalDateTime.now());
+                    return new AssessmentTemplate(id, courseCode, templateName, weightsJson, createdBy,
+                            LocalDateTime.now());
                 }
             }
         } catch (SQLException ex) {
-            logger.error("Failed to save assessment template {} for {}: {}", templateName, courseCode, ex.getMessage(), ex);
+            logger.error("Failed to save assessment template {} for {}: {}", templateName, courseCode, ex.getMessage(),
+                    ex);
             throw new IllegalStateException("Unable to save assessment template", ex);
         }
         throw new IllegalStateException("Unable to save assessment template");
@@ -80,7 +75,7 @@ public class AssessmentTemplateDao extends BaseDao {
 
     public void delete(long templateId) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setLong(1, templateId);
             ps.executeUpdate();
         } catch (SQLException ex) {
@@ -91,7 +86,7 @@ public class AssessmentTemplateDao extends BaseDao {
 
     public AssessmentTemplate findById(long id) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_ID)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_ID)) {
             ps.setLong(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -111,15 +106,14 @@ public class AssessmentTemplateDao extends BaseDao {
                 rs.getString("template_name"),
                 rs.getString("weights_json"),
                 rs.getString("created_by"),
-                rs.getTimestamp("created_at").toLocalDateTime()
-        );
+                rs.getTimestamp("created_at").toLocalDateTime());
     }
 
     public record AssessmentTemplate(long id,
-                                     String courseCode,
-                                     String templateName,
-                                     String weightsJson,
-                                     String createdBy,
-                                     LocalDateTime createdAt) {
+            String courseCode,
+            String templateName,
+            String weightsJson,
+            String createdBy,
+            LocalDateTime createdAt) {
     }
 }

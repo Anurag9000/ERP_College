@@ -2,7 +2,8 @@ package main.java.models;
 
 import java.time.LocalDateTime;
 
-public class AssignmentSubmission {
+public class AssignmentSubmission implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private long submissionId;
     private long assignmentId;
@@ -98,5 +99,20 @@ public class AssignmentSubmission {
 
     public void setAssignmentTitle(String assignmentTitle) {
         this.assignmentTitle = assignmentTitle;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof AssignmentSubmission))
+            return false;
+        AssignmentSubmission that = (AssignmentSubmission) o;
+        return submissionId == that.submissionId;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(submissionId);
     }
 }

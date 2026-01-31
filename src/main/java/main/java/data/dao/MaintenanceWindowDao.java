@@ -1,6 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.MaintenanceWindow;
 
 import java.sql.Connection;
@@ -32,15 +31,15 @@ public class MaintenanceWindowDao extends BaseDao {
     private static final String DELETE = "DELETE FROM maintenance_windows WHERE id = ?";
 
     public MaintenanceWindowDao() {
-        super(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
     public List<MaintenanceWindow> findAll() {
         List<MaintenanceWindow> result = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 result.add(map(rs));
             }
@@ -51,12 +50,12 @@ public class MaintenanceWindowDao extends BaseDao {
     }
 
     public Optional<MaintenanceWindow> insert(LocalDateTime start,
-                                              LocalDateTime end,
-                                              String message,
-                                              MaintenanceWindow.Status status,
-                                              String createdBy) {
+            LocalDateTime end,
+            String message,
+            MaintenanceWindow.Status status,
+            String createdBy) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setTimestamp(1, Timestamp.valueOf(start));
             ps.setTimestamp(2, Timestamp.valueOf(end));
             ps.setString(3, message);
@@ -85,7 +84,7 @@ public class MaintenanceWindowDao extends BaseDao {
 
     public void updateStatus(long id, MaintenanceWindow.Status status) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
             ps.setString(1, status.name());
             ps.setLong(2, id);
             ps.executeUpdate();
@@ -97,7 +96,7 @@ public class MaintenanceWindowDao extends BaseDao {
 
     public void delete(long id) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setLong(1, id);
             ps.executeUpdate();
         } catch (SQLException ex) {

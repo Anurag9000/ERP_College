@@ -4,7 +4,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ExamForm {
+public class ExamForm implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+
     public enum FormStatus {
         SUBMITTED, APPROVED, REJECTED
     }
@@ -84,5 +86,20 @@ public class ExamForm {
 
     public void setSectionCodes(List<String> sectionCodes) {
         this.sectionCodes = sectionCodes;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof ExamForm))
+            return false;
+        ExamForm examForm = (ExamForm) o;
+        return formId == examForm.formId;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(formId);
     }
 }

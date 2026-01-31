@@ -6,7 +6,9 @@ import java.util.Objects;
 /**
  * Per-user notification preference and digest configuration.
  */
-public class NotificationPreference {
+public class NotificationPreference implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+
     public enum DigestFrequency {
         IMMEDIATE,
         DAILY,
@@ -22,11 +24,11 @@ public class NotificationPreference {
     private LocalDateTime updatedAt;
 
     public NotificationPreference(String userId,
-                                  DigestFrequency digestFrequency,
-                                  int digestHour,
-                                  boolean emailEnabled,
-                                  boolean smsEnabled,
-                                  LocalDateTime updatedAt) {
+            DigestFrequency digestFrequency,
+            int digestHour,
+            boolean emailEnabled,
+            boolean smsEnabled,
+            LocalDateTime updatedAt) {
         this.userId = Objects.requireNonNull(userId, "userId");
         this.digestFrequency = digestFrequency == null ? DigestFrequency.IMMEDIATE : digestFrequency;
         this.digestHour = digestHour;
@@ -83,5 +85,20 @@ public class NotificationPreference {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof NotificationPreference))
+            return false;
+        NotificationPreference that = (NotificationPreference) o;
+        return java.util.Objects.equals(userId, that.userId);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(userId);
     }
 }

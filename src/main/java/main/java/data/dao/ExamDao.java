@@ -1,17 +1,22 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.ExamForm;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ExamDao {
+public class ExamDao extends BaseDao {
+
+    public ExamDao() {
+        super(main.java.config.DataSourceRegistry.erpDataSource()
+                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+    }
 
     public void submitExamForm(ExamForm form) {
         String sql = "INSERT INTO exam_forms (student_code, semester, year, status, exam_fee_paid) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
+
                 PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, form.getStudentCode());
             stmt.setString(2, form.getSemester());
@@ -33,7 +38,8 @@ public class ExamDao {
 
     private void insertExamRegistrations(long formId, List<String> sectionCodes) {
         String sql = "INSERT INTO exam_registrations (form_id, section_code) VALUES (?, ?)";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
+
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             for (String sectionCode : sectionCodes) {
                 stmt.setLong(1, formId);
@@ -48,7 +54,8 @@ public class ExamDao {
 
     public ExamForm getExamForm(String studentCode, String semester, int year) {
         String sql = "SELECT * FROM exam_forms WHERE student_code = ? AND semester = ? AND year = ?";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
+
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, studentCode);
             stmt.setString(2, semester);
@@ -69,7 +76,8 @@ public class ExamDao {
     private List<String> getRegisteredSections(long formId) {
         String sql = "SELECT section_code FROM exam_registrations WHERE form_id = ?";
         List<String> sections = new ArrayList<>();
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
+
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, formId);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -85,7 +93,8 @@ public class ExamDao {
 
     public void updateFeePaymentStatus(long formId, boolean paid) {
         String sql = "UPDATE exam_forms SET exam_fee_paid = ? WHERE form_id = ?";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
+
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setBoolean(1, paid);
             stmt.setLong(2, formId);
@@ -97,7 +106,8 @@ public class ExamDao {
 
     public void generateAdmitCard(long formId, String pdfPath) {
         String sql = "INSERT INTO admit_cards (form_id, pdf_path) VALUES (?, ?)";
-        try (Connection conn = DataSourceRegistry.erpDataSource().get().getConnection();
+        try (Connection conn = getConnection();
+
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, formId);
             stmt.setString(2, pdfPath);

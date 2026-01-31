@@ -22,14 +22,14 @@ public class Faculty implements java.io.Serializable {
     private List<String> subjects;
     private String status;
     private String username;
-    
+
     public Faculty() {
         this.subjects = new ArrayList<>();
     }
-    
-    public Faculty(String facultyId, String firstName, String lastName, 
-                  String email, String phone, String department, 
-                  String designation, String qualification, double salary) {
+
+    public Faculty(String facultyId, String firstName, String lastName,
+            String email, String phone, String department,
+            String designation, String qualification, double salary) {
         this.facultyId = facultyId;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -44,45 +44,107 @@ public class Faculty implements java.io.Serializable {
         this.subjects = new ArrayList<>();
         this.username = null;
     }
-    
+
     // Getters and Setters
-    public String getFacultyId() { return facultyId; }
-    public void setFacultyId(String facultyId) { this.facultyId = facultyId; }
-    
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-    
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
-    
-    public String getFullName() { return firstName + " " + lastName; }
-    
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
-    
-    public String getDepartment() { return department; }
-    public void setDepartment(String department) { this.department = department; }
-    
-    public String getDesignation() { return designation; }
-    public void setDesignation(String designation) { this.designation = designation; }
-    
-    public LocalDate getJoiningDate() { return joiningDate; }
-    public void setJoiningDate(LocalDate joiningDate) { this.joiningDate = joiningDate; }
-    
-    public double getSalary() { return salary; }
-    public void setSalary(double salary) { this.salary = salary; }
-    
-    public String getQualification() { return qualification; }
-    public void setQualification(String qualification) { this.qualification = qualification; }
-    
-    public List<String> getSubjects() { return subjects; }
-    public void setSubjects(List<String> subjects) { this.subjects = subjects; }
-    
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public String getFacultyId() {
+        return facultyId;
+    }
+
+    public void setFacultyId(String facultyId) {
+        this.facultyId = facultyId;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public String getDesignation() {
+        return designation;
+    }
+
+    public void setDesignation(String designation) {
+        this.designation = designation;
+    }
+
+    public LocalDate getJoiningDate() {
+        return joiningDate;
+    }
+
+    public void setJoiningDate(LocalDate joiningDate) {
+        this.joiningDate = joiningDate;
+    }
+
+    public double getSalary() {
+        return salary;
+    }
+
+    public void setSalary(double salary) {
+        this.salary = salary;
+    }
+
+    public String getQualification() {
+        return qualification;
+    }
+
+    public void setQualification(String qualification) {
+        this.qualification = qualification;
+    }
+
+    public List<String> getSubjects() {
+        return subjects;
+    }
+
+    public void setSubjects(List<String> subjects) {
+        this.subjects = subjects;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
 
     public String getUsername() {
         return username;
@@ -90,5 +152,20 @@ public class Faculty implements java.io.Serializable {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof Faculty))
+            return false;
+        Faculty faculty = (Faculty) o;
+        return java.util.Objects.equals(facultyId, faculty.facultyId);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(facultyId);
     }
 }

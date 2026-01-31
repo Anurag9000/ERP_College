@@ -1,6 +1,5 @@
 package main.java.data.dao;
 
-import main.java.config.DataSourceRegistry;
 import main.java.models.FeeInstallment;
 
 import java.sql.Connection;
@@ -41,13 +40,13 @@ public class FeeInstallmentDao extends BaseDao {
             """;
 
     public FeeInstallmentDao() {
-        super(DataSourceRegistry.erpDataSource()
+        super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
     public void insert(FeeInstallment installment) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
             ps.setString(1, installment.getInstallmentId());
             ps.setString(2, installment.getStudentId());
             if (installment.getDueDate() != null) {
@@ -77,7 +76,7 @@ public class FeeInstallmentDao extends BaseDao {
 
     public boolean update(FeeInstallment installment) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE_SQL)) {
             ps.setString(1, installment.getStudentId());
             if (installment.getDueDate() != null) {
                 ps.setDate(2, Date.valueOf(installment.getDueDate()));
@@ -107,7 +106,7 @@ public class FeeInstallmentDao extends BaseDao {
 
     public void delete(String installmentId) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE_SQL)) {
             ps.setString(1, installmentId);
             ps.executeUpdate();
         } catch (SQLException ex) {
@@ -118,7 +117,7 @@ public class FeeInstallmentDao extends BaseDao {
 
     public List<FeeInstallment> findByStudent(String studentId) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(FIND_BY_STUDENT_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(FIND_BY_STUDENT_SQL)) {
             ps.setString(1, studentId);
             try (ResultSet rs = ps.executeQuery()) {
                 return mapResult(rs);
@@ -131,8 +130,8 @@ public class FeeInstallmentDao extends BaseDao {
 
     public List<FeeInstallment> findAll() {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(FIND_ALL_SQL);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(FIND_ALL_SQL);
+                ResultSet rs = ps.executeQuery()) {
             return mapResult(rs);
         } catch (SQLException ex) {
             logger.error("Failed to load installments: {}", ex.getMessage(), ex);

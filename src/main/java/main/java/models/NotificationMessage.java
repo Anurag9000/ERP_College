@@ -27,18 +27,18 @@ public class NotificationMessage implements Serializable {
     private LocalDateTime readAt;
 
     public NotificationMessage(Audience audience, String targetId,
-                               String message, String category) {
+            String message, String category) {
         this(null, audience, targetId, message, category, LocalDateTime.now(), false, null);
     }
 
     public NotificationMessage(Long id, Audience audience, String targetId,
-                               String message, String category, LocalDateTime createdAt) {
+            String message, String category, LocalDateTime createdAt) {
         this(id, audience, targetId, message, category, createdAt, false, null);
     }
 
     public NotificationMessage(Long id, Audience audience, String targetId,
-                               String message, String category, LocalDateTime createdAt,
-                               boolean read, LocalDateTime readAt) {
+            String message, String category, LocalDateTime createdAt,
+            boolean read, LocalDateTime readAt) {
         this.id = id;
         this.audience = audience;
         this.targetId = targetId;
@@ -114,5 +114,20 @@ public class NotificationMessage implements Serializable {
 
     public void setReadAt(LocalDateTime readAt) {
         this.readAt = readAt;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof NotificationMessage))
+            return false;
+        NotificationMessage that = (NotificationMessage) o;
+        return java.util.Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(id);
     }
 }

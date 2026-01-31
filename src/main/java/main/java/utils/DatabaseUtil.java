@@ -1,7 +1,8 @@
 package main.java.utils;
 
 import main.java.config.ConfigLoader;
-import main.java.data.AuthUserDao;
+import main.java.data.dao.AuthUserDao;
+
 import main.java.data.dao.CourseDao;
 import main.java.data.dao.AssessmentTemplateDao;
 import main.java.data.dao.StudentDao;
@@ -58,21 +59,15 @@ import java.util.stream.Collectors;
 public class DatabaseUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseUtil.class);
     private static final String DATA_DIR = "data/";
-    private static final String STUDENTS_FILE = DATA_DIR + "students.dat";
-    private static final String FACULTY_FILE = DATA_DIR + "faculty.dat";
-    private static final String COURSES_FILE = DATA_DIR + "courses.dat";
-    private static final String SECTIONS_FILE = DATA_DIR + "sections.dat";
-    private static Map<String, Student> students = new ConcurrentHashMap<>();
-    private static Map<String, Faculty> faculty = new ConcurrentHashMap<>();
-    private static Map<String, Course> courses = new ConcurrentHashMap<>();
-    private static Map<String, Section> sections = new ConcurrentHashMap<>();
-    private static Map<String, String> settings = new ConcurrentHashMap<>();
+
+    private static final Map<String, String> settings = new ConcurrentHashMap<>();
 
     private static final int MAX_FAILED_ATTEMPTS = parseIntConfig("security.maxFailedAttempts", 5);
     private static final int LOCKOUT_MINUTES = parseIntConfig("security.lockoutMinutes", 15);
     private static final int PASSWORD_HISTORY_SIZE = parseIntConfig("security.passwordHistorySize",
             PasswordPolicy.historySize());
     private static final int MAX_TERM_CREDITS = parseIntConfig("registration.maxCredits", 24);
+
     private static AuthUserDao authUserDao = new AuthUserDao();
     private static StudentDao studentDao = new StudentDao();
     private static CourseDao courseDao = new CourseDao();
@@ -182,6 +177,7 @@ public class DatabaseUtil {
     private static final Map<String, List<String>> coursePrerequisiteCache = new ConcurrentHashMap<>();
     private static final Map<String, List<String>> courseCorequisiteCache = new ConcurrentHashMap<>();
     private static final Map<String, List<String>> courseAntirequisiteCache = new ConcurrentHashMap<>();
+
     private static final double PASSING_GRADE_THRESHOLD = 40.0;
     private static final List<MaintenanceWindow> maintenanceWindowCache = new CopyOnWriteArrayList<>();
     private static final ScheduledExecutorService maintenanceExecutor = Executors
@@ -219,66 +215,6 @@ public class DatabaseUtil {
         }
     }
 
-    private static void seedFinanceData(Student... sampleStudents) {
-        LocalDate today = LocalDate.now();
-        for (Student student : sampleStudents) {
-            List<PaymentTransaction> transactions = new ArrayList<>();
-            List<FeeInstallment> installments = new ArrayList<>();
-
-            double paid = student.getFeesPaid();
-            if (paid > 0) {
-                double split = Math.max(1, Math.round(paid / 2.0 / 1000) * 1000);
-                PaymentTransaction t1 = new PaymentTransaction(
-                        student.getStudentId(),
-                        Math.min(split, paid),
-                        today.minusMonths(4),
-                        "UPI",
-                        "TXN-" + student.getStudentId() + "-A",
-                        "Initial tuition payment");
-                PaymentTransaction t2 = new PaymentTransaction(
-                        student.getStudentId(),
-                        Math.max(0, paid - t1.getAmount()),
-                        today.minusMonths(2),
-                        "Bank Transfer",
-                        "TXN-" + student.getStudentId() + "-B",
-                        "Mid-term installment");
-                transactions.add(t1);
-                if (t2.getAmount() > 0) {
-                    transactions.add(t2);
-                }
-            }
-
-            double remaining = Math.max(0.0, student.getTotalFees() - paid);
-            if (remaining > 0) {
-                double installmentAmount = Math.max(1, Math.round(remaining / 3.0 / 1000) * 1000);
-                for (int i = 1; i <= 3; i++) {
-                    FeeInstallment installment = new FeeInstallment(
-                            student.getStudentId(),
-                            today.plusMonths(i).withDayOfMonth(5),
-                            Math.min(remaining, installmentAmount),
-                            "Installment " + i + " for AY " + today.getYear());
-                    if (installment.getDueDate().isBefore(today)) {
-                        installment.setStatus(FeeInstallment.Status.OVERDUE);
-                    } else {
-                        installment.setStatus(FeeInstallment.Status.DUE);
-                    }
-                    installments.add(installment);
-                    remaining -= installment.getAmount();
-                    if (remaining <= 0) {
-                        break;
-                    }
-                }
-            }
-
-            for (PaymentTransaction tx : transactions) {
-                paymentTransactionDao.insert(tx);
-            }
-            for (FeeInstallment installment : installments) {
-                feeInstallmentDao.insert(installment);
-            }
-        }
-    }
-
     public static synchronized void initializeDatabase() {
         // Create data directory if it doesn't exist
         File dataDir = new File(DATA_DIR);
@@ -286,8 +222,6 @@ public class DatabaseUtil {
             dataDir.mkdirs();
         }
 
-        // Load existing data or create sample data
-        loadData();
         refreshMaintenanceWindowCache();
         evaluateMaintenanceSchedule();
         startMaintenanceScheduler();
@@ -299,23 +233,12 @@ public class DatabaseUtil {
         boolean hasUsers = !authUserDao.findAll().isEmpty();
         if (!hasUsers) {
             createSampleData();
-            saveData();
         }
 
-        if (sections == null) {
-            sections = new ConcurrentHashMap<>();
-        }
-        if (settings == null) {
-            settings = new ConcurrentHashMap<>();
-        }
         ensureSettingDefault("maintenance", "false");
         ensureSettingDefault(MAINTENANCE_ORIGIN_KEY, "manual");
         ensureSettingDefault(MAINTENANCE_WINDOW_KEY, "");
 
-        refreshCourseCache();
-        refreshStudentCache();
-        refreshInstructorCache();
-        refreshSectionCache();
         coursePrerequisiteCache.clear();
     }
 
@@ -334,12 +257,10 @@ public class DatabaseUtil {
                 "123-456-7890", "Computer Science", "Professor", "Ph.D", 75000);
         f1.setUsername("inst1");
         instructorDao.insert(f1);
-        faculty.put(f1.getFacultyId(), f1);
 
         Faculty f2 = new Faculty("FAC002", "Jane", "Davis", "jane.davis@college.edu",
                 "123-456-7891", "Mathematics", "Associate Professor", "M.Sc", 65000);
         instructorDao.insert(f2);
-        faculty.put(f2.getFacultyId(), f2);
 
         Course c1 = new Course("CSE101", "Computer Science Engineering", "Computer Science",
                 8, 200000, "4-year undergraduate program in Computer Science", 60);
@@ -372,8 +293,6 @@ public class DatabaseUtil {
         s2.setNextFeeDueDate(LocalDate.now().plusDays(20));
         s2.setUsername("stu2");
         addStudent(s2);
-
-        seedFinanceData(s1, s2);
 
         Course course1 = getCourse("CSE101");
         course1.setAvailableSeats(course1.getAvailableSeats() - 1);
@@ -458,11 +377,7 @@ public class DatabaseUtil {
 
     @SuppressWarnings("unchecked")
     private static void loadData() {
-        students = new ConcurrentHashMap<>();
-        faculty = new ConcurrentHashMap<>();
-        courses = new ConcurrentHashMap<>();
-        sections = new ConcurrentHashMap<>();
-        settings = new ConcurrentHashMap<>(settingsDao.findAll());
+        settingsDao.findAll().forEach(settings::put);
     }
 
     public static void saveData() {
@@ -598,30 +513,22 @@ public class DatabaseUtil {
     // Student operations
     public static void addStudent(Student student) {
         studentDao.insert(student);
-        students.put(student.getStudentId(), student);
     }
 
     public static void updateStudent(Student student) {
         studentDao.update(student);
-        students.put(student.getStudentId(), student);
     }
 
     public static void deleteStudent(String studentId) {
         studentDao.delete(studentId);
-        students.remove(studentId);
     }
 
     public static Student getStudent(String studentId) {
-        Student student = students.get(studentId);
-        if (student == null) {
-            studentDao.findByCode(studentId).ifPresent(st -> students.put(studentId, st));
-            student = students.get(studentId);
-        }
-        return student;
+        return studentDao.findByCode(studentId).orElse(null);
     }
 
     public static List<Student> getAllStudents() {
-        return new ArrayList<>(students.values());
+        return studentDao.findAll();
     }
 
     public static Student findStudentByUsername(String username) {
@@ -1030,30 +937,22 @@ public class DatabaseUtil {
     // Faculty operations
     public static void addFaculty(Faculty facultyMember) {
         instructorDao.insert(facultyMember);
-        faculty.put(facultyMember.getFacultyId(), facultyMember);
     }
 
     public static void updateFaculty(Faculty facultyMember) {
         instructorDao.update(facultyMember);
-        faculty.put(facultyMember.getFacultyId(), facultyMember);
     }
 
     public static void deleteFaculty(String facultyId) {
         instructorDao.delete(facultyId);
-        faculty.remove(facultyId);
     }
 
     public static Faculty getFaculty(String facultyId) {
-        Faculty member = faculty.get(facultyId);
-        if (member == null) {
-            instructorDao.findByCode(facultyId).ifPresent(f -> faculty.put(facultyId, f));
-            member = faculty.get(facultyId);
-        }
-        return member;
+        return instructorDao.findByCode(facultyId).orElse(null);
     }
 
     public static List<Faculty> getAllFaculty() {
-        return new ArrayList<>(faculty.values());
+        return instructorDao.findAll();
     }
 
     public static Faculty findFacultyByUsername(String username) {
@@ -1063,33 +962,25 @@ public class DatabaseUtil {
     // Course operations
     public static void addCourse(Course course) {
         courseDao.insert(course);
-        courses.put(course.getCourseId(), course);
         clearCourseRelationshipCaches(course.getCourseId());
     }
 
     public static void updateCourse(Course course) {
         courseDao.update(course);
-        courses.put(course.getCourseId(), course);
         clearCourseRelationshipCaches(course.getCourseId());
     }
 
     public static void deleteCourse(String courseId) {
         courseDao.delete(courseId);
-        courses.remove(courseId);
         coursePrerequisiteCache.remove(courseId);
     }
 
     public static Course getCourse(String courseId) {
-        Course course = courses.get(courseId);
-        if (course == null) {
-            courseDao.findByCode(courseId).ifPresent(c -> courses.put(courseId, c));
-            course = courses.get(courseId);
-        }
-        return course;
+        return courseDao.findByCode(courseId).orElse(null);
     }
 
     public static List<Course> getAllCourses() {
-        return new ArrayList<>(courses.values());
+        return courseDao.findAll();
     }
 
     public static String generateNextId(String prefix, Collection<?> collection) {
@@ -1120,21 +1011,11 @@ public class DatabaseUtil {
 
     // Section operations
     public static List<Section> getAllSections() {
-        return new ArrayList<>(sections.values());
+        return sectionDao.findAll();
     }
 
     public static Section getSection(String sectionId) {
-        Section section = sections.get(sectionId);
-        if (section == null) {
-            section = sectionDao.findByCode(sectionId).orElse(null);
-            if (section != null) {
-                section.getEnrolledStudentIds().clear();
-                section.getWaitlistedStudentIds().clear();
-                sections.put(sectionId, section);
-                populateSectionEnrollmentState();
-            }
-        }
-        return section;
+        return sectionDao.findByCode(sectionId).orElse(null);
     }
 
     public static List<SectionConflict> findSectionConflicts() {
@@ -1192,13 +1073,11 @@ public class DatabaseUtil {
     public static void addSection(Section section) {
         enforceRoomScheduleClash(section);
         sectionDao.insert(section);
-        sections.put(section.getSectionId(), section);
     }
 
     public static void updateSection(Section section) {
         enforceRoomScheduleClash(section);
         sectionDao.update(section);
-        sections.put(section.getSectionId(), section);
     }
 
     public static void updateSectionDeadlines(String sectionId, LocalDate enrollmentDeadline, LocalDate dropDeadline) {
@@ -1222,7 +1101,6 @@ public class DatabaseUtil {
 
     public static void deleteSection(String sectionId) {
         sectionDao.delete(sectionId);
-        sections.remove(sectionId);
         enrollmentDao.deleteBySection(sectionId);
         waitlistDao.deleteAll(sectionId);
         attendanceDao.deleteBySection(sectionId);
@@ -1248,7 +1126,6 @@ public class DatabaseUtil {
         }
         section.setFacultyId(facultyId);
         updateSection(section);
-        refreshSectionCache();
 
         String actor = performedBy == null || performedBy.isBlank() ? "system" : performedBy;
         AuditLogService.log(AuditLogService.EventType.SECTION_ASSIGNMENT,
@@ -1359,8 +1236,6 @@ public class DatabaseUtil {
                     "Registration"));
         }
 
-        refreshSectionCache();
-
         String actorName = performedBy == null ? "system" : performedBy;
         AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE, actorName,
                 String.format("Registered %s in %s (%s)", studentId, section.getTitle(), record.getStatus()));
@@ -1386,7 +1261,7 @@ public class DatabaseUtil {
         if (candidate.getLocation() == null || candidate.getLocation().isBlank()) {
             return;
         }
-        for (Section existing : sections.values()) {
+        for (Section existing : sectionDao.findAll()) {
             if (existing.getSectionId().equalsIgnoreCase(candidate.getSectionId())) {
                 continue;
             }
@@ -1434,7 +1309,6 @@ public class DatabaseUtil {
         enrollmentDao.updateStatus(record);
         waitlistDao.delete(sectionId, studentId);
 
-        String promotedStudent = null;
         if (previousStatus == EnrollmentRecord.Status.ENROLLED) {
             boolean promoted = promoteApprovedWaitlistedIfPossible(section, sectionEnrollments);
             if (!promoted) {
@@ -1443,8 +1317,6 @@ public class DatabaseUtil {
                     course.setAvailableSeats(Math.min(course.getTotalSeats(), course.getAvailableSeats() + 1));
                     updateCourse(course);
                 }
-            } else {
-                promotedStudent = "auto";
             }
         }
 
@@ -1454,11 +1326,10 @@ public class DatabaseUtil {
                 "You dropped " + section.getTitle() + " (" + section.getSectionId() + ").",
                 "Registration"));
 
-        refreshSectionCache();
         refreshStudentEnrollmentMetrics(studentId);
-        refreshSectionCache();
-        refreshStudentEnrollmentMetrics(studentId);
+
         String actor = performedBy == null ? "system" : performedBy;
+
         AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE, actor,
                 String.format("Dropped %s from %s", studentId, section.getTitle()));
     }
@@ -1726,10 +1597,10 @@ public class DatabaseUtil {
     }
 
     public static Map<String, Long> getWaitlistCountsByCourse() {
-        return sections.values().stream()
+        return sectionDao.findAll().stream()
                 .collect(Collectors.groupingBy(
                         Section::getCourseId,
-                        Collectors.summingLong(sec -> sec.getWaitlistedStudentIds().size())));
+                        Collectors.summingLong(sec -> (long) waitlistDao.findEntries(sec.getSectionId()).size())));
     }
 
     public static List<WaitlistDao.WaitlistEntry> getWaitlistEntries(String sectionId) {
@@ -1783,7 +1654,6 @@ public class DatabaseUtil {
                     "Advisor approval revoked for " + section.getTitle() + ". Contact advising for details.",
                     "Registration"));
         }
-        refreshSectionCache();
     }
 
     public static class WaitlistSnapshot {
@@ -2520,44 +2390,6 @@ public class DatabaseUtil {
         coursePrerequisiteCache.remove(courseId);
         courseCorequisiteCache.remove(courseId);
         courseAntirequisiteCache.remove(courseId);
-    }
-
-    private static void refreshInstructorCache() {
-        faculty = new ConcurrentHashMap<>();
-        for (Faculty member : instructorDao.findAll()) {
-            faculty.put(member.getFacultyId(), member);
-        }
-    }
-
-    private static void refreshSectionCache() {
-        sections = new ConcurrentHashMap<>();
-        for (Section section : sectionDao.findAll()) {
-            section.getEnrolledStudentIds().clear();
-            section.getWaitlistedStudentIds().clear();
-            sections.put(section.getSectionId(), section);
-        }
-        populateSectionEnrollmentState();
-    }
-
-    private static void populateSectionEnrollmentState() {
-        for (Section section : sections.values()) {
-            section.getEnrolledStudentIds().clear();
-            section.getWaitlistedStudentIds().clear();
-            for (EnrollmentRecord record : enrollmentDao.findBySection(section.getSectionId())) {
-                if (record.getStatus() == EnrollmentRecord.Status.ENROLLED) {
-                    section.getEnrolledStudentIds().add(record.getStudentId());
-                } else if (record.getStatus() == EnrollmentRecord.Status.WAITLISTED) {
-                    section.getWaitlistedStudentIds().add(record.getStudentId());
-                }
-            }
-            List<WaitlistDao.WaitlistEntry> waitlist = waitlistDao.findEntries(section.getSectionId());
-            for (WaitlistDao.WaitlistEntry entry : waitlist) {
-                String studentCode = entry.studentCode();
-                if (!section.getWaitlistedStudentIds().contains(studentCode)) {
-                    section.getWaitlistedStudentIds().add(studentCode);
-                }
-            }
-        }
     }
 
     public static List<TermGpa> getStudentGpaHistory(String studentId) {
