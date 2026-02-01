@@ -116,12 +116,13 @@ public class GradesTrackingPanel extends JPanel {
                 score = s.computeFinalScore(rec.getComponentScores());
             }
 
+            double points = DatabaseUtil.calculateRelativePoints(score, s.getSectionId());
             model.addRow(new Object[] {
                     s.getTitle(),
                     DatabaseUtil.getCourseCreditHours(s.getCourseId()),
                     String.format("%.2f", score),
-                    StudentService.calculateLetterGrade(score),
-                    String.format("%.1f", StudentService.calculatePoints(score))
+                    StudentService.calculateLetterGrade(score), // Future: make relative too
+                    String.format("%.1f", points)
             });
         }
 
@@ -147,16 +148,12 @@ public class GradesTrackingPanel extends JPanel {
 
         List<main.java.utils.DatabaseUtil.TermGpa> history = main.java.utils.DatabaseUtil
                 .getStudentGpaHistory(currentUser.getUsername());
-        double cumulativePoints = 0;
-        int count = 0;
         for (main.java.utils.DatabaseUtil.TermGpa term : history) {
-            count++;
-            cumulativePoints += term.gpa();
             model.addRow(new Object[] {
                     term.termLabel(),
-                    "-", // Credits not directly available in TermGpa, could be added if needed
+                    "-",
                     String.format("%.2f", term.gpa()),
-                    String.format("%.2f", cumulativePoints / count)
+                    String.format("%.2f", StudentService.calculateCGPA(currentUser.getUsername())) // Show real CGPA
             });
         }
 

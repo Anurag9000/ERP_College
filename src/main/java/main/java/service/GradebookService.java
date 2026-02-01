@@ -147,16 +147,19 @@ public final class GradebookService {
         if (records.isEmpty()) {
             return new GradeAnalytics(0.0, 0.0, 0.0, 0, 0, Map.of());
         }
-        Map<String, Long> buckets = new LinkedHashMap<>();
-        buckets.put("A (85+)", 0L);
-        buckets.put("B (70-84)", 0L);
-        buckets.put("C (55-69)", 0L);
-        buckets.put("D (40-54)", 0L);
-        buckets.put("F (<40)", 0L);
 
-        double passingThreshold = DatabaseUtil.getPassingGradeThreshold();
-        long pass = 0;
-        long fail = 0;
+        Map<String, Long> buckets = new LinkedHashMap<>();
+        buckets.put("O (1.5σ+)", 0L);
+        buckets.put("A+ (1.0σ-1.5σ)", 0L);
+        buckets.put("A (0.5σ-1.0σ)", 0L);
+        buckets.put("B+ (0σ-0.5σ)", 0L);
+        buckets.put("B (-0.5σ-0σ)", 0L);
+        buckets.put("C (-1.0σ--0.5σ)", 0L);
+        buckets.put("P (-1.5σ--1.0σ)", 0L);
+        buckets.put("F (<-1.5σ)", 0L);
+
+        long passCount = 0;
+        long failCount = 0;
         double min = Double.MAX_VALUE;
         double max = Double.MIN_VALUE;
         double total = 0.0;
@@ -164,7 +167,7 @@ public final class GradebookService {
 
         for (EnrollmentRecord record : records) {
             double grade = record.getFinalGrade();
-            if (grade <= 0) {
+            if (grade <= 0 && !record.getComponentScores().isEmpty()) {
                 grade = section.computeFinalScore(record.getComponentScores());
             }
             counted++;
@@ -172,19 +175,20 @@ public final class GradebookService {
             min = Math.min(min, grade);
             max = Math.max(max, grade);
 
-            if (grade >= passingThreshold) {
-                pass++;
+            double points = DatabaseUtil.calculateRelativePoints(grade, sectionId);
+            if (points >= 4.0) {
+                passCount++;
             } else {
-                fail++;
+                failCount++;
             }
-            buckets.compute(bucketFor(grade), (k, v) -> v == null ? 1 : v + 1);
+            buckets.compute(bucketFor(grade, sectionId), (k, v) -> v == null ? 1 : v + 1);
         }
 
         if (counted == 0) {
-            return new GradeAnalytics(0.0, 0.0, 0.0, pass, fail, Map.copyOf(buckets));
+            return new GradeAnalytics(0.0, 0.0, 0.0, 0, 0, Map.copyOf(buckets));
         }
         double average = total / counted;
-        return new GradeAnalytics(average, max, min, pass, fail, Map.copyOf(buckets));
+        return new GradeAnalytics(average, max, min, passCount, failCount, Map.copyOf(buckets));
     }
 
     public static AttendanceAnalytics attendanceAnalyticsForSection(User instructor, String sectionId) {
@@ -281,20 +285,23 @@ public final class GradebookService {
                 .orElseThrow(() -> new IllegalArgumentException("Student not enrolled in section."));
     }
 
-    private static String bucketFor(double grade) {
-        if (grade >= 85) {
-            return "A (85+)";
-        }
-        if (grade >= 70) {
-            return "B (70-84)";
-        }
-        if (grade >= 55) {
-            return "C (55-69)";
-        }
-        if (grade >= 40) {
-            return "D (40-54)";
-        }
-        return "F (<40)";
+    private static String bucketFor(double grade, String sectionId) {
+        double points = DatabaseUtil.calculateRelativePoints(grade, sectionId);
+        if (points >= 10.0)
+            return "O (1.5σ+)";
+        if (points >= 9.0)
+            return "A+ (1.0σ-1.5σ)";
+        if (points >= 8.0)
+            return "A (0.5σ-1.0σ)";
+        if (points >= 7.0)
+            return "B+ (0σ-0.5σ)";
+        if (points >= 6.0)
+            return "B (-0.5σ-0σ)";
+        if (points >= 5.0)
+            return "C (-1.0σ--0.5σ)";
+        if (points >= 4.0)
+            return "P (-1.5σ--1.0σ)";
+        return "F (<-1.5σ)";
     }
 
     public record GradeAnalytics(double average, double max, double min,

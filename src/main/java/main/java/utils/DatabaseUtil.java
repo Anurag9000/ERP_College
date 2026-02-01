@@ -2430,35 +2430,92 @@ public class DatabaseUtil {
                     for (EnrollmentRecord record : entry.getValue()) {
                         int credits = getCourseCreditHours(getSection(record.getSectionId()).getCourseId());
                         double score = record.getFinalGrade();
-                        // If score is 0, we'll treat it as a fail (grade 2) if it's an enrolled course
-                        // In reality, we might want to skip non-graded courses, but per user request
-                        // for SGPA, "if a student takes a course and fails it the grade for that would
-                        // be 2".
 
-                        double points = 2.0;
-                        if (score >= 90)
-                            points = 10.0;
-                        else if (score >= 85)
-                            points = 9.0;
-                        else if (score >= 80)
-                            points = 8.0;
-                        else if (score >= 75)
-                            points = 7.0;
-                        else if (score >= 70)
-                            points = 6.0;
-                        else if (score >= 65)
-                            points = 5.0;
-                        else if (score >= 60)
-                            points = 4.0;
+                        // Use centralized relative grading logic
+                        double points = calculateRelativePoints(score, record.getSectionId());
 
                         totalPoints += points * credits;
                         totalCredits += credits;
                     }
                     double gpa = totalCredits == 0 ? 0.0 : totalPoints / totalCredits;
-                    boolean probation = gpa < 6.0; // Assuming 6.0 (Good) is the threshold now
+                    boolean probation = gpa < 6.0;
                     return new TermGpa(entry.getKey().label(), gpa, probation);
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Calculates points on a 10-point scale using relative grading (Mean-Sigma)
+     * Centralized in DatabaseUtil to avoid service-layer circular dependencies.
+     */
+    public static double calculateRelativePoints(double score, String sectionId) {
+        List<EnrollmentRecord> allRecords = getEnrollmentsForSection(sectionId);
+        if (allRecords == null || allRecords.isEmpty()) {
+            return calculateAbsolutePoints(score);
+        }
+
+        List<Double> scores = allRecords.stream()
+                .filter(r -> r.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .map(r -> {
+                    double sg = r.getFinalGrade();
+                    if (sg <= 0 && !r.getComponentScores().isEmpty()) {
+                        Section s = getSection(sectionId);
+                        return s != null ? s.computeFinalScore(r.getComponentScores()) : 0.0;
+                    }
+                    return sg;
+                })
+                .collect(Collectors.toList());
+
+        if (scores.size() < 3) {
+            return calculateAbsolutePoints(score);
+        }
+
+        double sum = 0;
+        for (double s : scores)
+            sum += s;
+        double mean = sum / scores.size();
+
+        double sqSum = 0;
+        for (double s : scores)
+            sqSum += Math.pow(s - mean, 2);
+        double stdDev = Math.sqrt(sqSum / scores.size());
+
+        stdDev = Math.max(stdDev, 5.0);
+
+        if (score >= mean + 1.5 * stdDev)
+            return 10.0;
+        if (score >= mean + 1.0 * stdDev)
+            return 9.0;
+        if (score >= mean + 0.5 * stdDev)
+            return 8.0;
+        if (score >= mean)
+            return 7.0;
+        if (score >= mean - 0.5 * stdDev)
+            return 6.0;
+        if (score >= mean - 1.0 * stdDev)
+            return 5.0;
+        if (score >= mean - 1.5 * stdDev)
+            return 4.0;
+
+        return 2.0; // Fail (per user request)
+    }
+
+    private static double calculateAbsolutePoints(double score) {
+        if (score >= 90)
+            return 10.0;
+        if (score >= 80)
+            return 9.0;
+        if (score >= 70)
+            return 8.0;
+        if (score >= 60)
+            return 7.0;
+        if (score >= 50)
+            return 6.0;
+        if (score >= 40)
+            return 5.0;
+        if (score >= 33)
+            return 4.0;
+        return 2.0;
     }
 
     private record TermKey(int year, String semester) {

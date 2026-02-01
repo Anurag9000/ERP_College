@@ -38,24 +38,6 @@ public final class StudentService {
         return DatabaseUtil.getScheduleForStudent(profile.getStudentId());
     }
 
-    public static double calculatePoints(double score) {
-        if (score >= 90)
-            return 10.0;
-        if (score >= 85)
-            return 9.0;
-        if (score >= 80)
-            return 8.0;
-        if (score >= 75)
-            return 7.0;
-        if (score >= 70)
-            return 6.0;
-        if (score >= 65)
-            return 5.0;
-        if (score >= 60)
-            return 4.0;
-        return 2.0;
-    }
-
     public static String calculateLetterGrade(double score) {
         if (score >= 90)
             return "A+";
@@ -93,8 +75,8 @@ public final class StudentService {
                 score = section.computeFinalScore(record.getComponentScores());
             }
 
-            // SGPA includes everyone (failures get 2.0 points via calculatePoints)
-            totalPoints += calculatePoints(score) * credits;
+            double points = DatabaseUtil.calculateRelativePoints(score, section.getSectionId());
+            totalPoints += points * credits;
             totalCredits += credits;
         }
 
@@ -120,14 +102,20 @@ public final class StudentService {
                 score = section.computeFinalScore(record.getComponentScores());
             }
 
-            // CGPA excludes failures (score < 60)
-            if (score >= 60) {
-                totalPoints += calculatePoints(score) * credits;
+            double points = DatabaseUtil.calculateRelativePoints(score, section.getSectionId());
+
+            // CGPA excludes failures (Fail = 2.0 per user request)
+            if (points > 2.0) {
+                totalPoints += points * credits;
                 totalCredits += credits;
             }
         }
 
         return totalCredits == 0 ? 0.0 : totalPoints / totalCredits;
+    }
+
+    public static double calculatePoints(double score) {
+        return DatabaseUtil.calculateRelativePoints(score, null);
     }
 
     public static int getTotalCredits(String studentId) {
