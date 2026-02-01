@@ -296,4 +296,12 @@ public class SectionDao extends BaseDao {
         ps.setBoolean(idx++, section.isRequiresAdvisorApproval());
         ps.setString(idx++, section.getGradebookState().name());
     }
+
+    public void lockSection(Connection conn, String sectionId) throws SQLException {
+        String sql = "SELECT 1 FROM sections WHERE section_code = ? FOR UPDATE";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, sectionId);
+            ps.execute();
+        }
+    }
 }

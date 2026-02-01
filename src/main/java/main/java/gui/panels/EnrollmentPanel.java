@@ -41,22 +41,22 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
     private boolean maintenanceMode;
 
     private final String[] sectionsColumns = {
-        "Section",
-        "Course",
-        "Faculty",
-        "Day & Time",
-        "Location",
-        "Capacity",
-        "Enrolled",
-        "Waitlist",
-        "Status"
+            "Section",
+            "Course",
+            "Faculty",
+            "Day & Time",
+            "Location",
+            "Capacity",
+            "Enrolled",
+            "Waitlist",
+            "Status"
     };
 
     private final String[] scheduleColumns = {
-        "Section",
-        "Course",
-        "Day & Time",
-        "Location"
+            "Section",
+            "Course",
+            "Day & Time",
+            "Location"
     };
 
     private final User actingUser;
@@ -175,66 +175,119 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
     }
 
     private void refreshTables() {
-        sectionsModel.setRowCount(0);
-        scheduleModel.setRowCount(0);
-
-        if (studentCombo.getSelectedItem() == null) {
+        // Capture UI state on EDT
+        Object selectedItem = studentCombo.getSelectedItem();
+        if (selectedItem == null) {
+            sectionsModel.setRowCount(0);
+            scheduleModel.setRowCount(0);
             return;
         }
 
-        String studentId = ((String) studentCombo.getSelectedItem()).split(" - ")[0];
-        Map<String, EnrollmentRecord.Status> statusMap = buildStatusMap(studentId);
+        String studentId = ((String) selectedItem).split(" - ")[0];
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        dropButton.setEnabled(false);
+        registerButton.setEnabled(false);
 
-        Collection<Section> sections = DatabaseUtil.getAllSections();
-        for (Section section : sections) {
-            Course course = DatabaseUtil.getCourse(section.getCourseId());
-            Faculty faculty = DatabaseUtil.getFaculty(section.getFacultyId());
+        new SwingWorker<DataSnapshot, Void>() {
+            @Override
+            protected DataSnapshot doInBackground() {
+                Map<String, EnrollmentRecord.Status> statusMap = buildStatusMap(studentId);
+                Collection<Section> sections = DatabaseUtil.getAllSections();
+                List<Section> schedule = DatabaseUtil.getScheduleForStudent(studentId);
 
-            String courseLabel = course != null ? course.getCourseId() : section.getCourseId();
-            String facultyLabel = faculty != null ? faculty.getFullName() : section.getFacultyId();
-            String when = section.getDayOfWeek().toString().substring(0,3) + " "
-                    + section.getStartTime().format(TIME_FORMATTER) + "-"
-                    + section.getEndTime().format(TIME_FORMATTER);
+                // Pre-fetch related entities to avoid N+1 DB calls inside UI update if
+                // possible,
+                // or just rely on DatabaseUtil caching if present.
+                // Given current architecture, we'll fetch them here or let the simple loop do
+                // it.
+                // For safety/speed, let's keep it simple but run in background.
 
-            EnrollmentRecord.Status status = statusMap.getOrDefault(section.getSectionId(), null);
-            String statusText;
-            if (status == EnrollmentRecord.Status.ENROLLED) {
-                statusText = "Enrolled";
-            } else if (status == EnrollmentRecord.Status.WAITLISTED) {
-                statusText = "Waitlisted";
-            } else {
-                statusText = section.isFull() ? "Full" : "Open";
+                // We'll process the rows into object arrays here to keep 'done' fast
+                List<Object[]> sectionRows = new java.util.ArrayList<>();
+                for (Section section : sections) {
+                    Course course = DatabaseUtil.getCourse(section.getCourseId());
+                    Faculty faculty = DatabaseUtil.getFaculty(section.getFacultyId());
+
+                    String courseLabel = course != null ? course.getCourseId() : section.getCourseId();
+                    String facultyLabel = faculty != null ? faculty.getFullName() : section.getFacultyId();
+                    String when = section.getDayOfWeek().toString().substring(0, 3) + " "
+                            + section.getStartTime().format(TIME_FORMATTER) + "-"
+                            + section.getEndTime().format(TIME_FORMATTER);
+
+                    EnrollmentRecord.Status status = statusMap.getOrDefault(section.getSectionId(), null);
+                    String statusText;
+                    if (status == EnrollmentRecord.Status.ENROLLED) {
+                        statusText = "Enrolled";
+                    } else if (status == EnrollmentRecord.Status.WAITLISTED) {
+                        statusText = "Waitlisted";
+                    } else {
+                        statusText = section.isFull() ? "Full" : "Open";
+                    }
+
+                    sectionRows.add(new Object[] {
+                            section.getSectionId(),
+                            courseLabel + " • " + section.getTitle(),
+                            facultyLabel,
+                            when,
+                            section.getLocation(),
+                            section.getCapacity(),
+                            section.getEnrolledStudentIds().size(),
+                            section.getWaitlistedStudentIds().size(),
+                            statusText
+                    });
+                }
+
+                List<Object[]> scheduleRows = new java.util.ArrayList<>();
+                for (Section section : schedule) {
+                    Course course = DatabaseUtil.getCourse(section.getCourseId());
+                    String courseLabel = course != null ? course.getCourseId() + " • " + section.getTitle()
+                            : section.getTitle();
+                    String when = section.getDayOfWeek().toString().substring(0, 3) + " "
+                            + section.getStartTime().format(TIME_FORMATTER) + "-"
+                            + section.getEndTime().format(TIME_FORMATTER);
+                    scheduleRows.add(new Object[] {
+                            section.getSectionId(),
+                            courseLabel,
+                            when,
+                            section.getLocation()
+                    });
+                }
+
+                return new DataSnapshot(sectionRows, scheduleRows);
             }
 
-            sectionsModel.addRow(new Object[]{
-                    section.getSectionId(),
-                    courseLabel + " • " + section.getTitle(),
-                    facultyLabel,
-                    when,
-                    section.getLocation(),
-                    section.getCapacity(),
-                    section.getEnrolledStudentIds().size(),
-                    section.getWaitlistedStudentIds().size(),
-                    statusText
-            });
-        }
+            @Override
+            protected void done() {
+                try {
+                    DataSnapshot data = get();
+                    sectionsModel.setRowCount(0);
+                    for (Object[] row : data.sectionRows) {
+                        sectionsModel.addRow(row);
+                    }
 
-        List<Section> schedule = DatabaseUtil.getScheduleForStudent(studentId);
-        for (Section section : schedule) {
-            Course course = DatabaseUtil.getCourse(section.getCourseId());
-            String courseLabel = course != null ? course.getCourseId() + " • " + section.getTitle()
-                    : section.getTitle();
-            String when = section.getDayOfWeek().toString().substring(0,3) + " "
-                    + section.getStartTime().format(TIME_FORMATTER) + "-"
-                    + section.getEndTime().format(TIME_FORMATTER);
-            scheduleModel.addRow(new Object[]{
-                    section.getSectionId(),
-                    courseLabel,
-                    when,
-                    section.getLocation()
-            });
+                    scheduleModel.setRowCount(0);
+                    for (Object[] row : data.scheduleRows) {
+                        scheduleModel.addRow(row);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(EnrollmentPanel.this, "Error loading data: " + e.getMessage());
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    updateButtonStates();
+                }
+            }
+        }.execute();
+    }
+
+    private static class DataSnapshot {
+        final List<Object[]> sectionRows;
+        final List<Object[]> scheduleRows;
+
+        DataSnapshot(List<Object[]> sectionRows, List<Object[]> scheduleRows) {
+            this.sectionRows = sectionRows;
+            this.scheduleRows = scheduleRows;
         }
-        updateButtonStates();
     }
 
     private Map<String, EnrollmentRecord.Status> buildStatusMap(String studentId) {
@@ -248,8 +301,7 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
 
     private void filterSections() {
         String term = searchField.getText().trim();
-        TableRowSorter<DefaultTableModel> sorter =
-                (TableRowSorter<DefaultTableModel>) sectionsTable.getRowSorter();
+        TableRowSorter<DefaultTableModel> sorter = (TableRowSorter<DefaultTableModel>) sectionsTable.getRowSorter();
         if (term.isEmpty()) {
             sorter.setRowFilter(null);
         } else {
@@ -301,8 +353,7 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
                 this,
                 "Drop this section for the student?",
                 "Confirm Drop",
-                JOptionPane.YES_NO_OPTION
-        );
+                JOptionPane.YES_NO_OPTION);
         if (option != JOptionPane.YES_OPTION) {
             return;
         }

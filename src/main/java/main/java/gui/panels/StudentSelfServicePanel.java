@@ -724,9 +724,27 @@ public class StudentSelfServicePanel extends JPanel {
     }
 
     private void populateCatalog() {
-        catalogSections = new ArrayList<>(DatabaseUtil.getAllSections());
-        catalogSections.sort(Comparator.comparing(Section::getCourseId).thenComparing(Section::getSectionId));
-        applyCatalogFilters();
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<List<Section>, Void>() {
+            @Override
+            protected List<Section> doInBackground() {
+                List<Section> sections = new ArrayList<>(DatabaseUtil.getAllSections());
+                sections.sort(Comparator.comparing(Section::getCourseId).thenComparing(Section::getSectionId));
+                return sections;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    catalogSections = get();
+                    applyCatalogFilters(); // This spawns another worker, which is fine (sequential-ish)
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void applyCatalogFilters() {

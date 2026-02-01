@@ -42,7 +42,11 @@ const dependencies = [
   { g: 'com.formdev', a: 'flatlaf', v: '3.5' },
   { g: 'org.apache.pdfbox', a: 'pdfbox', v: '2.0.32' },
   { g: 'org.apache.pdfbox', a: 'fontbox', v: '2.0.32' },
-  { g: 'org.apache.commons', a: 'commons-csv', v: '1.11.0' }
+  { g: 'org.apache.commons', a: 'commons-csv', v: '1.11.0' },
+  { g: 'com.google.code.gson', a: 'gson', v: '2.10.1' },
+  { g: 'com.fasterxml.jackson.core', a: 'jackson-core', v: '2.15.2' },
+  { g: 'com.fasterxml.jackson.core', a: 'jackson-databind', v: '2.15.2' },
+  { g: 'com.fasterxml.jackson.core', a: 'jackson-annotations', v: '2.15.2' }
 ];
 
 try {

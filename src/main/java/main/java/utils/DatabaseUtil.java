@@ -1222,6 +1222,7 @@ public class DatabaseUtil {
         try (Connection conn = getEnrollmentDao().getConnection()) {
             conn.setAutoCommit(false);
             try {
+                getSectionDao().lockSection(conn, sectionId);
                 List<EnrollmentRecord> existing = getEnrollmentDao().findBySection(sectionId);
                 boolean already = existing.stream()
                         .anyMatch(rec -> rec.getStudentId().equals(studentId)

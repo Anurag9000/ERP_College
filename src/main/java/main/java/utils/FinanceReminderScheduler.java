@@ -24,7 +24,7 @@ public final class FinanceReminderScheduler {
         return t;
     });
     private static final int REMINDER_LOOKAHEAD_DAYS = 7;
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
     private static volatile boolean started = false;
 
     private FinanceReminderScheduler() {
