@@ -167,9 +167,6 @@ public final class GradebookService {
             if (grade <= 0) {
                 grade = section.computeFinalScore(record.getComponentScores());
             }
-            if (grade <= 0) {
-                continue;
-            }
             counted++;
             total += grade;
             min = Math.min(min, grade);

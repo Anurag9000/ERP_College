@@ -53,7 +53,7 @@ public final class StudentService {
             return 5.0;
         if (score >= 60)
             return 4.0;
-        return 0.0;
+        return 2.0;
     }
 
     public static String calculateLetterGrade(double score) {
@@ -87,8 +87,32 @@ public final class StudentService {
             if (section == null)
                 continue;
 
-            // Note: In this system, we might need to filter by term if 'term' is provided.
-            // For now, let's assume getEnrollmentsForStudent returns current enrollments.
+            int credits = DatabaseUtil.getCourseCreditHours(section.getCourseId());
+            double score = record.getFinalGrade();
+            if (score <= 0 && !record.getComponentScores().isEmpty()) {
+                score = section.computeFinalScore(record.getComponentScores());
+            }
+
+            // SGPA includes everyone (failures get 2.0 points via calculatePoints)
+            totalPoints += calculatePoints(score) * credits;
+            totalCredits += credits;
+        }
+
+        return totalCredits == 0 ? 0.0 : totalPoints / totalCredits;
+    }
+
+    public static double calculateCGPA(String studentId) {
+        List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForStudent(studentId).stream()
+                .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .collect(Collectors.toList());
+
+        double totalPoints = 0;
+        int totalCredits = 0;
+
+        for (EnrollmentRecord record : enrollments) {
+            Section section = DatabaseUtil.getSection(record.getSectionId());
+            if (section == null)
+                continue;
 
             int credits = DatabaseUtil.getCourseCreditHours(section.getCourseId());
             double score = record.getFinalGrade();
@@ -96,20 +120,14 @@ public final class StudentService {
                 score = section.computeFinalScore(record.getComponentScores());
             }
 
-            if (score > 0) {
+            // CGPA excludes failures (score < 60)
+            if (score >= 60) {
                 totalPoints += calculatePoints(score) * credits;
                 totalCredits += credits;
             }
         }
 
         return totalCredits == 0 ? 0.0 : totalPoints / totalCredits;
-    }
-
-    public static double calculateCGPA(String studentId) {
-        // In a real system, this would fetch historical grades too.
-        // For simplicity, we'll use current enrollments as a proxy or assume historical
-        // data is same format.
-        return calculateSGPA(studentId, null);
     }
 
     public static int getTotalCredits(String studentId) {

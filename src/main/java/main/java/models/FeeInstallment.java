@@ -21,6 +21,7 @@ public class FeeInstallment implements Serializable {
     private String studentId;
     private LocalDate dueDate;
     private double amount;
+    private double paidAmount;
     private Status status;
     private String description;
     private LocalDate paidOn;
@@ -39,12 +40,13 @@ public class FeeInstallment implements Serializable {
     }
 
     public FeeInstallment(String installmentId, String studentId, LocalDate dueDate,
-                          double amount, Status status, String description,
-                          LocalDate paidOn, LocalDate lastReminderSent) {
+            double amount, double paidAmount, Status status, String description,
+            LocalDate paidOn, LocalDate lastReminderSent) {
         this(installmentId);
         this.studentId = studentId;
         this.dueDate = dueDate;
         this.amount = amount;
+        this.paidAmount = paidAmount;
         this.status = status != null ? status : Status.DUE;
         this.description = description;
         this.paidOn = paidOn;
@@ -61,6 +63,7 @@ public class FeeInstallment implements Serializable {
         copy.studentId = source.studentId;
         copy.dueDate = source.dueDate;
         copy.amount = source.amount;
+        copy.paidAmount = source.paidAmount;
         copy.status = source.status;
         copy.description = source.description;
         copy.paidOn = source.paidOn;
@@ -98,6 +101,18 @@ public class FeeInstallment implements Serializable {
 
     public void setAmount(double amount) {
         this.amount = amount;
+    }
+
+    public double getPaidAmount() {
+        return paidAmount;
+    }
+
+    public void setPaidAmount(double paidAmount) {
+        this.paidAmount = paidAmount;
+    }
+
+    public double getRemainingAmount() {
+        return Math.max(0, amount - paidAmount);
     }
 
     public Status getStatus() {
@@ -138,8 +153,10 @@ public class FeeInstallment implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof FeeInstallment)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof FeeInstallment))
+            return false;
         FeeInstallment that = (FeeInstallment) o;
         return Objects.equals(installmentId, that.installmentId);
     }

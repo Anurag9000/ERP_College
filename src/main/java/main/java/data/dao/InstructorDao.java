@@ -62,7 +62,7 @@ public class InstructorDao extends BaseDao {
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             bind(ps, faculty, false);
-            ps.setString(11, faculty.getFacultyId());
+            ps.setString(12, faculty.getFacultyId());
             ps.executeUpdate();
         } catch (SQLException ex) {
             logger.error("Error updating instructor {}: {}", faculty.getFacultyId(), ex.getMessage(), ex);

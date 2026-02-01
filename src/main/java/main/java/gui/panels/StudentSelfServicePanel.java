@@ -37,9 +37,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.LinkedHashSet;
 import java.util.Locale;
-import java.util.Map;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -729,8 +730,8 @@ public class StudentSelfServicePanel extends JPanel {
     }
 
     private void applyCatalogFilters() {
-        catalogModel.setRowCount(0);
         if (studentProfile == null) {
+            catalogModel.setRowCount(0);
             updateActionButtons();
             return;
         }
@@ -739,81 +740,109 @@ public class StudentSelfServicePanel extends JPanel {
         DayOfWeek selectedDay = resolveSelectedDay();
         boolean onlyOpen = openOnlyCheck.isSelected();
 
-        for (Section section : catalogSections) {
-            if (selectedDay != null && section.getDayOfWeek() != selectedDay) {
-                continue;
+        new SwingWorker<List<Object[]>, Void>() {
+            @Override
+            protected List<Object[]> doInBackground() {
+                List<Object[]> rows = new ArrayList<>();
+                Map<String, Course> courseMap = DatabaseUtil.getAllCourses().stream()
+                        .filter(c -> c.getCourseId() != null)
+                        .collect(Collectors.toMap(Course::getCourseId, c -> c, (a, b) -> a));
+                Map<String, Faculty> facultyMap = DatabaseUtil.getAllFaculty().stream()
+                        .filter(f -> f.getFacultyId() != null)
+                        .collect(Collectors.toMap(Faculty::getFacultyId, f -> f, (a, b) -> a));
+
+                for (Section section : catalogSections) {
+                    if (selectedDay != null && section.getDayOfWeek() != selectedDay) {
+                        continue;
+                    }
+
+                    Course course = courseMap.get(section.getCourseId());
+                    Faculty faculty = facultyMap.get(section.getFacultyId());
+                    String courseTitle = course != null ? course.getCourseName() : section.getTitle();
+                    String instructorName = faculty != null ? faculty.getFullName() : "TBA";
+
+                    String haystack = (section.getSectionId() + " " + section.getCourseId() + " " + courseTitle + " "
+                            + instructorName).toLowerCase(Locale.ENGLISH);
+
+                    if (!search.isEmpty() && !haystack.contains(search)) {
+                        continue;
+                    }
+
+                    EnrollmentRecord.Status status = enrollmentStatusBySection.get(section.getSectionId());
+                    int enrolledCount = section.getEnrolledStudentIds().size();
+                    int availableSeats = Math.max(0, section.getCapacity() - enrolledCount);
+                    boolean sectionFull = availableSeats <= 0;
+
+                    if (onlyOpen && status == null && sectionFull) {
+                        continue;
+                    }
+
+                    List<String> prereqs = DatabaseUtil.getCoursePrerequisites(section.getCourseId());
+                    List<String> missing = DatabaseUtil.getMissingPrerequisites(studentProfile.getStudentId(),
+                            section.getCourseId());
+
+                    String statusText;
+                    if (status == EnrollmentRecord.Status.ENROLLED) {
+                        statusText = "Enrolled";
+                    } else if (status == EnrollmentRecord.Status.WAITLISTED) {
+                        statusText = "Waitlisted";
+                    } else if (!missing.isEmpty()) {
+                        statusText = "Blocked (prereqs)";
+                    } else if (sectionFull) {
+                        statusText = "Full";
+                    } else {
+                        statusText = "Open";
+                    }
+
+                    String prereqText;
+                    if (prereqs.isEmpty()) {
+                        prereqText = "None";
+                    } else if (missing.isEmpty()) {
+                        prereqText = "Met: " + String.join(", ", prereqs);
+                    } else {
+                        prereqText = "Missing: " + String.join(", ", missing);
+                    }
+
+                    String windowText;
+                    if (section.getEnrollmentDeadline() == null) {
+                        windowText = "Open";
+                    } else if (java.time.LocalDate.now().isAfter(section.getEnrollmentDeadline())) {
+                        windowText = "Closed";
+                    } else {
+                        windowText = "Open until " + section.getEnrollmentDeadline();
+                    }
+
+                    rows.add(new Object[] {
+                            section.getSectionId(),
+                            section.getCourseId() + " - " + courseTitle,
+                            capitalize(section.getDayOfWeek().name()),
+                            section.getStartTime().format(TIME_FORMATTER) + "-"
+                                    + section.getEndTime().format(TIME_FORMATTER),
+                            section.getLocation(),
+                            availableSeats + "/" + section.getCapacity(),
+                            statusText,
+                            windowText,
+                            prereqText
+                    });
+                }
+                return rows;
             }
 
-            Course course = DatabaseUtil.getCourse(section.getCourseId());
-            Faculty faculty = DatabaseUtil.getFaculty(section.getFacultyId());
-            String courseTitle = course != null ? course.getCourseName() : section.getTitle();
-            String instructorName = faculty != null ? faculty.getFullName() : "TBA";
-            String haystack = (section.getSectionId() + " " + section.getCourseId() + " " + courseTitle + " "
-                    + instructorName)
-                    .toLowerCase(Locale.ENGLISH);
-            if (!search.isEmpty() && !haystack.contains(search)) {
-                continue;
+            @Override
+            protected void done() {
+                try {
+                    List<Object[]> rows = get();
+                    catalogModel.setRowCount(0);
+                    for (Object[] row : rows) {
+                        catalogModel.addRow(row);
+                    }
+                    updateActionButtons();
+                    updateSummary();
+                } catch (Exception e) {
+                    // Log or handle error
+                }
             }
-
-            EnrollmentRecord.Status status = enrollmentStatusBySection.get(section.getSectionId());
-            int enrolledCount = section.getEnrolledStudentIds().size();
-            int availableSeats = Math.max(0, section.getCapacity() - enrolledCount);
-            boolean sectionFull = availableSeats <= 0;
-
-            if (onlyOpen && status == null && sectionFull) {
-                continue;
-            }
-
-            List<String> prereqs = DatabaseUtil.getCoursePrerequisites(section.getCourseId());
-            List<String> missing = DatabaseUtil.getMissingPrerequisites(studentProfile.getStudentId(),
-                    section.getCourseId());
-
-            String statusText;
-            if (status == EnrollmentRecord.Status.ENROLLED) {
-                statusText = "Enrolled";
-            } else if (status == EnrollmentRecord.Status.WAITLISTED) {
-                statusText = "Waitlisted";
-            } else if (!missing.isEmpty()) {
-                statusText = "Blocked (prereqs)";
-            } else if (sectionFull) {
-                statusText = "Full";
-            } else {
-                statusText = "Open";
-            }
-
-            String prereqText;
-            if (prereqs.isEmpty()) {
-                prereqText = "None";
-            } else if (missing.isEmpty()) {
-                prereqText = "Met: " + String.join(", ", prereqs);
-            } else {
-                prereqText = "Missing: " + String.join(", ", missing);
-            }
-
-            String windowText;
-            if (section.getEnrollmentDeadline() == null) {
-                windowText = "Open";
-            } else if (java.time.LocalDate.now().isAfter(section.getEnrollmentDeadline())) {
-                windowText = "Closed";
-            } else {
-                windowText = "Open until " + section.getEnrollmentDeadline();
-            }
-
-            catalogModel.addRow(new Object[] {
-                    section.getSectionId(),
-                    section.getCourseId() + " - " + courseTitle,
-                    capitalize(section.getDayOfWeek().name()),
-                    section.getStartTime().format(TIME_FORMATTER) + "-" + section.getEndTime().format(TIME_FORMATTER),
-                    section.getLocation(),
-                    availableSeats + "/" + section.getCapacity(),
-                    statusText,
-                    windowText,
-                    prereqText
-            });
-        }
-
-        updateActionButtons();
-        updateSummary();
+        }.execute();
     }
 
     private DayOfWeek resolveSelectedDay() {

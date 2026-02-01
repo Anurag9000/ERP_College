@@ -70,17 +70,22 @@ public class FinanceService {
                     if (installment.getStatus() == FeeInstallment.Status.PAID)
                         continue;
 
-                    double installmentAmount = installment.getAmount();
-                    if (remaining >= installmentAmount - EPSILON) {
+                    double due = installment.getRemainingAmount();
+                    if (due <= EPSILON)
+                        continue;
+
+                    if (remaining >= due - EPSILON) {
+                        installment.setPaidAmount(installment.getAmount());
                         installment.setStatus(FeeInstallment.Status.PAID);
                         installment.setPaidOn(LocalDate.now());
-                        remaining -= installmentAmount;
-                        feeInstallmentDao.update(conn, installment);
-                    } else if (remaining > EPSILON) {
-                        break;
+                        remaining -= due;
                     } else {
-                        break;
+                        installment.setPaidAmount(installment.getPaidAmount() + remaining);
+                        remaining = 0;
                     }
+                    feeInstallmentDao.update(conn, installment);
+                    if (remaining <= EPSILON)
+                        break;
                 }
 
                 conn.commit();

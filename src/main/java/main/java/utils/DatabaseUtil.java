@@ -307,7 +307,7 @@ public class DatabaseUtil {
     private static final Map<String, List<String>> courseCorequisiteCache = new ConcurrentHashMap<>();
     private static final Map<String, List<String>> courseAntirequisiteCache = new ConcurrentHashMap<>();
 
-    private static final double PASSING_GRADE_THRESHOLD = 40.0;
+    private static final double PASSING_GRADE_THRESHOLD = 60.0;
     private static final List<MaintenanceWindow> maintenanceWindowCache = new CopyOnWriteArrayList<>();
     private static final ScheduledExecutorService maintenanceExecutor = Executors
             .newSingleThreadScheduledExecutor(r -> {
@@ -741,6 +741,7 @@ public class DatabaseUtil {
                     studentId,
                     dueDate,
                     amount,
+                    0.0,
                     FeeInstallment.Status.DUE,
                     template.label(),
                     null,
@@ -757,6 +758,7 @@ public class DatabaseUtil {
                     studentId,
                     fallbackDue,
                     remaining,
+                    0.0,
                     FeeInstallment.Status.DUE,
                     "Balance",
                     null,
@@ -2407,9 +2409,9 @@ public class DatabaseUtil {
     }
 
     public static List<TermGpa> getStudentGpaHistory(String studentId) {
-        Map<TermKey, List<Double>> gradesByTerm = new HashMap<>();
+        Map<TermKey, List<EnrollmentRecord>> enrollmentsByTerm = new HashMap<>();
         for (EnrollmentRecord record : getEnrollmentDao().findByStudent(studentId)) {
-            if (record.getFinalGrade() <= 0) {
+            if (record.getStatus() != EnrollmentRecord.Status.ENROLLED) {
                 continue;
             }
             Section section = getSection(record.getSectionId());
@@ -2417,14 +2419,43 @@ public class DatabaseUtil {
                 continue;
             }
             TermKey key = new TermKey(section.getYear(), section.getSemester());
-            gradesByTerm.computeIfAbsent(key, k -> new ArrayList<>()).add(record.getFinalGrade());
+            enrollmentsByTerm.computeIfAbsent(key, k -> new ArrayList<>()).add(record);
         }
-        return gradesByTerm.entrySet().stream()
+
+        return enrollmentsByTerm.entrySet().stream()
                 .sorted(Comparator.comparingInt(e -> e.getKey().orderValue()))
                 .map(entry -> {
-                    double avg = entry.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-                    double gpa = Math.min(4.0, Math.max(0.0, (avg / 100.0) * 4.0));
-                    boolean probation = gpa < 2.0;
+                    double totalPoints = 0;
+                    int totalCredits = 0;
+                    for (EnrollmentRecord record : entry.getValue()) {
+                        int credits = getCourseCreditHours(getSection(record.getSectionId()).getCourseId());
+                        double score = record.getFinalGrade();
+                        // If score is 0, we'll treat it as a fail (grade 2) if it's an enrolled course
+                        // In reality, we might want to skip non-graded courses, but per user request
+                        // for SGPA, "if a student takes a course and fails it the grade for that would
+                        // be 2".
+
+                        double points = 2.0;
+                        if (score >= 90)
+                            points = 10.0;
+                        else if (score >= 85)
+                            points = 9.0;
+                        else if (score >= 80)
+                            points = 8.0;
+                        else if (score >= 75)
+                            points = 7.0;
+                        else if (score >= 70)
+                            points = 6.0;
+                        else if (score >= 65)
+                            points = 5.0;
+                        else if (score >= 60)
+                            points = 4.0;
+
+                        totalPoints += points * credits;
+                        totalCredits += credits;
+                    }
+                    double gpa = totalCredits == 0 ? 0.0 : totalPoints / totalCredits;
+                    boolean probation = gpa < 6.0; // Assuming 6.0 (Good) is the threshold now
                     return new TermGpa(entry.getKey().label(), gpa, probation);
                 })
                 .collect(Collectors.toList());

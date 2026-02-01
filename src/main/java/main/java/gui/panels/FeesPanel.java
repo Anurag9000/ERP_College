@@ -957,6 +957,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
                             student.getStudentId(),
                             dueDate,
                             amount,
+                            status == FeeInstallment.Status.PAID ? amount : 0.0,
                             status,
                             description,
                             paidOn,

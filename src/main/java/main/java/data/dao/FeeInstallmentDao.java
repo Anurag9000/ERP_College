@@ -18,23 +18,23 @@ import java.util.List;
 public class FeeInstallmentDao extends BaseDao {
     private static final String INSERT_SQL = """
             INSERT INTO fee_installments
-            (installment_id, student_id, due_date, amount, status, description, paid_on, last_reminder_sent)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (installment_id, student_id, due_date, amount, paid_amount, status, description, paid_on, last_reminder_sent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
     private static final String UPDATE_SQL = """
             UPDATE fee_installments
-            SET student_id = ?, due_date = ?, amount = ?, status = ?, description = ?, paid_on = ?, last_reminder_sent = ?
+            SET student_id = ?, due_date = ?, amount = ?, paid_amount = ?, status = ?, description = ?, paid_on = ?, last_reminder_sent = ?
             WHERE installment_id = ?
             """;
     private static final String DELETE_SQL = "DELETE FROM fee_installments WHERE installment_id = ?";
     private static final String FIND_BY_STUDENT_SQL = """
-            SELECT installment_id, student_id, due_date, amount, status, description, paid_on, last_reminder_sent
+            SELECT installment_id, student_id, due_date, amount, paid_amount, status, description, paid_on, last_reminder_sent
             FROM fee_installments
             WHERE student_id = ?
             ORDER BY due_date, installment_id
             """;
     private static final String FIND_ALL_SQL = """
-            SELECT installment_id, student_id, due_date, amount, status, description, paid_on, last_reminder_sent
+            SELECT installment_id, student_id, due_date, amount, paid_amount, status, description, paid_on, last_reminder_sent
             FROM fee_installments
             ORDER BY due_date, installment_id
             """;
@@ -55,17 +55,18 @@ public class FeeInstallmentDao extends BaseDao {
                 ps.setNull(3, java.sql.Types.DATE);
             }
             ps.setDouble(4, installment.getAmount());
-            ps.setString(5, installment.getStatus().name());
-            ps.setString(6, installment.getDescription());
+            ps.setDouble(5, installment.getPaidAmount());
+            ps.setString(6, installment.getStatus().name());
+            ps.setString(7, installment.getDescription());
             if (installment.getPaidOn() != null) {
-                ps.setDate(7, Date.valueOf(installment.getPaidOn()));
-            } else {
-                ps.setNull(7, java.sql.Types.DATE);
-            }
-            if (installment.getLastReminderSent() != null) {
-                ps.setDate(8, Date.valueOf(installment.getLastReminderSent()));
+                ps.setDate(8, Date.valueOf(installment.getPaidOn()));
             } else {
                 ps.setNull(8, java.sql.Types.DATE);
+            }
+            if (installment.getLastReminderSent() != null) {
+                ps.setDate(9, Date.valueOf(installment.getLastReminderSent()));
+            } else {
+                ps.setNull(9, java.sql.Types.DATE);
             }
             ps.executeUpdate();
         } catch (SQLException ex) {
@@ -92,19 +93,20 @@ public class FeeInstallmentDao extends BaseDao {
                 ps.setNull(2, java.sql.Types.DATE);
             }
             ps.setDouble(3, installment.getAmount());
-            ps.setString(4, installment.getStatus().name());
-            ps.setString(5, installment.getDescription());
+            ps.setDouble(4, installment.getPaidAmount());
+            ps.setString(5, installment.getStatus().name());
+            ps.setString(6, installment.getDescription());
             if (installment.getPaidOn() != null) {
-                ps.setDate(6, Date.valueOf(installment.getPaidOn()));
-            } else {
-                ps.setNull(6, java.sql.Types.DATE);
-            }
-            if (installment.getLastReminderSent() != null) {
-                ps.setDate(7, Date.valueOf(installment.getLastReminderSent()));
+                ps.setDate(7, Date.valueOf(installment.getPaidOn()));
             } else {
                 ps.setNull(7, java.sql.Types.DATE);
             }
-            ps.setString(8, installment.getInstallmentId());
+            if (installment.getLastReminderSent() != null) {
+                ps.setDate(8, Date.valueOf(installment.getLastReminderSent()));
+            } else {
+                ps.setNull(8, java.sql.Types.DATE);
+            }
+            ps.setString(9, installment.getInstallmentId());
             return ps.executeUpdate() > 0;
         }
     }
@@ -153,6 +155,7 @@ public class FeeInstallmentDao extends BaseDao {
             Date due = rs.getDate("due_date");
             installment.setDueDate(due != null ? due.toLocalDate() : null);
             installment.setAmount(rs.getDouble("amount"));
+            installment.setPaidAmount(rs.getDouble("paid_amount"));
             installment.setStatus(FeeInstallment.Status.valueOf(rs.getString("status")));
             installment.setDescription(rs.getString("description"));
             Date paid = rs.getDate("paid_on");
