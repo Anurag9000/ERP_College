@@ -69,6 +69,11 @@ public final class StudentService {
             if (section == null)
                 continue;
 
+            // Filter by term if provided
+            if (term != null && !term.isBlank() && !section.getSemester().equalsIgnoreCase(term)) {
+                continue;
+            }
+
             int credits = DatabaseUtil.getCourseCreditHours(section.getCourseId());
             double score = record.getFinalGrade();
             if (score <= 0 && !record.getComponentScores().isEmpty()) {

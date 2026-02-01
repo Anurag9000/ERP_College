@@ -161,7 +161,7 @@ public final class GradebookService {
         long passCount = 0;
         long failCount = 0;
         double min = Double.MAX_VALUE;
-        double max = Double.MIN_VALUE;
+        double max = -1.0;
         double total = 0.0;
         int counted = 0;
 

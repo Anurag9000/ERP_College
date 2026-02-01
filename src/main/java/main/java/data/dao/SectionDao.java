@@ -17,11 +17,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class SectionDao extends BaseDao {
-    private static final String BASE_SELECT = "SELECT id, section_code, course_code, title, instructor_code, day_of_week, start_time, end_time, location, capacity, enrollment_deadline, drop_deadline, semester, year, requires_advisor_approval FROM sections";
+    private static final String BASE_SELECT = "SELECT id, section_code, course_code, title, instructor_code, day_of_week, start_time, end_time, location, capacity, enrollment_deadline, drop_deadline, semester, year, requires_advisor_approval, gradebook_state FROM sections";
     private static final String SELECT_ALL = BASE_SELECT + " ORDER BY section_code";
     private static final String SELECT_BY_CODE = BASE_SELECT + " WHERE section_code = ?";
-    private static final String INSERT = "INSERT INTO sections (section_code, course_code, title, instructor_code, day_of_week, start_time, end_time, location, capacity, enrollment_deadline, drop_deadline, semester, year, requires_advisor_approval) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    private static final String UPDATE = "UPDATE sections SET course_code = ?, title = ?, instructor_code = ?, day_of_week = ?, start_time = ?, end_time = ?, location = ?, capacity = ?, enrollment_deadline = ?, drop_deadline = ?, semester = ?, year = ?, requires_advisor_approval = ? WHERE section_code = ?";
+    private static final String INSERT = "INSERT INTO sections (section_code, course_code, title, instructor_code, day_of_week, start_time, end_time, location, capacity, enrollment_deadline, drop_deadline, semester, year, requires_advisor_approval, gradebook_state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String UPDATE = "UPDATE sections SET course_code = ?, title = ?, instructor_code = ?, day_of_week = ?, start_time = ?, end_time = ?, location = ?, capacity = ?, enrollment_deadline = ?, drop_deadline = ?, semester = ?, year = ?, requires_advisor_approval = ?, gradebook_state = ? WHERE section_code = ?";
     private static final String DELETE = "DELETE FROM sections WHERE section_code = ?";
 
     private static final String SELECT_ASSESSMENTS = "SELECT component, weight FROM section_assessments WHERE section_code = ?";
@@ -134,7 +134,7 @@ public class SectionDao extends BaseDao {
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             bind(ps, section, false);
-            ps.setString(13, section.getSectionId());
+            ps.setString(15, section.getSectionId());
             ps.executeUpdate();
             saveAssessments(conn, section);
         } catch (SQLException ex) {
@@ -230,6 +230,10 @@ public class SectionDao extends BaseDao {
         section.setSemester(rs.getString("semester"));
         section.setYear(rs.getInt("year"));
         section.setRequiresAdvisorApproval(rs.getBoolean("requires_advisor_approval"));
+        String state = rs.getString("gradebook_state");
+        if (state != null) {
+            section.setGradebookState(Section.GradebookState.valueOf(state));
+        }
         return section;
     }
 
@@ -270,6 +274,7 @@ public class SectionDao extends BaseDao {
         }
         ps.setString(idx++, section.getSemester());
         ps.setInt(idx++, section.getYear());
-        ps.setBoolean(idx, section.isRequiresAdvisorApproval());
+        ps.setBoolean(idx++, section.isRequiresAdvisorApproval());
+        ps.setString(idx++, section.getGradebookState().name());
     }
 }
