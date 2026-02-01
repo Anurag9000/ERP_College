@@ -6,8 +6,6 @@ import main.java.models.User;
 import main.java.utils.DatabaseUtil;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Instructor context helpers.
@@ -20,9 +18,10 @@ public final class InstructorService {
     public static List<Section> getAssignedSections(User instructor) {
         requireInstructor(instructor);
         Faculty faculty = DatabaseUtil.findFacultyByUsername(instructor.getUsername());
-        return DatabaseUtil.getAllSections().stream()
-                .filter(section -> Objects.equals(section.getFacultyId(), faculty.getFacultyId()))
-                .collect(Collectors.toList());
+        if (faculty == null) {
+            return java.util.Collections.emptyList();
+        }
+        return DatabaseUtil.getSectionsForFaculty(faculty.getFacultyId());
     }
 
     private static void requireInstructor(User instructor) {

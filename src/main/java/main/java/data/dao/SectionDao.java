@@ -23,6 +23,7 @@ public class SectionDao extends BaseDao {
     private static final String INSERT = "INSERT INTO sections (section_code, course_code, title, instructor_code, day_of_week, start_time, end_time, location, capacity, enrollment_deadline, drop_deadline, semester, year, requires_advisor_approval, gradebook_state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String UPDATE = "UPDATE sections SET course_code = ?, title = ?, instructor_code = ?, day_of_week = ?, start_time = ?, end_time = ?, location = ?, capacity = ?, enrollment_deadline = ?, drop_deadline = ?, semester = ?, year = ?, requires_advisor_approval = ?, gradebook_state = ? WHERE section_code = ?";
     private static final String DELETE = "DELETE FROM sections WHERE section_code = ?";
+    private static final String SELECT_BY_INSTRUCTOR = BASE_SELECT + " WHERE instructor_code = ? ORDER BY section_code";
 
     private static final String SELECT_ASSESSMENTS = "SELECT component, weight FROM section_assessments WHERE section_code = ?";
     private static final String DELETE_ASSESSMENTS = "DELETE FROM section_assessments WHERE section_code = ?";
@@ -46,6 +47,25 @@ public class SectionDao extends BaseDao {
             }
         } catch (SQLException ex) {
             logger.error("Error loading sections: {}", ex.getMessage(), ex);
+        }
+        return sections;
+    }
+
+    public List<Section> findByFaculty(String facultyId) {
+        List<Section> sections = new ArrayList<>();
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_INSTRUCTOR)) {
+            ps.setString(1, facultyId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    sections.add(mapSection(rs));
+                }
+            }
+            if (!sections.isEmpty()) {
+                loadAssessmentsForBatch(conn, sections);
+            }
+        } catch (SQLException ex) {
+            logger.error("Error loading sections for faculty {}: {}", facultyId, ex.getMessage(), ex);
         }
         return sections;
     }

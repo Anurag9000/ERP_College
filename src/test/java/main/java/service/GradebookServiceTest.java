@@ -56,6 +56,7 @@ public class GradebookServiceTest {
         when(mockSectionDao.findByCode("SEC1")).thenReturn(Optional.of(section));
         when(mockInstructorDao.findByUsername("prof1")).thenReturn(Optional.of(faculty));
         when(mockEnrollmentDao.findBySection("SEC1")).thenReturn(records);
+        when(mockEnrollmentDao.findBySectionAndStudent("SEC1", "stu1")).thenReturn(record);
 
         GradebookService.recordScore(instructorUser, "SEC1", "stu1", "Midterm", 85.0);
 
@@ -96,6 +97,7 @@ public class GradebookServiceTest {
         when(mockSectionDao.findByCode("SEC1")).thenReturn(Optional.of(section));
         when(mockInstructorDao.findByUsername("prof1")).thenReturn(Optional.of(faculty));
         when(mockEnrollmentDao.findBySection("SEC1")).thenReturn(records);
+        when(mockEnrollmentDao.findBySectionAndStudent("SEC1", "stu1")).thenReturn(record);
 
         double finalGrade = GradebookService.computeFinal(instructorUser, "SEC1", "stu1");
 

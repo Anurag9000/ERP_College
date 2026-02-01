@@ -279,10 +279,11 @@ public final class GradebookService {
     }
 
     private static EnrollmentRecord locateEnrollment(String sectionId, String studentId) {
-        return DatabaseUtil.getEnrollmentsForSection(sectionId).stream()
-                .filter(rec -> rec.getStudentId().equals(studentId))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Student not enrolled in section."));
+        EnrollmentRecord record = DatabaseUtil.getEnrollment(sectionId, studentId);
+        if (record == null) {
+            throw new IllegalArgumentException("Student not enrolled in section.");
+        }
+        return record;
     }
 
     private static String bucketFor(double grade, String sectionId) {

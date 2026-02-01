@@ -73,42 +73,14 @@ public final class StudentService {
     }
 
     public static double calculateSGPA(String username, String semester) {
-        Student student = DatabaseUtil.findStudentByUsername(username);
-        if (student == null)
-            return 0.0;
-
-        List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForStudent(student.getStudentId());
-        double totalPoints = 0.0;
-        int totalCredits = 0;
-
-        for (EnrollmentRecord rec : enrollments) {
-            if (rec.getStatus() != EnrollmentRecord.Status.ENROLLED)
-                continue;
-
-            Section section = DatabaseUtil.getSection(rec.getSectionId());
-            if (section == null)
-                continue;
-
-            // If semester filter is provided, check it.
-            // Note: Simplistic check. Ideally should check year too, but signature only has
-            // semester string.
-            // If semester is null, we might treat it as "current" or return 0.
-            // For now, if null, we skip? Or match all? matching all makes it CGPA.
-            // Let's assume null means "Current/Latest" or just return 0 to be safe.
-            if (semester != null && !semester.equalsIgnoreCase(section.getSemester())) {
-                continue;
-            }
-
-            int credits = DatabaseUtil.getCourseCreditHours(section.getCourseId());
-            double points = calculatePoints(rec.getFinalGrade());
-            totalPoints += points * credits;
-            totalCredits += credits;
-        }
-
-        return totalCredits > 0 ? totalPoints / totalCredits : 0.0;
+        return calculateGPA(username, semester);
     }
 
     public static double calculateCGPA(String username) {
+        return calculateGPA(username, null);
+    }
+
+    private static double calculateGPA(String username, String semesterFilter) {
         Student student = DatabaseUtil.findStudentByUsername(username);
         if (student == null)
             return 0.0;
@@ -124,6 +96,11 @@ public final class StudentService {
             Section section = DatabaseUtil.getSection(rec.getSectionId());
             if (section == null)
                 continue;
+
+            // Filter by semester if provided
+            if (semesterFilter != null && !semesterFilter.equalsIgnoreCase(section.getSemester())) {
+                continue;
+            }
 
             int credits = DatabaseUtil.getCourseCreditHours(section.getCourseId());
             double points = calculatePoints(rec.getFinalGrade());

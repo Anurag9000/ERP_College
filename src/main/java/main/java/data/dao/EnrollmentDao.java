@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class EnrollmentDao extends BaseDao {
     private static final String SELECT_BY_STUDENT = "SELECT id, student_code, section_code, status, final_grade, updated_at FROM enrollments WHERE student_code = ?";
     private static final String SELECT_BY_SECTION = "SELECT id, student_code, section_code, status, final_grade, updated_at FROM enrollments WHERE section_code = ?";
+    private static final String SELECT_BY_SECTION_AND_STUDENT = "SELECT id, student_code, section_code, status, final_grade, updated_at FROM enrollments WHERE section_code = ? AND student_code = ?";
     private static final String INSERT = "INSERT INTO enrollments (student_code, section_code, status, final_grade) VALUES (?, ?, ?, ?)";
     private static final String UPDATE_STATUS = "UPDATE enrollments SET status = ?, final_grade = ?, updated_at = CURRENT_TIMESTAMP WHERE student_code = ? AND section_code = ?";
     private static final String DELETE_BY_SECTION = "DELETE FROM enrollments WHERE section_code = ?";
@@ -36,6 +37,25 @@ public class EnrollmentDao extends BaseDao {
 
     public List<EnrollmentRecord> findBySection(String sectionCode) {
         return fetchList(SELECT_BY_SECTION, sectionCode);
+    }
+
+    public EnrollmentRecord findBySectionAndStudent(String sectionCode, String studentCode) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_SECTION_AND_STUDENT)) {
+            ps.setString(1, sectionCode);
+            ps.setString(2, studentCode);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    EnrollmentRecord record = mapRecord(rs);
+                    // Load grades for this single record
+                    loadGradesForBatch(conn, java.util.Collections.singletonList(record));
+                    return record;
+                }
+            }
+        } catch (SQLException ex) {
+            logger.error("Error finding enrollment {} in {}: {}", studentCode, sectionCode, ex.getMessage(), ex);
+        }
+        return null;
     }
 
     public void insert(EnrollmentRecord record) {

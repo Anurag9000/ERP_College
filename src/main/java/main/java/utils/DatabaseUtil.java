@@ -121,6 +121,10 @@ public class DatabaseUtil {
         return enrollmentDao;
     }
 
+    public static EnrollmentRecord getEnrollment(String sectionId, String studentId) {
+        return getEnrollmentDao().findBySectionAndStudent(sectionId, studentId);
+    }
+
     private static WaitlistDao getWaitlistDao() {
         if (waitlistDao == null)
             waitlistDao = new WaitlistDao();
@@ -608,6 +612,10 @@ public class DatabaseUtil {
 
     public static Student findStudentByUsername(String username) {
         return getStudentDao().findByUsername(username).orElse(null);
+    }
+
+    public static List<Section> getSectionsForFaculty(String facultyId) {
+        return getSectionDao().findByFaculty(facultyId);
     }
 
     // Finance operations
