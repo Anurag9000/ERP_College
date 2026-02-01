@@ -27,9 +27,17 @@ public class WaitlistDao extends BaseDao {
     }
 
     public List<WaitlistEntry> findEntries(String sectionCode) {
+        try (Connection conn = getConnection()) {
+            return findEntries(conn, sectionCode);
+        } catch (SQLException ex) {
+            logger.error("Error loading waitlist for section {}: {}", sectionCode, ex.getMessage(), ex);
+        }
+        return new LinkedList<>();
+    }
+
+    public List<WaitlistEntry> findEntries(Connection conn, String sectionCode) {
         List<WaitlistEntry> list = new LinkedList<>();
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(SELECT_BY_SECTION)) {
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_BY_SECTION)) {
             ps.setString(1, sectionCode);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

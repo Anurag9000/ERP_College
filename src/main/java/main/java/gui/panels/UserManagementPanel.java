@@ -27,7 +27,7 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
 
     public UserManagementPanel(User adminUser) {
         this.adminUser = adminUser;
-        this.tableModel = new DefaultTableModel(new Object[]{
+        this.tableModel = new DefaultTableModel(new Object[] {
                 "Username", "Role", "Full Name", "Email", "Active", "Last Login"
         }, 0) {
             @Override
@@ -66,17 +66,36 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
     }
 
     private void refresh() {
-        tableModel.setRowCount(0);
-        for (User user : DatabaseUtil.getAllUsers()) {
-            tableModel.addRow(new Object[]{
-                    user.getUsername(),
-                    user.getRole(),
-                    user.getFullName(),
-                    user.getEmail(),
-                    user.isActive(),
-                    user.getLastLogin() == null ? "—" : user.getLastLogin().toString()
-            });
-        }
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<List<User>, Void>() {
+            @Override
+            protected List<User> doInBackground() throws Exception {
+                return DatabaseUtil.getAllUsers();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<User> users = get();
+                    tableModel.setRowCount(0);
+                    for (User user : users) {
+                        tableModel.addRow(new Object[] {
+                                user.getUsername(),
+                                user.getRole(),
+                                user.getFullName(),
+                                user.getEmail(),
+                                user.isActive(),
+                                user.getLastLogin() == null ? "—" : user.getLastLogin().toString()
+                        });
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(UserManagementPanel.this,
+                            "Error loading users: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void addUser() {
@@ -84,7 +103,7 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
             return;
         }
         JTextField usernameField = new JTextField();
-        JComboBox<String> roleCombo = new JComboBox<>(new String[]{"Student", "Instructor", "Admin"});
+        JComboBox<String> roleCombo = new JComboBox<>(new String[] { "Student", "Instructor", "Admin" });
         JTextField nameField = new JTextField();
         JTextField emailField = new JTextField();
         JTextField tempPasswordField = new JTextField();
@@ -101,21 +120,42 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
         panel.add(new JLabel("Temp Password"));
         panel.add(tempPasswordField);
 
-        int result = JOptionPane.showConfirmDialog(this, panel, "Add User", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        int result = JOptionPane.showConfirmDialog(this, panel, "Add User", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) {
             return;
         }
-        try {
-            AdminService.createUser(adminUser,
-                    usernameField.getText().trim(),
-                    (String) roleCombo.getSelectedItem(),
-                    nameField.getText().trim(),
-                    emailField.getText().trim(),
-                    tempPasswordField.getText().trim());
-            refresh();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to add user", JOptionPane.ERROR_MESSAGE);
-        }
+
+        addButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        String username = usernameField.getText().trim();
+        String role = (String) roleCombo.getSelectedItem();
+        String name = nameField.getText().trim();
+        String email = emailField.getText().trim();
+        String password = tempPasswordField.getText().trim();
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                AdminService.createUser(adminUser, username, role, name, email, password);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    refresh();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(UserManagementPanel.this, ex.getMessage(), "Unable to add user",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    addButton.setEnabled(true);
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void editUser() {
@@ -129,7 +169,7 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
         }
         JTextField nameField = new JTextField(user.getFullName());
         JTextField emailField = new JTextField(user.getEmail());
-        JComboBox<String> roleCombo = new JComboBox<>(new String[]{"Student", "Instructor", "Admin"});
+        JComboBox<String> roleCombo = new JComboBox<>(new String[] { "Student", "Instructor", "Admin" });
         roleCombo.setSelectedItem(user.getRole());
 
         JPanel panel = new JPanel(new GridLayout(0, 2, 6, 6));
@@ -145,17 +185,40 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
         if (result != JOptionPane.OK_OPTION) {
             return;
         }
-        try {
-            AdminService.updateUserProfile(adminUser, user.getUsername(),
-                    nameField.getText().trim(), emailField.getText().trim());
-            String newRole = (String) roleCombo.getSelectedItem();
-            if (newRole != null && !newRole.equalsIgnoreCase(user.getRole())) {
-                AdminService.updateUserRole(adminUser, user.getUsername(), newRole);
+
+        editButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        String username = user.getUsername();
+        String name = nameField.getText().trim();
+        String email = emailField.getText().trim();
+        String newRole = (String) roleCombo.getSelectedItem();
+        String currentRole = user.getRole();
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                AdminService.updateUserProfile(adminUser, username, name, email);
+                if (newRole != null && !newRole.equalsIgnoreCase(currentRole)) {
+                    AdminService.updateUserRole(adminUser, username, newRole);
+                }
+                return null;
             }
-            refresh();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update user", JOptionPane.ERROR_MESSAGE);
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    refresh();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(UserManagementPanel.this, ex.getMessage(), "Unable to update user",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    editButton.setEnabled(true);
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void resetPassword() {
@@ -172,12 +235,33 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
         if (newPassword == null || newPassword.trim().isEmpty()) {
             return;
         }
-        try {
-            DatabaseUtil.resetPasswordByAdmin(username, newPassword.trim());
-            JOptionPane.showMessageDialog(this, "Password updated. User must change on next login.");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to reset password", JOptionPane.ERROR_MESSAGE);
-        }
+
+        resetPasswordButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        String finalPassword = newPassword.trim();
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                DatabaseUtil.resetPasswordByAdmin(username, finalPassword);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(UserManagementPanel.this,
+                            "Password updated. User must change on next login.");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(UserManagementPanel.this, ex.getMessage(), "Unable to reset password",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    resetPasswordButton.setEnabled(true);
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void toggleUserStatus() {
@@ -197,12 +281,31 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
         if (result != JOptionPane.YES_OPTION) {
             return;
         }
-        try {
-            AdminService.setUserActive(adminUser, username, !isActive);
-            refresh();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update status", JOptionPane.ERROR_MESSAGE);
-        }
+
+        toggleStatusButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                AdminService.setUserActive(adminUser, username, !isActive);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    refresh();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(UserManagementPanel.this, ex.getMessage(), "Unable to update status",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    toggleStatusButton.setEnabled(true);
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void viewAuditTrail() {
@@ -211,14 +314,36 @@ public class UserManagementPanel extends JPanel implements MaintenanceAware {
             JOptionPane.showMessageDialog(this, "Select a user first.");
             return;
         }
-        List<AuditLogService.AuditEvent> events = AdminService.auditTrailForUser(user.getUsername());
-        JTextArea textArea = new JTextArea(AuditLogService.toDisplayString(events));
-        textArea.setEditable(false);
-        textArea.setCaretPosition(0);
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        scrollPane.setPreferredSize(new Dimension(600, 300));
-        JOptionPane.showMessageDialog(this, scrollPane,
-                "Audit Trail for " + user.getUsername(), JOptionPane.INFORMATION_MESSAGE);
+
+        auditButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        String username = user.getUsername();
+
+        new SwingWorker<List<AuditLogService.AuditEvent>, Void>() {
+            @Override
+            protected List<AuditLogService.AuditEvent> doInBackground() throws Exception {
+                return AdminService.auditTrailForUser(username);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<AuditLogService.AuditEvent> events = get();
+                    JTextArea textArea = new JTextArea(AuditLogService.toDisplayString(events));
+                    textArea.setEditable(false);
+                    textArea.setCaretPosition(0);
+                    JScrollPane scrollPane = new JScrollPane(textArea);
+                    scrollPane.setPreferredSize(new Dimension(600, 300));
+                    JOptionPane.showMessageDialog(UserManagementPanel.this, scrollPane,
+                            "Audit Trail for " + username, JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(UserManagementPanel.this, "Error loading audit: " + ex.getMessage());
+                } finally {
+                    auditButton.setEnabled(true);
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private User getSelectedUser() {

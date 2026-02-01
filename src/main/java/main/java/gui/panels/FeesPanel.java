@@ -347,18 +347,37 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
             updateTemplateActions();
             return;
         }
-        List<FeeScheduleTemplateDao.TemplateRecord> records = DatabaseUtil.getFeeScheduleTemplates(courseCode);
-        for (FeeScheduleTemplateDao.TemplateRecord record : records) {
-            templateIndex.put(record.id(), record);
-            templateModel.addRow(new Object[] {
-                    record.id(),
-                    record.label(),
-                    formatCurrency(record.amount()),
-                    record.offsetDays(),
-                    describeOffset(record.offsetDays())
-            });
-        }
-        updateTemplateActions();
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<List<FeeScheduleTemplateDao.TemplateRecord>, Void>() {
+            @Override
+            protected List<FeeScheduleTemplateDao.TemplateRecord> doInBackground() {
+                return DatabaseUtil.getFeeScheduleTemplates(courseCode);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<FeeScheduleTemplateDao.TemplateRecord> records = get();
+                    for (FeeScheduleTemplateDao.TemplateRecord record : records) {
+                        templateIndex.put(record.id(), record);
+                        templateModel.addRow(new Object[] {
+                                record.id(),
+                                record.label(),
+                                formatCurrency(record.amount()),
+                                record.offsetDays(),
+                                describeOffset(record.offsetDays())
+                        });
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Error loading templates", e);
+                    JOptionPane.showMessageDialog(FeesPanel.this, "Error loading templates: " + e.getMessage());
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    updateTemplateActions();
+                }
+            }
+        }.execute();
     }
 
     private String resolveSelectedCourseCode() {
@@ -483,43 +502,84 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
             JOptionPane.showMessageDialog(this, "Add at least one template installment first.");
             return;
         }
-        List<Student> eligible = new ArrayList<>();
-        for (Student student : DatabaseUtil.getAllStudents()) {
-            if (student.getCourse() != null && student.getCourse().equalsIgnoreCase(courseCode)) {
-                eligible.add(student);
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        applyTemplateButton.setEnabled(false);
+
+        new SwingWorker<List<Student>, Void>() {
+            @Override
+            protected List<Student> doInBackground() {
+                List<Student> eligible = new ArrayList<>();
+                for (Student student : DatabaseUtil.getAllStudents()) {
+                    if (student.getCourse() != null && student.getCourse().equalsIgnoreCase(courseCode)) {
+                        eligible.add(student);
+                    }
+                }
+                eligible.sort(Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER));
+                return eligible;
             }
-        }
-        if (eligible.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No students found in " + courseCode + " to apply this template.");
-            return;
-        }
-        eligible.sort(Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER));
 
-        JComboBox<StudentOption> studentCombo = new JComboBox<>();
-        for (Student student : eligible) {
-            studentCombo.addItem(new StudentOption(student.getStudentId(), student.getFullName()));
-        }
-        JPanel panel = new JPanel(new BorderLayout(8, 8));
-        panel.add(new JLabel("Select student to receive this schedule:"), BorderLayout.NORTH);
-        panel.add(studentCombo, BorderLayout.CENTER);
+            @Override
+            protected void done() {
+                try {
+                    List<Student> eligible = get();
+                    if (eligible.isEmpty()) {
+                        JOptionPane.showMessageDialog(FeesPanel.this,
+                                "No students found in " + courseCode + " to apply this template.");
+                        return;
+                    }
 
-        int result = JOptionPane.showConfirmDialog(this, panel,
-                "Apply Template to Student", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (result != JOptionPane.OK_OPTION) {
-            return;
-        }
-        StudentOption selected = (StudentOption) studentCombo.getSelectedItem();
-        if (selected == null) {
-            return;
-        }
-        try {
-            DatabaseUtil.applyFeeTemplateToStudent(courseCode, selected.id());
-            JOptionPane.showMessageDialog(this,
-                    "Installment plan applied to " + selected.label() + " (" + selected.id() + ").");
-            loadFeesData();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to apply template", JOptionPane.ERROR_MESSAGE);
-        }
+                    JComboBox<StudentOption> studentCombo = new JComboBox<>();
+                    for (Student student : eligible) {
+                        studentCombo.addItem(new StudentOption(student.getStudentId(), student.getFullName()));
+                    }
+                    JPanel panel = new JPanel(new BorderLayout(8, 8));
+                    panel.add(new JLabel("Select student to receive this schedule:"), BorderLayout.NORTH);
+                    panel.add(studentCombo, BorderLayout.CENTER);
+
+                    int result = JOptionPane.showConfirmDialog(FeesPanel.this, panel,
+                            "Apply Template to Student", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                    if (result != JOptionPane.OK_OPTION) {
+                        return;
+                    }
+                    StudentOption selected = (StudentOption) studentCombo.getSelectedItem();
+                    if (selected == null) {
+                        return;
+                    }
+
+                    // Apply in another worker to avoid blocking on write
+                    new SwingWorker<Void, Void>() {
+                        @Override
+                        protected Void doInBackground() throws Exception {
+                            DatabaseUtil.applyFeeTemplateToStudent(courseCode, selected.id());
+                            return null;
+                        }
+
+                        @Override
+                        protected void done() {
+                            try {
+                                get();
+                                JOptionPane.showMessageDialog(FeesPanel.this,
+                                        "Installment plan applied to " + selected.label() + " (" + selected.id()
+                                                + ").");
+                                loadFeesData();
+                            } catch (Exception ex) {
+                                JOptionPane.showMessageDialog(FeesPanel.this, ex.getMessage(),
+                                        "Unable to apply template", JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
+                    }.execute();
+
+                } catch (Exception ex) {
+                    LOGGER.error("Error fetching students", ex);
+                    JOptionPane.showMessageDialog(FeesPanel.this, "Error fetching students: " + ex.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    updateTemplateActions(); // Re-enable button state
+                }
+            }
+        }.execute();
     }
 
     private FeeScheduleTemplateDao.TemplateRecord getSelectedTemplate() {

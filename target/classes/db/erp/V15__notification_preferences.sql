@@ -4,8 +4,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
     digest_hour INT NOT NULL DEFAULT 8,
     email_enabled BIT NOT NULL DEFAULT 0,
     sms_enabled BIT NOT NULL DEFAULT 0,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_notification_preferences_user FOREIGN KEY (user_id)
-        REFERENCES users(username)
-        ON DELETE CASCADE
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    -- Note: Foreign key to users(username) removed because it crosses database boundaries
+    -- Application layer must ensure referential integrity
 );

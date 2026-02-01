@@ -71,7 +71,9 @@ public class Faculty implements java.io.Serializable {
     }
 
     public String getFullName() {
-        return firstName + " " + lastName;
+        String first = (firstName != null) ? firstName : "";
+        String last = (lastName != null) ? lastName : "";
+        return (first + " " + last).trim();
     }
 
     public String getEmail() {

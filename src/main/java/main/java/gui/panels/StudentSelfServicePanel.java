@@ -739,7 +739,9 @@ public class StudentSelfServicePanel extends JPanel {
                     catalogSections = get();
                     applyCatalogFilters(); // This spawns another worker, which is fine (sequential-ish)
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(StudentSelfServicePanel.this,
+                            "Error loading catalog: " + e.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
                 } finally {
                     setCursor(Cursor.getDefaultCursor());
                 }

@@ -160,15 +160,36 @@ public class InstructorWorkspacePanel extends JPanel {
     }
 
     private void refreshSections() {
-        assignedSections = InstructorService.getAssignedSections(instructor);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         sectionCombo.removeAllItems();
-        for (Section section : assignedSections) {
-            sectionCombo.addItem(section.getSectionId() + " - " + section.getTitle());
-        }
-        if (sectionCombo.getItemCount() > 0) {
-            sectionCombo.setSelectedIndex(0);
-        }
-        refreshRoster();
+
+        new SwingWorker<java.util.List<Section>, Void>() {
+            @Override
+            protected java.util.List<Section> doInBackground() {
+                return InstructorService.getAssignedSections(instructor);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    assignedSections = get();
+                    for (Section section : assignedSections) {
+                        sectionCombo.addItem(section.getSectionId() + " - " + section.getTitle());
+                    }
+                    if (sectionCombo.getItemCount() > 0) {
+                        sectionCombo.setSelectedIndex(0);
+                    } else {
+                        // Explicitly trigger roster clearing if no sections
+                        refreshRoster();
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(InstructorWorkspacePanel.this,
+                            "Error loading sections: " + e.getMessage());
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private Section getSelectedSection() {
@@ -190,17 +211,51 @@ public class InstructorWorkspacePanel extends JPanel {
             updateFeedbackButtonState();
             return;
         }
-        java.util.List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForSection(section.getSectionId());
-        enrollments.stream()
-                .filter(rec -> rec.getStatus() != EnrollmentRecord.Status.WAITLISTED)
-                .forEach(rec -> rosterModel.addRow(new Object[] {
-                        rec.getStudentId(),
-                        rec.getStatus(),
-                        rec.getFinalGrade()
-                }));
-        refreshGradebookState(section);
-        refreshAnalytics(section);
-        updateFeedbackButtonState();
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<RosterSnapshot, Void>() {
+            @Override
+            protected RosterSnapshot doInBackground() {
+                java.util.List<EnrollmentRecord> enrollments = DatabaseUtil
+                        .getEnrollmentsForSection(section.getSectionId());
+                java.util.List<Object[]> rows = new ArrayList<>();
+                enrollments.stream()
+                        .filter(rec -> rec.getStatus() != EnrollmentRecord.Status.WAITLISTED)
+                        .forEach(rec -> rows.add(new Object[] {
+                                rec.getStudentId(),
+                                rec.getStatus(),
+                                rec.getFinalGrade()
+                        }));
+                return new RosterSnapshot(rows);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    RosterSnapshot snapshot = get();
+                    for (Object[] row : snapshot.rows) {
+                        rosterModel.addRow(row);
+                    }
+                    // Only refresh these UI elements after data is loaded
+                    refreshGradebookState(section);
+                    refreshAnalytics(section);
+                    updateFeedbackButtonState();
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(InstructorWorkspacePanel.this,
+                            "Error loading roster: " + e.getMessage());
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
+    }
+
+    private static class RosterSnapshot {
+        final java.util.List<Object[]> rows;
+
+        RosterSnapshot(java.util.List<Object[]> rows) {
+            this.rows = rows;
+        }
     }
 
     private void defineAssessments() {

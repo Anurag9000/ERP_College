@@ -29,7 +29,7 @@ public class AuditLogPanel extends JPanel {
         JLabel title = new JLabel("Audit Trail");
         title.setFont(new Font("Arial", Font.BOLD, 24));
 
-        rangeCombo = new JComboBox<>(new String[]{
+        rangeCombo = new JComboBox<>(new String[] {
                 "Last 24 Hours",
                 "Last 7 Days",
                 "Last 30 Days",
@@ -52,7 +52,7 @@ public class AuditLogPanel extends JPanel {
         header.add(title, BorderLayout.WEST);
         header.add(controls, BorderLayout.EAST);
 
-        tableModel = new DefaultTableModel(new Object[]{"Timestamp", "Type", "Actor", "Details"}, 0) {
+        tableModel = new DefaultTableModel(new Object[] { "Timestamp", "Type", "Actor", "Details" }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -72,32 +72,56 @@ public class AuditLogPanel extends JPanel {
     }
 
     private void loadEvents() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime from;
-        switch ((String) rangeCombo.getSelectedItem()) {
-            case "Last 24 Hours" -> from = now.minusHours(24);
-            case "Last 7 Days" -> from = now.minusDays(7);
-            case "Last 30 Days" -> from = now.minusDays(30);
-            default -> from = null;
-        }
-        currentEvents = from == null
-                ? AuditLogService.recentEvents()
-                : AuditLogService.findBetween(from, now);
+        // Disable controls during load
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
-        tableModel.setRowCount(0);
-        for (AuditLogService.AuditEvent event : currentEvents) {
-            tableModel.addRow(new Object[]{
-                    FORMATTER.format(event.getTimestamp()),
-                    event.getType().name(),
-                    event.getActor(),
-                    event.getDetails()
-            });
-        }
+        // Capture inputs
+        String rangeSelection = (String) rangeCombo.getSelectedItem();
+
+        new SwingWorker<List<AuditLogService.AuditEvent>, Void>() {
+            @Override
+            protected List<AuditLogService.AuditEvent> doInBackground() {
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime from;
+                switch (rangeSelection) {
+                    case "Last 24 Hours" -> from = now.minusHours(24);
+                    case "Last 7 Days" -> from = now.minusDays(7);
+                    case "Last 30 Days" -> from = now.minusDays(30);
+                    default -> from = null;
+                }
+                return from == null
+                        ? AuditLogService.recentEvents()
+                        : AuditLogService.findBetween(from, now);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    currentEvents = get();
+                    tableModel.setRowCount(0);
+                    if (currentEvents != null) {
+                        for (AuditLogService.AuditEvent event : currentEvents) {
+                            tableModel.addRow(new Object[] {
+                                    FORMATTER.format(event.getTimestamp()),
+                                    event.getType().name(),
+                                    event.getActor(),
+                                    event.getDetails()
+                            });
+                        }
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(AuditLogPanel.this, "Error loading logs: " + ex.getMessage());
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void exportCsv() {
         if (currentEvents == null || currentEvents.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No audit events to export.", "Export", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "No audit events to export.", "Export",
+                    JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         JFileChooser chooser = new JFileChooser();
@@ -114,8 +138,7 @@ public class AuditLogPanel extends JPanel {
                     this,
                     "File exists. Overwrite?",
                     "Confirm Overwrite",
-                    JOptionPane.YES_NO_OPTION
-            );
+                    JOptionPane.YES_NO_OPTION);
             if (overwrite != JOptionPane.YES_OPTION) {
                 return;
             }

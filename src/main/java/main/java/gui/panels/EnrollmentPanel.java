@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Panel to help staff manage student registrations, conflicts, and waitlists.
@@ -167,11 +168,26 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
     }
 
     private void loadStudents() {
-        studentCombo.removeAllItems();
-        Collection<Student> students = DatabaseUtil.getAllStudents();
-        for (Student student : students) {
-            studentCombo.addItem(student.getStudentId() + " - " + student.getFullName());
-        }
+        new SwingWorker<Collection<Student>, Void>() {
+            @Override
+            protected Collection<Student> doInBackground() {
+                return DatabaseUtil.getAllStudents();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Collection<Student> students = get();
+                    studentCombo.removeAllItems();
+                    for (Student student : students) {
+                        studentCombo.addItem(student.getStudentId() + " - " + student.getFullName());
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(EnrollmentPanel.this, "Error loading students: " + e.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
     }
 
     private void refreshTables() {
@@ -183,7 +199,12 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
             return;
         }
 
-        String studentId = ((String) selectedItem).split(" - ")[0];
+        String studentId = extractStudentId((String) selectedItem);
+        if (studentId == null) {
+            sectionsModel.setRowCount(0);
+            scheduleModel.setRowCount(0);
+            return;
+        }
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         dropButton.setEnabled(false);
         registerButton.setEnabled(false);
@@ -270,7 +291,6 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
                         scheduleModel.addRow(row);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
                     JOptionPane.showMessageDialog(EnrollmentPanel.this, "Error loading data: " + e.getMessage());
                 } finally {
                     setCursor(Cursor.getDefaultCursor());
@@ -305,67 +325,105 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
         if (term.isEmpty()) {
             sorter.setRowFilter(null);
         } else {
-            sorter.setRowFilter(RowFilter.regexFilter("(?i)" + term));
+            // Escape regex special characters to prevent PatternSyntaxException
+            sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(term)));
         }
     }
 
     private void registerSelectedSection() {
-        if (blockIfMaintenance()) {
+        if (blockIfMaintenance())
             return;
-        }
+
         int selectedRow = sectionsTable.getSelectedRow();
-        if (selectedRow == -1 || studentCombo.getSelectedItem() == null) {
+        if (selectedRow == -1 || studentCombo.getSelectedItem() == null)
             return;
-        }
 
         selectedRow = sectionsTable.convertRowIndexToModel(selectedRow);
         String sectionId = (String) sectionsModel.getValueAt(selectedRow, 0);
-        String studentId = ((String) studentCombo.getSelectedItem()).split(" - ")[0];
+        String studentId = extractStudentId((String) studentCombo.getSelectedItem());
+        if (studentId == null)
+            return;
 
-        try {
-            EnrollmentRecord record = EnrollmentService.registerSection(actingUser, studentId, sectionId);
-            if (record.getStatus() == EnrollmentRecord.Status.ENROLLED) {
-                JOptionPane.showMessageDialog(this, "Enrollment confirmed!");
-            } else {
-                JOptionPane.showMessageDialog(this, "Section full. Student waitlisted.");
+        registerButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<EnrollmentRecord, Void>() {
+            @Override
+            protected EnrollmentRecord doInBackground() throws Exception {
+                return EnrollmentService.registerSection(actingUser, studentId, sectionId);
             }
-            refreshTables();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Registration failed",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    EnrollmentRecord record = get();
+                    if (record.getStatus() == EnrollmentRecord.Status.ENROLLED) {
+                        JOptionPane.showMessageDialog(EnrollmentPanel.this, "Enrollment confirmed!");
+                    } else {
+                        JOptionPane.showMessageDialog(EnrollmentPanel.this, "Section full. Student waitlisted.");
+                    }
+                    refreshTables();
+                } catch (Exception ex) {
+                    String msg = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+                    JOptionPane.showMessageDialog(EnrollmentPanel.this, msg, "Registration failed",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    registerButton.setEnabled(true);
+                    updateButtonStates();
+                }
+            }
+        }.execute();
     }
 
     private void dropSelectedSection() {
-        if (blockIfMaintenance()) {
+        if (blockIfMaintenance())
             return;
-        }
+
         int selectedRow = sectionsTable.getSelectedRow();
-        if (selectedRow == -1 || studentCombo.getSelectedItem() == null) {
+        if (selectedRow == -1 || studentCombo.getSelectedItem() == null)
             return;
-        }
 
         selectedRow = sectionsTable.convertRowIndexToModel(selectedRow);
         String sectionId = (String) sectionsModel.getValueAt(selectedRow, 0);
-        String studentId = ((String) studentCombo.getSelectedItem()).split(" - ")[0];
+        String studentId = extractStudentId((String) studentCombo.getSelectedItem());
+        if (studentId == null)
+            return;
 
         int option = JOptionPane.showConfirmDialog(
                 this,
                 "Drop this section for the student?",
                 "Confirm Drop",
                 JOptionPane.YES_NO_OPTION);
-        if (option != JOptionPane.YES_OPTION) {
+        if (option != JOptionPane.YES_OPTION)
             return;
-        }
 
-        try {
-            EnrollmentService.dropSection(actingUser, studentId, sectionId);
-            JOptionPane.showMessageDialog(this, "Section dropped.");
-            refreshTables();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Drop failed",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+        dropButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                EnrollmentService.dropSection(actingUser, studentId, sectionId);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(EnrollmentPanel.this, "Section dropped.");
+                    refreshTables();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(EnrollmentPanel.this, ex.getMessage(), "Drop failed",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    dropButton.setEnabled(true);
+                    updateButtonStates();
+                }
+            }
+        }.execute();
     }
 
     @Override
@@ -395,5 +453,22 @@ public class EnrollmentPanel extends JPanel implements MaintenanceAware {
             maintenanceMode = maintenance;
         }
         return maintenance;
+    }
+
+    /**
+     * Safely extracts student ID from combo box selection string.
+     * Expected format: "STUDENT_ID - Full Name"
+     * 
+     * @return student ID or null if format is invalid
+     */
+    private String extractStudentId(String selection) {
+        if (selection == null || selection.isEmpty()) {
+            return null;
+        }
+        String[] parts = selection.split(" - ", 2);
+        if (parts.length < 1 || parts[0].trim().isEmpty()) {
+            return null;
+        }
+        return parts[0].trim();
     }
 }

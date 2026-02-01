@@ -9,6 +9,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -65,7 +66,7 @@ public class MaintenancePanel extends JPanel {
         countdownLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         countdownLabel.setForeground(new Color(107, 114, 128));
 
-        scheduleModel = new DefaultTableModel(new Object[]{"ID", "Start", "End", "Status", "Message"}, 0) {
+        scheduleModel = new DefaultTableModel(new Object[] { "ID", "Start", "End", "Status", "Message" }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -171,8 +172,7 @@ public class MaintenancePanel extends JPanel {
 
         JTextArea infoArea = new JTextArea(
                 "When maintenance is ON, students and instructors can view data but cannot make changes.\n" +
-                        "Schedule windows ahead of time to broadcast countdown banners automatically."
-        );
+                        "Schedule windows ahead of time to broadcast countdown banners automatically.");
         infoArea.setLineWrap(true);
         infoArea.setWrapStyleWord(true);
         infoArea.setEditable(false);
@@ -190,38 +190,71 @@ public class MaintenancePanel extends JPanel {
     }
 
     private void refreshSchedule() {
-        try {
-            List<MaintenanceWindow> windows = AdminService.getMaintenanceWindows(adminUser);
-            scheduleModel.setRowCount(0);
-            for (MaintenanceWindow window : windows) {
-                scheduleModel.addRow(new Object[]{
-                        window.getId(),
-                        DISPLAY_FORMAT.format(window.getStartAt()),
-                        DISPLAY_FORMAT.format(window.getEndAt()),
-                        window.getStatus().name(),
-                        window.getMessage()
-                });
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<List<MaintenanceWindow>, Void>() {
+            private Optional<MaintenanceWindow> upcoming;
+
+            @Override
+            protected List<MaintenanceWindow> doInBackground() throws Exception {
+                upcoming = AdminService.getNextMaintenanceWindow(adminUser);
+                return AdminService.getMaintenanceWindows(adminUser);
             }
-            Optional<MaintenanceWindow> upcoming = AdminService.getNextMaintenanceWindow(adminUser);
-            nextWindow = upcoming.orElse(null);
-            updateNextWindowLabel();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(),
-                    "Unable to load schedule", JOptionPane.ERROR_MESSAGE);
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    List<MaintenanceWindow> windows = get();
+                    scheduleModel.setRowCount(0);
+                    for (MaintenanceWindow window : windows) {
+                        scheduleModel.addRow(new Object[] {
+                                window.getId(),
+                                DISPLAY_FORMAT.format(window.getStartAt()),
+                                DISPLAY_FORMAT.format(window.getEndAt()),
+                                window.getStatus().name(),
+                                window.getMessage()
+                        });
+                    }
+                    nextWindow = upcoming.orElse(null);
+                    updateNextWindowLabel();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(MaintenancePanel.this, ex.getMessage(),
+                            "Unable to load schedule", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void handleToggle() {
         boolean desired = !DatabaseUtil.isMaintenanceMode();
-        try {
-            AdminService.toggleMaintenance(adminUser, desired);
-            refreshState();
-            if (onToggleCallback != null) {
-                onToggleCallback.run();
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        toggleButton.setEnabled(false);
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                AdminService.toggleMaintenance(adminUser, desired);
+                return null;
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to toggle", JOptionPane.ERROR_MESSAGE);
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    refreshState();
+                    if (onToggleCallback != null) {
+                        onToggleCallback.run();
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(MaintenancePanel.this, ex.getMessage(), "Unable to toggle",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    toggleButton.setEnabled(true);
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void handleSchedule() {
@@ -233,9 +266,34 @@ public class MaintenancePanel extends JPanel {
             }
             LocalDateTime start = LocalDateTime.ofInstant(startDate.toInstant(), ZoneId.systemDefault());
             LocalDateTime end = start.plusMinutes(durationMinutes);
-            AdminService.scheduleMaintenanceWindow(adminUser, start, end, messageField.getText());
-            messageField.setText("");
-            refreshSchedule();
+            String message = messageField.getText();
+
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            scheduleButton.setEnabled(false);
+
+            new SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    AdminService.scheduleMaintenanceWindow(adminUser, start, end, message);
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        messageField.setText("");
+                        refreshSchedule();
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(MaintenancePanel.this, ex.getMessage(),
+                                "Unable to schedule maintenance", JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        scheduleButton.setEnabled(true);
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
+
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(),
                     "Unable to schedule maintenance", JOptionPane.ERROR_MESSAGE);
@@ -256,13 +314,31 @@ public class MaintenancePanel extends JPanel {
         if (confirm != JOptionPane.YES_OPTION) {
             return;
         }
-        try {
-            AdminService.cancelMaintenanceWindow(adminUser, windowId);
-            refreshSchedule();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(),
-                    "Unable to cancel window", JOptionPane.ERROR_MESSAGE);
-        }
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        cancelWindowButton.setEnabled(false);
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                AdminService.cancelMaintenanceWindow(adminUser, windowId);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    refreshSchedule();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(MaintenancePanel.this, ex.getMessage(),
+                            "Unable to cancel window", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    cancelWindowButton.setEnabled(true);
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void updateNextWindowLabel() {

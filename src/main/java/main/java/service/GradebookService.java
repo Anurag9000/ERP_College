@@ -106,9 +106,8 @@ public final class GradebookService {
     public static void recordScore(User instructor, String sectionId, String studentId, String component,
             double score) {
         ensureInstructorAccess(instructor, sectionId);
-        EnrollmentRecord record = locateEnrollment(sectionId, studentId);
-        record.putScore(component, score);
-        DatabaseUtil.updateEnrollment(record);
+        // Use atomic method to prevent race conditions
+        DatabaseUtil.recordComponentScore(sectionId, studentId, component, score);
         AuditLogService.log(AuditLogService.EventType.GRADE_EDIT,
                 instructor.getUsername(),
                 String.format("Recorded %s=%.2f for %s in %s", component, score, studentId, sectionId));
@@ -116,13 +115,8 @@ public final class GradebookService {
 
     public static double computeFinal(User instructor, String sectionId, String studentId) {
         ensureInstructorAccess(instructor, sectionId);
-        EnrollmentRecord record = locateEnrollment(sectionId, studentId);
-        Section section = DatabaseUtil.getSection(sectionId);
-        double finalGrade = section.computeFinalScore(record.getComponentScores());
-        record.setFinalGrade(finalGrade);
-        record.setWeighting(new HashMap<>(section.getAssessmentWeights()));
-        record.setUpdatedAt(LocalDateTime.now());
-        DatabaseUtil.updateEnrollment(record);
+        // Use atomic method to prevent race conditions
+        double finalGrade = DatabaseUtil.computeAndSaveFinalGrade(sectionId, studentId);
         AuditLogService.log(AuditLogService.EventType.GRADE_EDIT,
                 instructor.getUsername(),
                 String.format("Computed final grade %.2f for %s in %s", finalGrade, studentId, sectionId));

@@ -38,17 +38,17 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
     private boolean maintenanceMode;
 
     private final String[] columnNames = {
-        "Section ID",
-        "Course",
-        "Title",
-        "Faculty",
-        "Day",
-        "Time",
-        "Location",
-        "Capacity",
-        "Enrolled",
-        "Waitlist",
-        "Attendance %"
+            "Section ID",
+            "Course",
+            "Title",
+            "Faculty",
+            "Day",
+            "Time",
+            "Location",
+            "Capacity",
+            "Enrolled",
+            "Waitlist",
+            "Attendance %"
     };
 
     public SectionPanel(User adminUser) {
@@ -133,29 +133,64 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
     }
 
     private void assignInstructor() {
-        if (blockIfMaintenance()) {
+        if (blockIfMaintenance())
             return;
-        }
+
         int viewRow = sectionTable.getSelectedRow();
         if (viewRow == -1) {
             JOptionPane.showMessageDialog(this, "Select a section first.");
             return;
         }
+
+        assignButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
         int modelRow = sectionTable.convertRowIndexToModel(viewRow);
         String sectionId = (String) tableModel.getValueAt(modelRow, 0);
-        Section section = DatabaseUtil.getSection(sectionId);
-        if (section == null) {
-            JOptionPane.showMessageDialog(this, "Unable to load section details.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        List<Faculty> facultyList = DatabaseUtil.getAllFaculty().stream()
-                .sorted((a, b) -> a.getFullName().compareToIgnoreCase(b.getFullName()))
-                .collect(Collectors.toList());
-        if (facultyList.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No instructors available to assign.");
-            return;
-        }
 
+        new SwingWorker<Map<String, Object>, Void>() {
+            @Override
+            protected Map<String, Object> doInBackground() {
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("section", DatabaseUtil.getSection(sectionId));
+                result.put("faculties", DatabaseUtil.getAllFaculty().stream()
+                        .sorted((a, b) -> a.getFullName().compareToIgnoreCase(b.getFullName()))
+                        .collect(Collectors.toList()));
+                return result;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Map<String, Object> data = get();
+                    Section section = (Section) data.get("section");
+                    List<Faculty> facultyList = (List<Faculty>) data.get("faculties");
+
+                    if (section == null) {
+                        JOptionPane.showMessageDialog(SectionPanel.this, "Unable to load section details.", "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    if (facultyList.isEmpty()) {
+                        JOptionPane.showMessageDialog(SectionPanel.this, "No instructors available to assign.");
+                        return;
+                    }
+
+                    showAssignDialog(section, facultyList);
+
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(SectionPanel.this, "Error preparing assignment: " + e.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    assignButton.setEnabled(true);
+                }
+            }
+        }.execute();
+    }
+
+    private void showAssignDialog(Section section, List<Faculty> facultyList) {
         Map<String, String> labelToId = new LinkedHashMap<>();
         JComboBox<String> combo = new JComboBox<>();
         for (Faculty faculty : facultyList) {
@@ -176,24 +211,40 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
                 panel,
                 "Assign Instructor",
                 JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-        if (option != JOptionPane.OK_OPTION) {
+                JOptionPane.PLAIN_MESSAGE);
+
+        if (option != JOptionPane.OK_OPTION)
             return;
-        }
+
         String selectedLabel = (String) combo.getSelectedItem();
-        if (selectedLabel == null) {
+        if (selectedLabel == null)
             return;
-        }
+
         String facultyId = labelToId.get(selectedLabel);
-        try {
-            String actor = adminUser != null ? adminUser.getUsername() : "system";
-            DatabaseUtil.assignInstructorToSection(section.getSectionId(), facultyId, actor);
-            JOptionPane.showMessageDialog(this, "Instructor assigned successfully.");
-            loadData();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Assignment Failed", JOptionPane.ERROR_MESSAGE);
-        }
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                String actor = adminUser != null ? adminUser.getUsername() : "system";
+                DatabaseUtil.assignInstructorToSection(section.getSectionId(), facultyId, actor);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(SectionPanel.this, "Instructor assigned successfully.");
+                    loadData();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(SectionPanel.this, ex.getMessage(), "Assignment Failed",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void setupHandlers() {
@@ -213,45 +264,72 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
     }
 
     private void loadData() {
-        tableModel.setRowCount(0);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        refreshButton.setEnabled(false);
 
-        Collection<Section> sections = DatabaseUtil.getAllSections();
-        for (Section section : sections) {
-            Course course = DatabaseUtil.getCourse(section.getCourseId());
-            Faculty faculty = DatabaseUtil.getFaculty(section.getFacultyId());
+        new SwingWorker<List<Object[]>, Void>() {
+            @Override
+            protected List<Object[]> doInBackground() {
+                List<Object[]> rows = new java.util.ArrayList<>();
+                Collection<Section> sections = DatabaseUtil.getAllSections();
 
-            String courseLabel = course != null
-                    ? course.getCourseId() + " - " + course.getCourseName()
-                    : section.getCourseId();
-            String facultyLabel = faculty != null
-                    ? faculty.getFullName()
-                    : section.getFacultyId();
+                // Optimization: Bulk fetch courses and faculty if possible, or just accept loop
+                // in background thread.
+                // Since this is background, loop is acceptable for now.
+                for (Section section : sections) {
+                    Course course = DatabaseUtil.getCourse(section.getCourseId());
+                    Faculty faculty = DatabaseUtil.getFaculty(section.getFacultyId());
 
-            String timeRange = section.getStartTime().format(TIME_FORMATTER) + " - "
-                    + section.getEndTime().format(TIME_FORMATTER);
+                    String courseLabel = course != null
+                            ? course.getCourseId() + " - " + course.getCourseName()
+                            : section.getCourseId();
+                    String facultyLabel = faculty != null
+                            ? faculty.getFullName()
+                            : section.getFacultyId();
 
-            Object[] row = {
-                section.getSectionId(),
-                courseLabel,
-                section.getTitle(),
-                facultyLabel,
-                section.getDayOfWeek(),
-                timeRange,
-                section.getLocation(),
-                section.getCapacity(),
-                section.getEnrolledStudentIds().size(),
-                section.getWaitlistedStudentIds().size(),
-                String.format("%.0f%%", DatabaseUtil.getAverageAttendanceForSection(section.getSectionId()))
-            };
-            tableModel.addRow(row);
-        }
-        updateButtonStates();
+                    String timeRange = section.getStartTime().format(TIME_FORMATTER) + " - "
+                            + section.getEndTime().format(TIME_FORMATTER);
+
+                    rows.add(new Object[] {
+                            section.getSectionId(),
+                            courseLabel,
+                            section.getTitle(),
+                            facultyLabel,
+                            section.getDayOfWeek(),
+                            timeRange,
+                            section.getLocation(),
+                            section.getCapacity(),
+                            section.getEnrolledStudentIds().size(),
+                            section.getWaitlistedStudentIds().size(),
+                            String.format("%.0f%%", DatabaseUtil.getAverageAttendanceForSection(section.getSectionId()))
+                    });
+                }
+                return rows;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<Object[]> rows = get();
+                    tableModel.setRowCount(0);
+                    for (Object[] row : rows) {
+                        tableModel.addRow(row);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(SectionPanel.this, "Error loading sections: " + e.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    refreshButton.setEnabled(true);
+                    updateButtonStates();
+                }
+            }
+        }.execute();
     }
 
     private void filterTable() {
         String text = searchField.getText().trim();
-        TableRowSorter<DefaultTableModel> sorter =
-            (TableRowSorter<DefaultTableModel>) sectionTable.getRowSorter();
+        TableRowSorter<DefaultTableModel> sorter = (TableRowSorter<DefaultTableModel>) sectionTable.getRowSorter();
         if (text.isEmpty()) {
             sorter.setRowFilter(null);
         } else {
@@ -260,73 +338,124 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
     }
 
     private void addSection() {
-        if (blockIfMaintenance()) {
+        if (blockIfMaintenance())
             return;
-        }
+
         SectionDialog dialog = new SectionDialog(
                 (JFrame) SwingUtilities.getWindowAncestor(this),
                 "Add Section",
-                null
-        );
+                null);
         dialog.setVisible(true);
 
         if (dialog.isConfirmed()) {
-            try {
-                Section newSection = dialog.getSection();
-                DatabaseUtil.addSection(newSection);
-                loadData();
-                JOptionPane.showMessageDialog(this, "Section added successfully.");
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to add section",
-                        JOptionPane.ERROR_MESSAGE);
-            }
+            Section newSection = dialog.getSection();
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            new SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    DatabaseUtil.addSection(newSection);
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        JOptionPane.showMessageDialog(SectionPanel.this, "Section added successfully.");
+                        loadData();
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(SectionPanel.this, ex.getMessage(), "Unable to add section",
+                                JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
         }
     }
 
     private void editSection() {
-        if (blockIfMaintenance()) {
+        if (blockIfMaintenance())
             return;
-        }
         int selectedRow = sectionTable.getSelectedRow();
-        if (selectedRow == -1) {
+        if (selectedRow == -1)
             return;
-        }
+
         selectedRow = sectionTable.convertRowIndexToModel(selectedRow);
         String sectionId = (String) tableModel.getValueAt(selectedRow, 0);
-        Section section = DatabaseUtil.getSection(sectionId);
-        if (section == null) {
-            JOptionPane.showMessageDialog(this, "Unable to locate section record.", "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
 
+        // Quick fetch for dialog (could be async but usually fast enough for single
+        // get)
+        // Ideally should be async for strict correctness.
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<Section, Void>() {
+            @Override
+            protected Section doInBackground() {
+                return DatabaseUtil.getSection(sectionId);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Section section = get();
+                    if (section == null) {
+                        JOptionPane.showMessageDialog(SectionPanel.this, "Unable to locate section record.", "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    showEditDialog(section);
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(SectionPanel.this, "Error: " + e.getMessage(), "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
+    }
+
+    private void showEditDialog(Section section) {
         SectionDialog dialog = new SectionDialog(
                 (JFrame) SwingUtilities.getWindowAncestor(this),
                 "Edit Section",
-                section
-        );
+                section);
         dialog.setVisible(true);
 
         if (dialog.isConfirmed()) {
-            try {
-                DatabaseUtil.updateSection(dialog.getSection());
-                loadData();
-                JOptionPane.showMessageDialog(this, "Section updated successfully.");
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update section",
-                        JOptionPane.ERROR_MESSAGE);
-            }
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            new SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    DatabaseUtil.updateSection(dialog.getSection());
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        JOptionPane.showMessageDialog(SectionPanel.this, "Section updated successfully.");
+                        loadData();
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(SectionPanel.this, ex.getMessage(), "Unable to update section",
+                                JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
         }
     }
 
     private void deleteSection() {
-        if (blockIfMaintenance()) {
+        if (blockIfMaintenance())
             return;
-        }
+
         int selectedRow = sectionTable.getSelectedRow();
-        if (selectedRow == -1) {
+        if (selectedRow == -1)
             return;
-        }
+
         selectedRow = sectionTable.convertRowIndexToModel(selectedRow);
         String sectionId = (String) tableModel.getValueAt(selectedRow, 0);
         String sectionTitle = (String) tableModel.getValueAt(selectedRow, 2);
@@ -336,12 +465,30 @@ public class SectionPanel extends JPanel implements MaintenanceAware {
                 "Delete section \"" + sectionTitle + "\"? This will drop enrolments and attendance logs.",
                 "Confirm Delete",
                 JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE
-        );
+                JOptionPane.WARNING_MESSAGE);
         if (option == JOptionPane.YES_OPTION) {
-            DatabaseUtil.deleteSection(sectionId);
-            loadData();
-            JOptionPane.showMessageDialog(this, "Section deleted.");
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            new SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() {
+                    DatabaseUtil.deleteSection(sectionId);
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        JOptionPane.showMessageDialog(SectionPanel.this, "Section deleted.");
+                        loadData();
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(SectionPanel.this, "Error deleting: " + e.getMessage(), "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
         }
     }
 

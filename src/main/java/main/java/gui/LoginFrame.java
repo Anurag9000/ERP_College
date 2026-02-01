@@ -153,25 +153,82 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-        User user = DatabaseUtil.authenticateUser(username, password);
-        if (user != null) {
-            // Login successful
-            dispose();
-            SwingUtilities.invokeLater(() -> {
-                new MainFrame(user).setVisible(true);
-            });
-        } else {
-            if (DatabaseUtil.isUserLocked(username)) {
-                User existing = DatabaseUtil.getUser(username);
-                String until = existing != null && existing.getLockedUntil() != null
-                        ? existing.getLockedUntil().toString()
-                        : "later";
-                statusLabel.setText("Account locked until " + until);
-            } else {
-                int remaining = DatabaseUtil.remainingAttempts(username);
-                statusLabel.setText("Invalid credentials. Attempts left: " + remaining);
+        loginButton.setEnabled(false);
+        usernameField.setEnabled(false);
+        passwordField.setEnabled(false);
+        statusLabel.setText("Authenticating...");
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<User, Void>() {
+            @Override
+            protected User doInBackground() throws Exception {
+                return DatabaseUtil.authenticateUser(username, password);
             }
-            passwordField.setText("");
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    User user = get();
+                    if (user != null) {
+                        // Login successful
+                        dispose();
+                        SwingUtilities.invokeLater(() -> {
+                            new MainFrame(user).setVisible(true);
+                        });
+                    } else {
+                        // Check lock status in background or just report failure
+                        // For simplicity, we'll do lightweight checks or just generic error here,
+                        // but strictly speaking subsequent DB calls should also be async.
+                        // However, let's keep it simple: if auth fails, we can do a quick check safely
+                        // enough
+                        // or better yet, spawn another worker if we really want to be purist.
+                        // Given the context, let's use a nested worker for the failure case checks to
+                        // be truly exhaustive.
+                        handleLoginFailure(username);
+                    }
+                } catch (Exception e) {
+                    statusLabel.setText("Login error: " + e.getMessage());
+                    resetControls();
+                }
+            }
+        }.execute();
+    }
+
+    private void handleLoginFailure(String username) {
+        new SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() {
+                if (DatabaseUtil.isUserLocked(username)) {
+                    User existing = DatabaseUtil.getUser(username);
+                    String until = existing != null && existing.getLockedUntil() != null
+                            ? existing.getLockedUntil().toString()
+                            : "later";
+                    return "Account locked until " + until;
+                } else {
+                    int remaining = DatabaseUtil.remainingAttempts(username);
+                    return "Invalid credentials. Attempts left: " + remaining;
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    statusLabel.setText(get());
+                } catch (Exception e) {
+                    statusLabel.setText("Authentication failed.");
+                } finally {
+                    resetControls();
+                    passwordField.setText("");
+                    passwordField.requestFocus();
+                }
+            }
+        }.execute();
+    }
+
+    private void resetControls() {
+        loginButton.setEnabled(true);
+        usernameField.setEnabled(true);
+        passwordField.setEnabled(true);
+        setCursor(Cursor.getDefaultCursor());
     }
 }

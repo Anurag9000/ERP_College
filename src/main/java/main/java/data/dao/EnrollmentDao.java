@@ -34,8 +34,16 @@ public class EnrollmentDao extends BaseDao {
         return fetchList(SELECT_BY_STUDENT, studentCode);
     }
 
+    public List<EnrollmentRecord> findByStudent(Connection conn, String studentCode) {
+        return fetchList(conn, SELECT_BY_STUDENT, studentCode);
+    }
+
     public List<EnrollmentRecord> findBySection(String sectionCode) {
         return fetchList(SELECT_BY_SECTION, sectionCode);
+    }
+
+    public List<EnrollmentRecord> findBySection(Connection conn, String sectionCode) {
+        return fetchList(conn, SELECT_BY_SECTION, sectionCode);
     }
 
     public EnrollmentRecord findBySectionAndStudent(String sectionCode, String studentCode) {
@@ -55,6 +63,15 @@ public class EnrollmentDao extends BaseDao {
             logger.error("Error finding enrollment {} in {}: {}", studentCode, sectionCode, ex.getMessage(), ex);
         }
         return null;
+    }
+
+    public void lockEnrollment(Connection conn, String sectionId, String studentId) throws SQLException {
+        String sql = "SELECT 1 FROM enrollments WHERE section_code = ? AND student_code = ? FOR UPDATE";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, sectionId);
+            ps.setString(2, studentId);
+            ps.execute();
+        }
     }
 
     public void insert(EnrollmentRecord record) {
@@ -151,9 +168,17 @@ public class EnrollmentDao extends BaseDao {
     }
 
     private List<EnrollmentRecord> fetchList(String sql, String param) {
+        try (Connection conn = getConnection()) {
+            return fetchList(conn, sql, param);
+        } catch (SQLException ex) {
+            logger.error("Error loading enrollments for {}: {}", param, ex.getMessage(), ex);
+        }
+        return new ArrayList<>();
+    }
+
+    private List<EnrollmentRecord> fetchList(Connection conn, String sql, String param) {
         List<EnrollmentRecord> list = new ArrayList<>();
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, param);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

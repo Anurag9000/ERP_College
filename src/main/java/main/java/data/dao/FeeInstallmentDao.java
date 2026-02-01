@@ -18,23 +18,23 @@ import java.util.List;
 public class FeeInstallmentDao extends BaseDao {
     private static final String INSERT_SQL = """
             INSERT INTO fee_installments
-            (installment_id, student_id, due_date, amount, paid_amount, status, description, paid_on, last_reminder_sent)
+            (installment_id, student_code, due_date, amount, paid_amount, status, description, paid_on, last_reminder_sent)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
     private static final String UPDATE_SQL = """
             UPDATE fee_installments
-            SET student_id = ?, due_date = ?, amount = ?, paid_amount = ?, status = ?, description = ?, paid_on = ?, last_reminder_sent = ?
+            SET student_code = ?, due_date = ?, amount = ?, paid_amount = ?, status = ?, description = ?, paid_on = ?, last_reminder_sent = ?
             WHERE installment_id = ?
             """;
     private static final String DELETE_SQL = "DELETE FROM fee_installments WHERE installment_id = ?";
     private static final String FIND_BY_STUDENT_SQL = """
-            SELECT installment_id, student_id, due_date, amount, paid_amount, status, description, paid_on, last_reminder_sent
+            SELECT installment_id, student_code, due_date, amount, paid_amount, status, description, paid_on, last_reminder_sent
             FROM fee_installments
-            WHERE student_id = ?
+            WHERE student_code = ?
             ORDER BY due_date, installment_id
             """;
     private static final String FIND_ALL_SQL = """
-            SELECT installment_id, student_id, due_date, amount, paid_amount, status, description, paid_on, last_reminder_sent
+            SELECT installment_id, student_code, due_date, amount, paid_amount, status, description, paid_on, last_reminder_sent
             FROM fee_installments
             ORDER BY due_date, installment_id
             """;
@@ -150,7 +150,7 @@ public class FeeInstallmentDao extends BaseDao {
         while (rs.next()) {
             FeeInstallment installment = new FeeInstallment();
             installment.setInstallmentId(rs.getString("installment_id"));
-            installment.setStudentId(rs.getString("student_id"));
+            installment.setStudentId(rs.getString("student_code"));
             Date due = rs.getDate("due_date");
             installment.setDueDate(due != null ? due.toLocalDate() : null);
             installment.setAmount(rs.getDouble("amount"));

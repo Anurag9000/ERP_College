@@ -22,7 +22,8 @@ import java.util.stream.Collectors;
 public class GradesTrackingPanel extends JPanel {
 
     private final User currentUser;
-    private DefaultTableModel gradesModel;
+    private final JPanel contentPanel;
+    private final JLabel loadingLabel;
 
     public GradesTrackingPanel(User currentUser) {
         this.currentUser = currentUser;
@@ -37,33 +38,79 @@ public class GradesTrackingPanel extends JPanel {
         header.setForeground(PastelTheme.TEXT_PRIMARY);
         add(header, BorderLayout.NORTH);
 
-        // Main content
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBackground(PastelTheme.PASTEL_BG);
+        // Content placeholder
+        contentPanel = new JPanel(new BorderLayout(10, 10));
+        contentPanel.setBackground(PastelTheme.PASTEL_BG);
+
+        loadingLabel = new JLabel("Loading academic data...", SwingConstants.CENTER);
+        loadingLabel.setFont(PastelTheme.BODY_FONT);
+        contentPanel.add(loadingLabel, BorderLayout.CENTER);
+
+        add(contentPanel, BorderLayout.CENTER);
+
+        // Start async load
+        initData();
+    }
+
+    private void initData() {
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<GradesData, Void>() {
+            @Override
+            protected GradesData doInBackground() {
+                String username = currentUser.getUsername();
+                double sgpa = StudentService.calculateSGPA(username, null);
+                double cgpa = StudentService.calculateCGPA(username);
+                int credits = StudentService.getTotalCredits(username);
+                List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForStudent(username);
+                List<main.java.utils.DatabaseUtil.TermGpa> history = main.java.utils.DatabaseUtil
+                        .getStudentGpaHistory(username);
+
+                return new GradesData(sgpa, cgpa, credits, enrollments, history);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    GradesData data = get();
+                    buildUI(data);
+                } catch (Exception e) {
+                    loadingLabel.setText("Error loading data: " + e.getMessage());
+                    loadingLabel.setForeground(Color.RED);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
+    }
+
+    private void buildUI(GradesData data) {
+        contentPanel.removeAll();
 
         // GPA Summary
-        mainPanel.add(createGPASummary(), BorderLayout.NORTH);
+        contentPanel.add(createGPASummary(data), BorderLayout.NORTH);
 
         // Tabs for different views
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(PastelTheme.BODY_FONT);
 
-        tabs.addTab("Current Semester", createCurrentSemesterPanel());
-        tabs.addTab("All Semesters", createAllSemestersPanel());
-        tabs.addTab("Course-wise Breakdown", createCourseBreakdownPanel());
+        tabs.addTab("Current Semester", createCurrentSemesterPanel(data));
+        tabs.addTab("All Semesters", createAllSemestersPanel(data));
+        tabs.addTab("Course-wise Breakdown", createCourseBreakdownPanel(data));
 
-        mainPanel.add(tabs, BorderLayout.CENTER);
-        add(mainPanel, BorderLayout.CENTER);
+        contentPanel.add(tabs, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
     }
 
-    private JPanel createGPASummary() {
+    private JPanel createGPASummary(GradesData data) {
         JPanel panel = new JPanel(new GridLayout(1, 4, 15, 0));
         panel.setOpaque(false);
 
-        String sgpa = String.format("%.2f", StudentService.calculateSGPA(currentUser.getUsername(), null));
-        String cgpa = String.format("%.2f", StudentService.calculateCGPA(currentUser.getUsername()));
-        String credits = String.valueOf(StudentService.getTotalCredits(currentUser.getUsername()));
-        double dSgpa = Double.parseDouble(sgpa);
+        String sgpa = String.format("%.2f", data.sgpa);
+        String cgpa = String.format("%.2f", data.cgpa);
+        String credits = String.valueOf(data.credits);
+        double dSgpa = data.sgpa;
         String standing = dSgpa >= 8.0 ? "Excellent" : (dSgpa >= 6.0 ? "Good" : "Probation");
 
         panel.add(createStatCard("CGPA", cgpa, PastelTheme.PASTEL_BLUE_DARK));
@@ -95,7 +142,7 @@ public class GradesTrackingPanel extends JPanel {
         return card;
     }
 
-    private JPanel createCurrentSemesterPanel() {
+    private JPanel createCurrentSemesterPanel(GradesData data) {
         JCard card = new JCard(new BorderLayout());
 
         String[] columns = { "Course", "Credits", "Final Score", "Grade", "Points" };
@@ -104,8 +151,7 @@ public class GradesTrackingPanel extends JPanel {
         table.setFont(PastelTheme.BODY_FONT);
         table.setRowHeight(30);
 
-        List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForStudent(currentUser.getUsername());
-        for (EnrollmentRecord rec : enrollments) {
+        for (EnrollmentRecord rec : data.enrollments) {
             if (rec.getStatus() != EnrollmentRecord.Status.ENROLLED)
                 continue;
             Section s = DatabaseUtil.getSection(rec.getSectionId());
@@ -129,8 +175,7 @@ public class GradesTrackingPanel extends JPanel {
 
         card.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        double gpa = StudentService.calculateSGPA(currentUser.getUsername(), null);
-        JLabel sgpaLabel = new JLabel(String.format("Semester GPA: %.2f", gpa));
+        JLabel sgpaLabel = new JLabel(String.format("Semester GPA: %.2f", data.sgpa));
         sgpaLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         sgpaLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
         card.add(sgpaLabel, BorderLayout.SOUTH);
@@ -138,7 +183,7 @@ public class GradesTrackingPanel extends JPanel {
         return card;
     }
 
-    private JPanel createAllSemestersPanel() {
+    private JPanel createAllSemestersPanel(GradesData data) {
         JCard card = new JCard(new BorderLayout());
 
         String[] columns = { "Semester", "Credits", "SGPA", "CGPA" };
@@ -147,14 +192,13 @@ public class GradesTrackingPanel extends JPanel {
         table.setFont(PastelTheme.BODY_FONT);
         table.setRowHeight(30);
 
-        List<main.java.utils.DatabaseUtil.TermGpa> history = main.java.utils.DatabaseUtil
-                .getStudentGpaHistory(currentUser.getUsername());
+        List<main.java.utils.DatabaseUtil.TermGpa> history = data.history;
         for (main.java.utils.DatabaseUtil.TermGpa term : history) {
             model.addRow(new Object[] {
                     term.termLabel(),
                     "-",
                     String.format("%.2f", term.gpa()),
-                    String.format("%.2f", StudentService.calculateCGPA(currentUser.getUsername())) // Show real CGPA
+                    String.format("%.2f", data.cgpa) // Approximate for now, ideally strictly historical
             });
         }
 
@@ -166,7 +210,7 @@ public class GradesTrackingPanel extends JPanel {
         return card;
     }
 
-    private JPanel createCourseBreakdownPanel() {
+    private JPanel createCourseBreakdownPanel(GradesData data) {
         JCard card = new JCard(new BorderLayout());
 
         JLabel infoLabel = new JLabel("Detailed course-wise performance analysis");
@@ -176,9 +220,8 @@ public class GradesTrackingPanel extends JPanel {
         card.add(infoLabel, BorderLayout.NORTH);
 
         StringBuilder analysis = new StringBuilder("Course Performance Analysis:\n\n");
-        List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForStudent(currentUser.getUsername());
 
-        List<EnrollmentRecord> graded = enrollments.stream()
+        List<EnrollmentRecord> graded = data.enrollments.stream()
                 .filter(e -> e.getStatus() == EnrollmentRecord.Status.ENROLLED)
                 .filter(e -> e.getFinalGrade() > 0 || !e.getComponentScores().isEmpty())
                 .collect(Collectors.toList());
@@ -217,5 +260,11 @@ public class GradesTrackingPanel extends JPanel {
 
         card.add(new JScrollPane(detailsArea), BorderLayout.CENTER);
         return card;
+    }
+
+    // Data record to hold async results
+    private record GradesData(double sgpa, double cgpa, int credits,
+            List<EnrollmentRecord> enrollments,
+            List<main.java.utils.DatabaseUtil.TermGpa> history) {
     }
 }

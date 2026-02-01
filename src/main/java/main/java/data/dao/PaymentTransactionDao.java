@@ -18,23 +18,23 @@ import java.util.List;
 public class PaymentTransactionDao extends BaseDao {
     private static final String INSERT_SQL = """
             INSERT INTO payment_transactions
-            (transaction_id, student_id, amount, paid_on, method, reference, notes)
+            (transaction_id, student_code, amount, paid_on, method, reference, notes)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """;
     private static final String UPDATE_SQL = """
             UPDATE payment_transactions
-            SET student_id = ?, amount = ?, paid_on = ?, method = ?, reference = ?, notes = ?
+            SET student_code = ?, amount = ?, paid_on = ?, method = ?, reference = ?, notes = ?
             WHERE transaction_id = ?
             """;
     private static final String DELETE_SQL = "DELETE FROM payment_transactions WHERE transaction_id = ?";
     private static final String FIND_BY_STUDENT_SQL = """
-            SELECT transaction_id, student_id, amount, paid_on, method, reference, notes
+            SELECT transaction_id, student_code, amount, paid_on, method, reference, notes
             FROM payment_transactions
-            WHERE student_id = ?
+            WHERE student_code = ?
             ORDER BY paid_on DESC, transaction_id
             """;
     private static final String FIND_ALL_SQL = """
-            SELECT transaction_id, student_id, amount, paid_on, method, reference, notes
+            SELECT transaction_id, student_code, amount, paid_on, method, reference, notes
             FROM payment_transactions
             ORDER BY paid_on DESC, transaction_id
             """;
@@ -124,7 +124,7 @@ public class PaymentTransactionDao extends BaseDao {
         while (rs.next()) {
             PaymentTransaction tx = new PaymentTransaction();
             tx.setTransactionId(rs.getString("transaction_id"));
-            tx.setStudentId(rs.getString("student_id"));
+            tx.setStudentId(rs.getString("student_code"));
             tx.setAmount(rs.getDouble("amount"));
             Date paidOn = rs.getDate("paid_on");
             tx.setPaidOn(paidOn != null ? paidOn.toLocalDate() : LocalDate.now());

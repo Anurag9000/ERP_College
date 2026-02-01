@@ -32,6 +32,8 @@ public class BulkImportExportService {
      */
     public static List<String> importStudents(File csvFile) throws IOException {
         List<String> errors = new ArrayList<>();
+        List<Student> studentsToInsert = new ArrayList<>();
+
         try (Reader reader = new FileReader(csvFile, StandardCharsets.UTF_8);
                 CSVParser parser = new CSVParser(reader, CSV_DEFAULT)) {
 
@@ -68,13 +70,22 @@ public class BulkImportExportService {
                         student.setSemester(1); // Default
                     }
 
-                    DatabaseUtil.addStudent(student);
+                    studentsToInsert.add(student);
                 } catch (Exception e) {
                     errors.add("Line " + record.getRecordNumber() + " (" + record.get("StudentID") + "): "
                             + e.getMessage());
                 }
             }
         }
+
+        if (!studentsToInsert.isEmpty()) {
+            try {
+                DatabaseUtil.bulkAddStudents(studentsToInsert);
+            } catch (Exception e) {
+                errors.add("Database transaction failed: " + e.getMessage());
+            }
+        }
+
         return errors;
     }
 
@@ -110,6 +121,8 @@ public class BulkImportExportService {
      */
     public static List<String> importFaculty(File csvFile) throws IOException {
         List<String> errors = new ArrayList<>();
+        List<Faculty> facultyToInsert = new ArrayList<>();
+
         try (Reader reader = new FileReader(csvFile, StandardCharsets.UTF_8);
                 CSVParser parser = new CSVParser(reader, CSV_DEFAULT)) {
 
@@ -141,13 +154,22 @@ public class BulkImportExportService {
                         faculty.setSalary(0.0);
                     }
 
-                    DatabaseUtil.addFaculty(faculty);
+                    facultyToInsert.add(faculty);
                 } catch (Exception e) {
                     errors.add("Line " + record.getRecordNumber() + " (" + record.get("FacultyID") + "): "
                             + e.getMessage());
                 }
             }
         }
+
+        if (!facultyToInsert.isEmpty()) {
+            try {
+                DatabaseUtil.bulkAddFaculty(facultyToInsert);
+            } catch (Exception e) {
+                errors.add("Database transaction failed: " + e.getMessage());
+            }
+        }
+
         return errors;
     }
 

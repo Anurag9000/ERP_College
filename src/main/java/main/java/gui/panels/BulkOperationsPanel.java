@@ -142,18 +142,33 @@ public class BulkOperationsPanel extends JPanel {
 
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = chooser.getSelectedFile();
-            try {
-                List<String> errors = BulkImportExportService.importStudents(file);
-                if (errors.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Students imported successfully!",
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    showErrors("Import Errors", errors);
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            new SwingWorker<List<String>, Void>() {
+                @Override
+                protected List<String> doInBackground() throws Exception {
+                    return BulkImportExportService.importStudents(file);
                 }
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Error importing students: " + e.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-            }
+
+                @Override
+                protected void done() {
+                    try {
+                        List<String> errors = get();
+                        if (errors.isEmpty()) {
+                            JOptionPane.showMessageDialog(BulkOperationsPanel.this, "Students imported successfully!",
+                                    "Success", JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            showErrors("Import Errors", errors);
+                        }
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(BulkOperationsPanel.this,
+                                "Error importing students: " + e.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
         }
     }
 
@@ -163,18 +178,33 @@ public class BulkOperationsPanel extends JPanel {
 
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = chooser.getSelectedFile();
-            try {
-                List<String> errors = BulkImportExportService.importFaculty(file);
-                if (errors.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Faculty imported successfully!",
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    showErrors("Import Errors", errors);
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            new SwingWorker<List<String>, Void>() {
+                @Override
+                protected List<String> doInBackground() throws Exception {
+                    return BulkImportExportService.importFaculty(file);
                 }
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Error importing faculty: " + e.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-            }
+
+                @Override
+                protected void done() {
+                    try {
+                        List<String> errors = get();
+                        if (errors.isEmpty()) {
+                            JOptionPane.showMessageDialog(BulkOperationsPanel.this, "Faculty imported successfully!",
+                                    "Success", JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            showErrors("Import Errors", errors);
+                        }
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(BulkOperationsPanel.this,
+                                "Error importing faculty: " + e.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
         }
     }
 
@@ -183,14 +213,31 @@ public class BulkOperationsPanel extends JPanel {
         chooser.setSelectedFile(new File("students_export.csv"));
 
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try {
-                BulkImportExportService.exportStudents(chooser.getSelectedFile());
-                JOptionPane.showMessageDialog(this, "Students exported successfully!",
-                        "Success", JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Error exporting students: " + e.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-            }
+            File file = chooser.getSelectedFile();
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            new SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    BulkImportExportService.exportStudents(file);
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        JOptionPane.showMessageDialog(BulkOperationsPanel.this, "Students exported successfully!",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(BulkOperationsPanel.this,
+                                "Error exporting students: " + e.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
         }
     }
 
@@ -199,14 +246,31 @@ public class BulkOperationsPanel extends JPanel {
         chooser.setSelectedFile(new File("faculty_export.csv"));
 
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try {
-                BulkImportExportService.exportFaculty(chooser.getSelectedFile());
-                JOptionPane.showMessageDialog(this, "Faculty exported successfully!",
-                        "Success", JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Error exporting faculty: " + e.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-            }
+            File file = chooser.getSelectedFile();
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            new SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    BulkImportExportService.exportFaculty(file);
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        JOptionPane.showMessageDialog(BulkOperationsPanel.this, "Faculty exported successfully!",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(BulkOperationsPanel.this,
+                                "Error exporting faculty: " + e.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
         }
     }
 
@@ -215,14 +279,31 @@ public class BulkOperationsPanel extends JPanel {
         chooser.setSelectedFile(new File("schedules_export.csv"));
 
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try {
-                BulkImportExportService.exportSchedules(chooser.getSelectedFile());
-                JOptionPane.showMessageDialog(this, "Schedules exported successfully!",
-                        "Success", JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Error exporting schedules: " + e.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-            }
+            File file = chooser.getSelectedFile();
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            new SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    BulkImportExportService.exportSchedules(file);
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        JOptionPane.showMessageDialog(BulkOperationsPanel.this, "Schedules exported successfully!",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(BulkOperationsPanel.this,
+                                "Error exporting schedules: " + e.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
         }
     }
 
@@ -233,23 +314,36 @@ public class BulkOperationsPanel extends JPanel {
 
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File dir = chooser.getSelectedFile();
-            try {
-                File studentFile = new File(dir, "student_template.csv");
-                File facultyFile = new File(dir, "faculty_template.csv");
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
-                BulkImportExportService.generateStudentTemplate(studentFile);
-                BulkImportExportService.generateFacultyTemplate(facultyFile);
+            new SwingWorker<String, Void>() {
+                @Override
+                protected String doInBackground() throws Exception {
+                    File studentFile = new File(dir, "student_template.csv");
+                    File facultyFile = new File(dir, "faculty_template.csv");
 
-                JOptionPane.showMessageDialog(this,
-                        "Templates saved to:\n" +
-                                studentFile.getAbsolutePath() + "\n" +
-                                facultyFile.getAbsolutePath(),
-                        "Success", JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this,
-                        "Error saving templates: " + e.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-            }
+                    BulkImportExportService.generateStudentTemplate(studentFile);
+                    BulkImportExportService.generateFacultyTemplate(facultyFile);
+
+                    return studentFile.getAbsolutePath() + "\n" + facultyFile.getAbsolutePath();
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        String paths = get();
+                        JOptionPane.showMessageDialog(BulkOperationsPanel.this,
+                                "Templates saved to:\n" + paths,
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(BulkOperationsPanel.this,
+                                "Error saving templates: " + e.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
         }
     }
 

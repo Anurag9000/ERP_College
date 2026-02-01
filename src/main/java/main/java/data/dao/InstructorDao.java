@@ -47,13 +47,18 @@ public class InstructorDao extends BaseDao {
     }
 
     public void insert(Faculty faculty) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(INSERT)) {
-            bind(ps, faculty, true);
-            ps.executeUpdate();
+        try (Connection conn = getConnection()) {
+            insert(conn, faculty);
         } catch (SQLException ex) {
             logger.error("Error inserting instructor {}: {}", faculty.getFacultyId(), ex.getMessage(), ex);
             throw new IllegalStateException("Unable to insert instructor", ex);
+        }
+    }
+
+    public void insert(Connection conn, Faculty faculty) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(INSERT)) {
+            bind(ps, faculty, true);
+            ps.executeUpdate();
         }
     }
 

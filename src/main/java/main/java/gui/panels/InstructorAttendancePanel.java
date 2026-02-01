@@ -16,6 +16,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import java.awt.BorderLayout;
+import java.awt.Cursor;
 import java.awt.GridLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -26,7 +27,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.io.FileWriter;
-import java.io.IOException;
+
 import java.io.Reader;
 import java.nio.file.Files;
 import java.time.LocalDate;
@@ -172,15 +173,35 @@ public class InstructorAttendancePanel extends JPanel {
     }
 
     private void refreshSections() {
-        sections = new ArrayList<>(InstructorService.getAssignedSections(instructor));
-        sectionCombo.removeAllItems();
-        for (Section section : sections) {
-            sectionCombo.addItem(new SectionOption(section));
-        }
-        if (sectionCombo.getItemCount() > 0) {
-            sectionCombo.setSelectedIndex(0);
-        }
-        refreshData();
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<List<Section>, Void>() {
+            @Override
+            protected List<Section> doInBackground() {
+                return new ArrayList<>(InstructorService.getAssignedSections(instructor));
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    sections = get();
+                    sectionCombo.removeAllItems();
+                    for (Section section : sections) {
+                        sectionCombo.addItem(new SectionOption(section));
+                    }
+                    if (sectionCombo.getItemCount() > 0) {
+                        sectionCombo.setSelectedIndex(0);
+                    } else {
+                        // If no sections, ensure we clear table
+                        refreshData();
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(InstructorAttendancePanel.this,
+                            "Error loading sections: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void refreshData() {
@@ -192,9 +213,30 @@ public class InstructorAttendancePanel extends JPanel {
             sessionSummaryLabel.setText("No sections assigned.");
             return;
         }
-        history = DatabaseUtil.getAttendanceForSection(section.getSectionId());
-        populateRoster(section);
-        analyticsPanel.updateStats(history);
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<List<AttendanceRecord>, Void>() {
+            @Override
+            protected List<AttendanceRecord> doInBackground() {
+                return DatabaseUtil.getAttendanceForSection(section.getSectionId());
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    history = get();
+                    populateRoster(section);
+                    analyticsPanel.updateStats(history);
+                } catch (Exception e) {
+                    sessionSummaryLabel.setText("Error loading data.");
+                    JOptionPane.showMessageDialog(InstructorAttendancePanel.this,
+                            "Error loading data: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private Section getSelectedSection() {
@@ -247,6 +289,10 @@ public class InstructorAttendancePanel extends JPanel {
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
+
+        saveButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
         LocalDate date = resolveDate();
         Map<String, AttendanceStatus> statuses = new HashMap<>();
         for (int row = 0; row < tableModel.getRowCount(); row++) {
@@ -254,9 +300,30 @@ public class InstructorAttendancePanel extends JPanel {
             AttendanceStatus status = getStatusAtRow(row);
             statuses.put(studentId, status);
         }
-        DatabaseUtil.recordAttendance(section.getSectionId(), date, statuses);
-        JOptionPane.showMessageDialog(this, "Attendance saved for " + section.getSectionId() + " on " + date + ".");
-        refreshData();
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                DatabaseUtil.recordAttendance(section.getSectionId(), date, statuses);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(InstructorAttendancePanel.this,
+                            "Attendance saved for " + section.getSectionId() + " on " + date + ".");
+                    refreshData();
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(InstructorAttendancePanel.this,
+                            "Error saving attendance: " + e.getMessage());
+                } finally {
+                    saveButton.setEnabled(true);
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void setAllStatuses(AttendanceStatus status) {
@@ -319,34 +386,61 @@ public class InstructorAttendancePanel extends JPanel {
         if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
             return;
         }
-        Map<LocalDate, Map<String, AttendanceStatus>> payload = new HashMap<>();
-        try (Reader reader = Files.newBufferedReader(chooser.getSelectedFile().toPath())) {
-            Iterable<CSVRecord> records = CSVFormat.DEFAULT
-                    .withFirstRecordAsHeader()
-                    .parse(reader);
-            for (CSVRecord record : records) {
-                String dateValue = record.get("Date");
-                String studentId = record.get("Student ID").trim();
-                String statusValue = record.get("Status");
-                LocalDate date = LocalDate.parse(dateValue.trim(), DATE_FORMATTER);
-                if (!section.getEnrolledStudentIds().contains(studentId)) {
-                    continue;
+
+        importCsvButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        java.io.File file = chooser.getSelectedFile();
+
+        new SwingWorker<Map<LocalDate, Map<String, AttendanceStatus>>, Void>() {
+            @Override
+            protected Map<LocalDate, Map<String, AttendanceStatus>> doInBackground() throws Exception {
+                Map<LocalDate, Map<String, AttendanceStatus>> payload = new HashMap<>();
+                try (Reader reader = Files.newBufferedReader(file.toPath())) {
+                    Iterable<CSVRecord> records = CSVFormat.DEFAULT
+                            .withFirstRecordAsHeader()
+                            .parse(reader);
+                    for (CSVRecord record : records) {
+                        String dateValue = record.get("Date");
+                        String studentId = record.get("Student ID").trim();
+                        String statusValue = record.get("Status");
+                        LocalDate date = LocalDate.parse(dateValue.trim(), DATE_FORMATTER);
+                        if (!section.getEnrolledStudentIds().contains(studentId)) {
+                            continue;
+                        }
+                        AttendanceStatus status = parseStatus(statusValue);
+                        payload.computeIfAbsent(date, d -> new HashMap<>()).put(studentId, status);
+                    }
                 }
-                AttendanceStatus status = parseStatus(statusValue);
-                payload.computeIfAbsent(date, d -> new HashMap<>()).put(studentId, status);
+
+                if (!payload.isEmpty()) {
+                    payload.forEach(
+                            (date, statuses) -> DatabaseUtil.recordAttendance(section.getSectionId(), date, statuses));
+                }
+                return payload;
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Failed to import CSV: " + ex.getMessage(), "Import Error",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        if (payload.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No matching rows found for this section.");
-            return;
-        }
-        payload.forEach((date, statuses) -> DatabaseUtil.recordAttendance(section.getSectionId(), date, statuses));
-        JOptionPane.showMessageDialog(this, "Imported " + payload.size() + " sessions.");
-        refreshData();
+
+            @Override
+            protected void done() {
+                try {
+                    Map<LocalDate, Map<String, AttendanceStatus>> payload = get();
+                    if (payload.isEmpty()) {
+                        JOptionPane.showMessageDialog(InstructorAttendancePanel.this,
+                                "No matching rows found for this section.");
+                    } else {
+                        JOptionPane.showMessageDialog(InstructorAttendancePanel.this,
+                                "Imported " + payload.size() + " sessions.");
+                        refreshData();
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(InstructorAttendancePanel.this,
+                            "Failed to import CSV: " + ex.getMessage(), "Import Error",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    importCsvButton.setEnabled(true);
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void exportCsv() {
@@ -364,21 +458,46 @@ public class InstructorAttendancePanel extends JPanel {
         if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
             return;
         }
-        try (CSVPrinter printer = new CSVPrinter(new FileWriter(chooser.getSelectedFile()),
-                CSVFormat.DEFAULT.withHeader("Date", "Student ID", "Status"))) {
-            for (AttendanceRecord record : history) {
-                for (Map.Entry<String, AttendanceStatus> entry : record.getStatusByStudent().entrySet()) {
-                    printer.printRecord(
-                            record.getDate().format(DATE_FORMATTER),
-                            entry.getKey(),
-                            entry.getValue().name());
+
+        exportCsvButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        java.io.File file = chooser.getSelectedFile();
+
+        // Local copy for safe thread access
+        List<AttendanceRecord> exportHistory = new ArrayList<>(history);
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try (CSVPrinter printer = new CSVPrinter(new FileWriter(file),
+                        CSVFormat.DEFAULT.withHeader("Date", "Student ID", "Status"))) {
+                    for (AttendanceRecord record : exportHistory) {
+                        for (Map.Entry<String, AttendanceStatus> entry : record.getStatusByStudent().entrySet()) {
+                            printer.printRecord(
+                                    record.getDate().format(DATE_FORMATTER),
+                                    entry.getKey(),
+                                    entry.getValue().name());
+                        }
+                    }
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(InstructorAttendancePanel.this, "Attendance exported.");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(InstructorAttendancePanel.this,
+                            "Failed to export CSV: " + ex.getMessage(), "Export Error",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    exportCsvButton.setEnabled(true);
+                    setCursor(Cursor.getDefaultCursor());
                 }
             }
-            JOptionPane.showMessageDialog(this, "Attendance exported.");
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Failed to export CSV: " + ex.getMessage(), "Export Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+        }.execute();
     }
 
     private static AttendanceStatus parseStatus(String raw) {

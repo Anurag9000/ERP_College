@@ -1,0 +1,17 @@
+Found 113 Java files
+Found 14 of 14 required JARs in .m2 repo
+Compiling Java files...
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+Compilation successful!
+Running the application...
+2026-02-01 14:55:46 INFO  [main] main.java.config.ConfigLoader - Configured application settings from classpath:/application.properties
+2026-02-01 14:55:46 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-AUTH-POOL - Starting...
+2026-02-01 14:55:46 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-AUTH-POOL - Start completed.
+2026-02-01 14:55:46 INFO  [main] main.java.config.DataSourceRegistry - Initialised auth datasource (maxPoolSize=5)
+2026-02-01 14:55:46 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-ERP-POOL - Starting...
+2026-02-01 14:55:46 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-ERP-POOL - Start completed.
+2026-02-01 14:55:46 INFO  [main] main.java.config.DataSourceRegistry - Initialised erp datasource (maxPoolSize=10)
+^C

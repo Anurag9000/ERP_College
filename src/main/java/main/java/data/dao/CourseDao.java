@@ -9,7 +9,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CourseDao extends BaseDao {
     private static final String SELECT_ALL = "SELECT id, course_code, course_name, department, duration_semesters, fees, description, total_seats, available_seats, credit_hours FROM courses";
@@ -20,31 +22,62 @@ public class CourseDao extends BaseDao {
     private static final String ATOMIC_INCREMENT_SEATS = "UPDATE courses SET available_seats = LEAST(total_seats, available_seats + 1) WHERE course_code = ?";
     private static final String DELETE = "DELETE FROM courses WHERE course_code = ?";
 
+    private final Map<String, Course> courseCache = new ConcurrentHashMap<>();
+    private volatile boolean cacheInitialized = false;
+
     public CourseDao() {
         super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public List<Course> findAll() {
-        List<Course> courses = new ArrayList<>();
+        if (!cacheInitialized) {
+            synchronized (courseCache) {
+                if (!cacheInitialized) {
+                    refreshCache();
+                }
+            }
+        }
+        return new ArrayList<>(courseCache.values());
+    }
+
+    private void refreshCache() {
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_ALL);
                 ResultSet rs = ps.executeQuery()) {
+            courseCache.clear();
             while (rs.next()) {
-                courses.add(mapCourse(rs));
+                Course c = mapCourse(rs);
+                courseCache.put(c.getCourseId(), c);
             }
+            cacheInitialized = true;
         } catch (SQLException ex) {
-            logger.error("Error loading courses: {}", ex.getMessage(), ex);
+            logger.error("Error loading courses for cache: {}", ex.getMessage(), ex);
         }
-        return courses;
     }
 
     public Optional<Course> findByCode(String courseCode) {
+        if (!cacheInitialized) {
+            findAll(); // Force cache initialization
+        }
+        Course cached = courseCache.get(courseCode);
+        if (cached != null) {
+            return Optional.of(cached);
+        }
+
+        // Fallback to DB if not in cache (e.g. newly added but cache not synced?)
+        // OR if cache init failed partially.
+        return fetchFromDb(courseCode);
+    }
+
+    private Optional<Course> fetchFromDb(String courseCode) {
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_CODE)) {
             ps.setString(1, courseCode);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return Optional.of(mapCourse(rs));
+                    Course c = mapCourse(rs);
+                    courseCache.put(c.getCourseId(), c); // repair cache
+                    return Optional.of(c);
                 }
             }
         } catch (SQLException ex) {
@@ -66,6 +99,9 @@ public class CourseDao extends BaseDao {
             ps.setInt(8, course.getAvailableSeats());
             ps.setInt(9, course.getCreditHours());
             ps.executeUpdate();
+
+            // Update cache
+            courseCache.put(course.getCourseId(), course);
         } catch (SQLException ex) {
             logger.error("Error inserting course {}: {}", course.getCourseId(), ex.getMessage(), ex);
             throw new IllegalStateException("Unable to insert course", ex);
@@ -75,6 +111,11 @@ public class CourseDao extends BaseDao {
     public void update(Course course) {
         try (Connection conn = getConnection()) {
             update(conn, course);
+            // Cache update handled in overloaded method if successful,
+            // but since that method takes a connection and might be part of a transaction,
+            // we should be careful.
+            // However, this simple method is standalone.
+            courseCache.put(course.getCourseId(), course);
         } catch (SQLException ex) {
             logger.error("Error updating course {}: {}", course.getCourseId(), ex.getMessage(), ex);
             throw new IllegalStateException("Unable to update course", ex);
@@ -93,13 +134,25 @@ public class CourseDao extends BaseDao {
             ps.setInt(8, course.getCreditHours());
             ps.setString(9, course.getCourseId());
             ps.executeUpdate();
+
+            // We blindly update cache here. If transaction rolls back, cache might be
+            // dirty.
+            // Ideally we invalidate.
+            courseCache.remove(course.getCourseId());
+            cacheInitialized = false; // Simple strategy: invalidate cache on transactional update
         }
     }
 
     public boolean decrementAvailableSeats(Connection conn, String courseCode) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(ATOMIC_DECREMENT_SEATS)) {
             ps.setString(1, courseCode);
-            return ps.executeUpdate() > 0;
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                // Invalidate to force reload
+                courseCache.remove(courseCode);
+                return true;
+            }
+            return false;
         }
     }
 
@@ -107,6 +160,7 @@ public class CourseDao extends BaseDao {
         try (PreparedStatement ps = conn.prepareStatement(ATOMIC_INCREMENT_SEATS)) {
             ps.setString(1, courseCode);
             ps.executeUpdate();
+            courseCache.remove(courseCode);
         }
     }
 
@@ -115,6 +169,7 @@ public class CourseDao extends BaseDao {
                 PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setString(1, courseCode);
             ps.executeUpdate();
+            courseCache.remove(courseCode);
         } catch (SQLException ex) {
             logger.error("Error deleting course {}: {}", courseCode, ex.getMessage(), ex);
             throw new IllegalStateException("Unable to delete course", ex);

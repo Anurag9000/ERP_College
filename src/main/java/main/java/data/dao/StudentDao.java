@@ -62,8 +62,16 @@ public class StudentDao extends BaseDao {
     }
 
     public void insert(Student student) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(INSERT)) {
+        try (Connection conn = getConnection()) {
+            insert(conn, student);
+        } catch (SQLException ex) {
+            logger.error("Error inserting student {}: {}", student.getStudentId(), ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to insert student", ex);
+        }
+    }
+
+    public void insert(Connection conn, Student student) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(INSERT)) {
             ps.setString(1, student.getStudentId());
             ps.setString(2, student.getUsername());
             ps.setString(3, student.getFirstName());
@@ -92,9 +100,6 @@ public class StudentDao extends BaseDao {
             ps.setString(18, student.getAdvisorId());
             ps.setString(19, student.getAcademicStanding());
             ps.executeUpdate();
-        } catch (SQLException ex) {
-            logger.error("Error inserting student {}: {}", student.getStudentId(), ex.getMessage(), ex);
-            throw new IllegalStateException("Unable to insert student", ex);
         }
     }
 
@@ -137,6 +142,14 @@ public class StudentDao extends BaseDao {
             ps.setString(18, student.getAcademicStanding());
             ps.setString(19, student.getStudentId());
             ps.executeUpdate();
+        }
+    }
+
+    public void lockStudent(Connection conn, String studentId) throws SQLException {
+        String sql = "SELECT 1 FROM students WHERE student_code = ? FOR UPDATE";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            ps.execute();
         }
     }
 

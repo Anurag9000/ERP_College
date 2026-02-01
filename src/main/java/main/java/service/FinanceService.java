@@ -51,6 +51,9 @@ public class FinanceService {
         try (Connection conn = ds.getConnection()) {
             conn.setAutoCommit(false);
             try {
+                // Lock student to prevent concurrent payment race conditions
+                studentDao.lockStudent(conn, studentId);
+
                 paymentTransactionDao.insert(conn, transaction);
 
                 // Update student's fees paid
@@ -89,6 +92,8 @@ public class FinanceService {
                 }
 
                 conn.commit();
+                // Invalidate cache to ensure subsequent reads get the updated fees
+                DatabaseUtil.evictStudent(studentId);
             } catch (SQLException e) {
                 conn.rollback();
                 throw e;

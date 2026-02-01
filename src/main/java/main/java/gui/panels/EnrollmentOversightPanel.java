@@ -15,6 +15,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -234,45 +235,103 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
     }
 
     private void loadStudents() {
-        studentCombo.removeAllItems();
-        List<Student> students = DatabaseUtil.getAllStudents().stream()
-                .sorted(Comparator.comparing(Student::getStudentId))
-                .collect(java.util.stream.Collectors.toList());
-        for (Student student : students) {
-            studentCombo.addItem(student.getStudentId() + " - " + student.getFullName());
-        }
+        new SwingWorker<List<Student>, Void>() {
+            @Override
+            protected List<Student> doInBackground() {
+                return DatabaseUtil.getAllStudents().stream()
+                        .sorted(Comparator.comparing(Student::getStudentId))
+                        .collect(java.util.stream.Collectors.toList());
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<Student> students = get();
+                    studentCombo.removeAllItems();
+                    for (Student student : students) {
+                        studentCombo.addItem(student.getStudentId() + " - " + student.getFullName());
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this,
+                            "Error loading students: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
     }
 
     private void refreshSections() {
-        sectionModel.setRowCount(0);
-        for (Section section : DatabaseUtil.getAllSections()) {
-            sectionModel.addRow(new Object[] {
-                    section.getSectionId(),
-                    section.getCourseId(),
-                    section.getTitle(),
-                    section.getDayOfWeek(),
-                    section.getStartTime() != null ? section.getStartTime() + "-" + section.getEndTime() : "-",
-                    section.getLocation(),
-                    section.getCapacity(),
-                    section.getEnrolledStudentIds().size()
-            });
-        }
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<List<Object[]>, Void>() {
+            @Override
+            protected List<Object[]> doInBackground() {
+                List<Object[]> rows = new java.util.ArrayList<>();
+                for (Section section : DatabaseUtil.getAllSections()) {
+                    rows.add(new Object[] {
+                            section.getSectionId(),
+                            section.getCourseId(),
+                            section.getTitle(),
+                            section.getDayOfWeek(),
+                            section.getStartTime() != null ? section.getStartTime() + "-" + section.getEndTime() : "-",
+                            section.getLocation(),
+                            section.getCapacity(),
+                            section.getEnrolledStudentIds().size()
+                    });
+                }
+                return rows;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<Object[]> rows = get();
+                    sectionModel.setRowCount(0);
+                    for (Object[] row : rows) {
+                        sectionModel.addRow(row);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this,
+                            "Error loading sections: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void refreshStudentSchedule() {
-        studentScheduleModel.setRowCount(0);
         String selection = (String) studentCombo.getSelectedItem();
-        if (selection == null) {
+        if (selection == null)
             return;
-        }
+
         String studentId = selection.split(" - ")[0];
-        for (EnrollmentRecord record : DatabaseUtil.getEnrollmentsForStudent(studentId)) {
-            studentScheduleModel.addRow(new Object[] {
-                    record.getSectionId(),
-                    record.getStatus().name()
-            });
-        }
-        updateOverrideButtons();
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<List<EnrollmentRecord>, Void>() {
+            @Override
+            protected List<EnrollmentRecord> doInBackground() {
+                return DatabaseUtil.getEnrollmentsForStudent(studentId);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<EnrollmentRecord> records = get();
+                    studentScheduleModel.setRowCount(0);
+                    for (EnrollmentRecord record : records) {
+                        studentScheduleModel.addRow(new Object[] {
+                                record.getSectionId(),
+                                record.getStatus().name()
+                        });
+                    }
+                    updateOverrideButtons();
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this,
+                            "Error loading student schedule: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void applySectionFilter() {
@@ -295,70 +354,126 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
     }
 
     private void forceEnrollSelected() {
-        if (maintenanceMode) {
+        if (maintenanceMode)
             return;
-        }
         int row = sectionTable.getSelectedRow();
-        if (row == -1 || studentCombo.getSelectedItem() == null) {
+        if (row == -1 || studentCombo.getSelectedItem() == null)
             return;
-        }
+
         row = sectionTable.convertRowIndexToModel(row);
         String sectionId = (String) sectionModel.getValueAt(row, 0);
         String studentId = ((String) studentCombo.getSelectedItem()).split(" - ")[0];
-        try {
-            AdminService.overrideEnroll(adminUser,
-                    studentId,
-                    sectionId,
-                    ignoreCapacityCheck.isSelected(),
-                    ignoreConflictsCheck.isSelected(),
-                    ignoreRequisitesCheck.isSelected(),
-                    ignoreCreditsCheck.isSelected());
-            JOptionPane.showMessageDialog(this, "Override enrollment completed.");
-            refreshStudentSchedule();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Override failed", JOptionPane.ERROR_MESSAGE);
-        }
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        forceEnrollButton.setEnabled(false);
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                AdminService.overrideEnroll(adminUser,
+                        studentId,
+                        sectionId,
+                        ignoreCapacityCheck.isSelected(),
+                        ignoreConflictsCheck.isSelected(),
+                        ignoreRequisitesCheck.isSelected(),
+                        ignoreCreditsCheck.isSelected());
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, "Override enrollment completed.");
+                    refreshStudentSchedule();
+                    refreshSections(); // capacity might change
+                } catch (Exception ex) {
+                    String msg = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, msg, "Override failed",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    updateOverrideButtons();
+                }
+            }
+        }.execute();
     }
 
     private void forceDropSelected() {
-        if (maintenanceMode) {
+        if (maintenanceMode)
             return;
-        }
         int row = studentScheduleTable.getSelectedRow();
-        if (row == -1 || studentCombo.getSelectedItem() == null) {
+        if (row == -1 || studentCombo.getSelectedItem() == null)
             return;
-        }
+
         String sectionId = (String) studentScheduleModel.getValueAt(row, 0);
         String studentId = ((String) studentCombo.getSelectedItem()).split(" - ")[0];
-        try {
-            DatabaseUtil.dropStudentFromSection(adminUser.getUsername(), studentId, sectionId);
-            JOptionPane.showMessageDialog(this, "Student dropped from section.");
-            refreshStudentSchedule();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Drop failed", JOptionPane.ERROR_MESSAGE);
-        }
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        forceDropButton.setEnabled(false);
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                DatabaseUtil.dropStudentFromSection(adminUser.getUsername(), studentId, sectionId);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, "Student dropped from section.");
+                    refreshStudentSchedule();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, ex.getMessage(), "Drop failed",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    updateOverrideButtons();
+                }
+            }
+        }.execute();
     }
 
     private void updateDeadlines() {
-        if (maintenanceMode) {
+        if (maintenanceMode)
             return;
-        }
         int row = sectionTable.getSelectedRow();
         if (row == -1) {
             JOptionPane.showMessageDialog(this, "Select a section first.");
             return;
         }
+
         row = sectionTable.convertRowIndexToModel(row);
         String sectionId = (String) sectionModel.getValueAt(row, 0);
         LocalDate enrollmentDate = parseDate(enrollmentDeadlineField.getText().trim());
         LocalDate dropDate = parseDate(dropDeadlineField.getText().trim());
-        try {
-            AdminService.updateSectionDeadlines(adminUser, sectionId, enrollmentDate, dropDate);
-            JOptionPane.showMessageDialog(this, "Deadlines updated.");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update deadlines",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        updateDeadlinesButton.setEnabled(false);
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                AdminService.updateSectionDeadlines(adminUser, sectionId, enrollmentDate, dropDate);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, "Deadlines updated.");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, ex.getMessage(),
+                            "Unable to update deadlines", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    updateDeadlinesButton.setEnabled(true);
+                }
+            }
+        }.execute();
     }
 
     private LocalDate parseDate(String text) {
@@ -369,118 +484,255 @@ public class EnrollmentOversightPanel extends JPanel implements MaintenanceAware
     }
 
     private void refreshApprovals() {
-        approvalsModel.setRowCount(0);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm");
-        for (DatabaseUtil.RegistrationRequestView view : DatabaseUtil.getPendingRegistrationRequests()) {
-            approvalsModel.addRow(new Object[] {
-                    view.id(),
-                    view.studentId() + " - " + view.studentName(),
-                    view.sectionId(),
-                    view.requestedBy(),
-                    view.requestedAt().atZone(java.time.ZoneId.systemDefault()).format(formatter)
-            });
-        }
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        new SwingWorker<List<Object[]>, Void>() {
+            @Override
+            protected List<Object[]> doInBackground() {
+                List<Object[]> rows = new java.util.ArrayList<>();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm");
+                for (DatabaseUtil.RegistrationRequestView view : DatabaseUtil.getPendingRegistrationRequests()) {
+                    rows.add(new Object[] {
+                            view.id(),
+                            view.studentId() + " - " + view.studentName(),
+                            view.sectionId(),
+                            view.requestedBy(),
+                            view.requestedAt().atZone(java.time.ZoneId.systemDefault()).format(formatter)
+                    });
+                }
+                return rows;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<Object[]> rows = get();
+                    approvalsModel.setRowCount(0);
+                    for (Object[] row : rows) {
+                        approvalsModel.addRow(row);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this,
+                            "Error loading approvals: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void approveSelectedRequest() {
-        if (maintenanceMode) {
+        if (maintenanceMode)
             return;
-        }
         int row = approvalsTable.getSelectedRow();
-        if (row == -1) {
+        if (row == -1)
             return;
-        }
+
         long requestId = ((Number) approvalsModel.getValueAt(row, 0)).longValue();
-        try {
-            DatabaseUtil.approveRegistrationRequest(adminUser, requestId, "Approved via oversight panel");
-            refreshApprovals();
-            JOptionPane.showMessageDialog(this, "Request approved.");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to approve", JOptionPane.ERROR_MESSAGE);
-        }
+        approveRequestButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                DatabaseUtil.approveRegistrationRequest(adminUser, requestId, "Approved via oversight panel");
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    refreshApprovals();
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, "Request approved.");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, ex.getMessage(), "Unable to approve",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    approveRequestButton.setEnabled(true);
+                }
+            }
+        }.execute();
     }
 
     private void rejectSelectedRequest() {
-        if (maintenanceMode) {
+        if (maintenanceMode)
             return;
-        }
         int row = approvalsTable.getSelectedRow();
-        if (row == -1) {
+        if (row == -1)
             return;
-        }
+
         long requestId = ((Number) approvalsModel.getValueAt(row, 0)).longValue();
         String notes = JOptionPane.showInputDialog(this, "Reason for rejection:");
-        if (notes == null) {
+        if (notes == null)
             return;
-        }
-        try {
-            DatabaseUtil.rejectRegistrationRequest(adminUser, requestId, notes);
-            refreshApprovals();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to reject", JOptionPane.ERROR_MESSAGE);
-        }
+
+        rejectRequestButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                DatabaseUtil.rejectRegistrationRequest(adminUser, requestId, notes);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    refreshApprovals();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, ex.getMessage(), "Unable to reject",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    rejectRequestButton.setEnabled(true);
+                }
+            }
+        }.execute();
     }
 
     private void refreshWaitlistSections() {
-        waitlistSectionCombo.removeAllItems();
-        for (Section section : DatabaseUtil.getAllSections()) {
-            waitlistSectionCombo.addItem(section.getSectionId() + " - " + section.getTitle());
-        }
+        new SwingWorker<List<String>, Void>() {
+            @Override
+            protected List<String> doInBackground() {
+                List<String> items = new java.util.ArrayList<>();
+                for (Section section : DatabaseUtil.getAllSections()) {
+                    items.add(section.getSectionId() + " - " + section.getTitle());
+                }
+                return items;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<String> items = get();
+                    waitlistSectionCombo.removeAllItems();
+                    for (String item : items) {
+                        waitlistSectionCombo.addItem(item);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this,
+                            "Error loading waitlist sections: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
     }
 
     private void refreshWaitlistTable() {
-        waitlistModel.setRowCount(0);
         String selection = (String) waitlistSectionCombo.getSelectedItem();
-        if (selection == null) {
+        if (selection == null)
             return;
-        }
+
         String sectionId = selection.split(" - ")[0];
-        for (DatabaseUtil.WaitlistSnapshot entry : DatabaseUtil.getWaitlistSnapshot(sectionId)) {
-            waitlistModel.addRow(new Object[] {
-                    entry.position(),
-                    entry.studentId(),
-                    entry.studentName(),
-                    entry.approved() ? "Yes" : "No"
-            });
-        }
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<List<Object[]>, Void>() {
+            @Override
+            protected List<Object[]> doInBackground() {
+                List<Object[]> rows = new java.util.ArrayList<>();
+                for (DatabaseUtil.WaitlistSnapshot entry : DatabaseUtil.getWaitlistSnapshot(sectionId)) {
+                    rows.add(new Object[] {
+                            entry.position(),
+                            entry.studentId(),
+                            entry.studentName(),
+                            entry.approved() ? "Yes" : "No"
+                    });
+                }
+                return rows;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<Object[]> rows = get();
+                    waitlistModel.setRowCount(0);
+                    for (Object[] row : rows) {
+                        waitlistModel.addRow(row);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this,
+                            "Error loading waitlist table: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        }.execute();
     }
 
     private void promoteSelectedWaitlistEntry() {
-        if (maintenanceMode) {
+        if (maintenanceMode)
             return;
-        }
         int row = waitlistTable.getSelectedRow();
-        if (row == -1) {
+        if (row == -1)
             return;
-        }
+
         String sectionId = getSelectedWaitlistSectionId();
         String studentId = (String) waitlistModel.getValueAt(row, 1);
-        try {
-            AdminService.promoteWaitlisted(adminUser, sectionId, studentId);
-            JOptionPane.showMessageDialog(this, "Waitlist entry promoted.");
-            refreshWaitlistTable();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to promote", JOptionPane.ERROR_MESSAGE);
-        }
+
+        promoteWaitlistButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                AdminService.promoteWaitlisted(adminUser, sectionId, studentId);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, "Waitlist entry promoted.");
+                    refreshWaitlistTable();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, ex.getMessage(), "Unable to promote",
+                            JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    promoteWaitlistButton.setEnabled(true);
+                }
+            }
+        }.execute();
     }
 
     private void removeSelectedWaitlistEntry() {
-        if (maintenanceMode) {
+        if (maintenanceMode)
             return;
-        }
         int row = waitlistTable.getSelectedRow();
-        if (row == -1) {
+        if (row == -1)
             return;
-        }
+
         String sectionId = getSelectedWaitlistSectionId();
         String studentId = (String) waitlistModel.getValueAt(row, 1);
-        try {
-            AdminService.removeWaitlistEntry(adminUser, sectionId, studentId);
-            JOptionPane.showMessageDialog(this, "Waitlist entry removed.");
-            refreshWaitlistTable();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to remove entry", JOptionPane.ERROR_MESSAGE);
-        }
+
+        removeWaitlistButton.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                AdminService.removeWaitlistEntry(adminUser, sectionId, studentId);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, "Waitlist entry removed.");
+                    refreshWaitlistTable();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(EnrollmentOversightPanel.this, ex.getMessage(),
+                            "Unable to remove entry", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    setCursor(Cursor.getDefaultCursor());
+                    removeWaitlistButton.setEnabled(true);
+                }
+            }
+        }.execute();
     }
 
     private String getSelectedWaitlistSectionId() {

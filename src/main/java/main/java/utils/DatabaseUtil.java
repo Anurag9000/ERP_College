@@ -58,7 +58,13 @@ public class DatabaseUtil {
 
     private static final Map<String, String> settings = new ConcurrentHashMap<>();
     private static Map<String, Student> students = new ConcurrentHashMap<>();
-    private static Map<String, Course> courses = new ConcurrentHashMap<>();
+
+    // Removed redundant courses cache to rely on CourseDao's caching
+    // private static Map<String, Course> courses = new ConcurrentHashMap<>();
+
+    public static void evictStudent(String studentId) {
+        students.remove(studentId);
+    }
 
     private static final int MAX_TERM_CREDITS = parseIntConfig("registration.maxCredits", 24);
 
@@ -591,6 +597,25 @@ public class DatabaseUtil {
         students.put(student.getStudentId(), student);
     }
 
+    public static void bulkAddStudents(List<Student> studentsList) throws SQLException {
+        try (Connection conn = getStudentDao().getConnection()) {
+            boolean autoCommit = conn.getAutoCommit();
+            try {
+                conn.setAutoCommit(false);
+                for (Student student : studentsList) {
+                    getStudentDao().insert(conn, student);
+                    students.put(student.getStudentId(), student);
+                }
+                conn.commit();
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(autoCommit);
+            }
+        }
+    }
+
     public static void deleteStudent(String studentId) {
         getStudentDao().delete(studentId);
         students.remove(studentId);
@@ -954,6 +979,24 @@ public class DatabaseUtil {
         getInstructorDao().insert(facultyMember);
     }
 
+    public static void bulkAddFaculty(List<Faculty> facultyList) throws SQLException {
+        try (Connection conn = getInstructorDao().getConnection()) {
+            boolean autoCommit = conn.getAutoCommit();
+            try {
+                conn.setAutoCommit(false);
+                for (Faculty faculty : facultyList) {
+                    getInstructorDao().insert(conn, faculty);
+                }
+                conn.commit();
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(autoCommit);
+            }
+        }
+    }
+
     public static void updateFaculty(Faculty facultyMember) {
         getInstructorDao().update(facultyMember);
     }
@@ -977,30 +1020,28 @@ public class DatabaseUtil {
     // Course operations
     public static void addCourse(Course course) {
         getCourseDao().insert(course);
-        courses.put(course.getCourseId(), course);
+        // courses.put(course.getCourseId(), course);
         clearCourseRelationshipCaches(course.getCourseId());
     }
 
     public static void updateCourse(Course course) {
         getCourseDao().update(course);
-        courses.put(course.getCourseId(), course);
+        // courses.put(course.getCourseId(), course);
         clearCourseRelationshipCaches(course.getCourseId());
     }
 
     public static void deleteCourse(String courseId) {
         getCourseDao().delete(courseId);
-        courses.remove(courseId);
+        // courses.remove(courseId);
         coursePrerequisiteCache.remove(courseId);
     }
 
     public static Course getCourse(String courseId) {
-        Course cached = courses.get(courseId);
-        if (cached != null)
-            return cached;
-        Course c = getCourseDao().findByCode(courseId).orElse(null);
-        if (c != null)
-            courses.put(courseId, c);
-        return c;
+        // Redundant cache removed
+        // Course cached = courses.get(courseId);
+        // if (cached != null)
+        // return cached;
+        return getCourseDao().findByCode(courseId).orElse(null);
     }
 
     public static List<Course> getAllCourses() {
@@ -1164,6 +1205,81 @@ public class DatabaseUtil {
         getEnrollmentDao().update(record);
     }
 
+    /**
+     * Atomically update a single component score for a student in a section.
+     * Uses row-level locking to prevent concurrent grade overwrites.
+     */
+    public static synchronized void recordComponentScore(String sectionId, String studentId,
+            String component, double score) {
+        try (Connection conn = getEnrollmentDao().getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // Lock the enrollment record
+                getEnrollmentDao().lockEnrollment(conn, sectionId, studentId);
+
+                // Fetch current record
+                EnrollmentRecord record = getEnrollmentDao().findBySectionAndStudent(sectionId, studentId);
+                if (record == null) {
+                    throw new IllegalArgumentException("Student not enrolled in section.");
+                }
+
+                // Update the score
+                record.putScore(component, score);
+                getEnrollmentDao().update(conn, record);
+
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException ex) {
+            LOGGER.error("Failed to record component score: {}", ex.getMessage(), ex);
+            throw new IllegalStateException("Database error recording score", ex);
+        }
+    }
+
+    /**
+     * Atomically compute and save final grade for a student.
+     * Uses row-level locking to prevent concurrent grade overwrites.
+     */
+    public static synchronized double computeAndSaveFinalGrade(String sectionId, String studentId) {
+        try (Connection conn = getEnrollmentDao().getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // Lock the enrollment record
+                getEnrollmentDao().lockEnrollment(conn, sectionId, studentId);
+
+                // Fetch current record and section
+                EnrollmentRecord record = getEnrollmentDao().findBySectionAndStudent(sectionId, studentId);
+                if (record == null) {
+                    throw new IllegalArgumentException("Student not enrolled in section.");
+                }
+
+                Section section = getSection(sectionId);
+                if (section == null) {
+                    throw new IllegalArgumentException("Section not found.");
+                }
+
+                // Compute final grade
+                double finalGrade = section.computeFinalScore(record.getComponentScores());
+                record.setFinalGrade(finalGrade);
+                record.setWeighting(new java.util.HashMap<>(section.getAssessmentWeights()));
+                record.setUpdatedAt(java.time.LocalDateTime.now());
+
+                getEnrollmentDao().update(conn, record);
+
+                conn.commit();
+                return finalGrade;
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException ex) {
+            LOGGER.error("Failed to compute final grade: {}", ex.getMessage(), ex);
+            throw new IllegalStateException("Database error computing grade", ex);
+        }
+    }
+
     public static boolean isStudentEnrolledInCourse(String studentId, String courseId) {
         return getEnrollmentDao().findByStudent(studentId).stream()
                 .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
@@ -1193,20 +1309,8 @@ public class DatabaseUtil {
             throw new IllegalArgumentException("Student not found");
         }
 
-        List<String> missingPrereqs = getMissingPrerequisites(studentId, section.getCourseId());
-        if (!missingPrereqs.isEmpty()) {
-            throw new IllegalStateException("Missing prerequisite(s): " + String.join(", ", missingPrereqs));
-        }
-
-        List<String> missingCoreqs = getMissingCorequisites(studentId, section.getCourseId());
-        if (!missingCoreqs.isEmpty()) {
-            throw new IllegalStateException("Missing co-requisite(s): " + String.join(", ", missingCoreqs));
-        }
-
-        List<String> conflicts = getAntirequisiteConflicts(studentId, section.getCourseId());
-        if (!conflicts.isEmpty()) {
-            throw new IllegalStateException("Conflicts with anti-requisite(s): " + String.join(", ", conflicts));
-        }
+        // Initial checks (non-transactional for fail-fast) can be done here if needed,
+        // but let's rely on the transactional check to be safe and simple.
 
         if (section.isRequiresAdvisorApproval()
                 && (actor == null || "Student".equalsIgnoreCase(actor.getRole()))) {
@@ -1214,16 +1318,37 @@ public class DatabaseUtil {
             throw new IllegalStateException("Registration submitted for advisor approval.");
         }
 
-        if (hasScheduleConflict(studentId, section)) {
-            throw new IllegalStateException("Schedule conflict detected with another section");
-        }
-
         EnrollmentRecord record = null;
         try (Connection conn = getEnrollmentDao().getConnection()) {
             conn.setAutoCommit(false);
             try {
+                // Lock Student FIRST to prevent deadlock and race conditions on credit limits
+                getStudentDao().lockStudent(conn, studentId);
+                // Lock Section
                 getSectionDao().lockSection(conn, sectionId);
-                List<EnrollmentRecord> existing = getEnrollmentDao().findBySection(sectionId);
+
+                // Re-verify checks within transaction
+                List<String> missingPrereqs = getMissingPrerequisites(conn, studentId, section.getCourseId());
+                if (!missingPrereqs.isEmpty()) {
+                    throw new IllegalStateException("Missing prerequisite(s): " + String.join(", ", missingPrereqs));
+                }
+
+                List<String> missingCoreqs = getMissingCorequisites(conn, studentId, section.getCourseId());
+                if (!missingCoreqs.isEmpty()) {
+                    throw new IllegalStateException("Missing co-requisite(s): " + String.join(", ", missingCoreqs));
+                }
+
+                List<String> conflicts = getAntirequisiteConflicts(conn, studentId, section.getCourseId());
+                if (!conflicts.isEmpty()) {
+                    throw new IllegalStateException(
+                            "Conflicts with anti-requisite(s): " + String.join(", ", conflicts));
+                }
+
+                if (hasScheduleConflict(conn, studentId, section)) {
+                    throw new IllegalStateException("Schedule conflict detected with another section");
+                }
+
+                List<EnrollmentRecord> existing = getEnrollmentDao().findBySection(conn, sectionId);
                 boolean already = existing.stream()
                         .anyMatch(rec -> rec.getStudentId().equals(studentId)
                                 && rec.getStatus() != EnrollmentRecord.Status.DROPPED);
@@ -1238,7 +1363,7 @@ public class DatabaseUtil {
 
                 int courseCredits = getCourseCreditHours(section.getCourseId());
                 if (hasSeat) {
-                    int currentCredits = calculateEnrolledCredits(studentId);
+                    int currentCredits = calculateEnrolledCredits(conn, studentId);
                     if (currentCredits + courseCredits > MAX_TERM_CREDITS) {
                         throw new IllegalStateException("Credit load would exceed the maximum of "
                                 + MAX_TERM_CREDITS + " hours.");
@@ -1257,48 +1382,53 @@ public class DatabaseUtil {
                         hasSeat ? EnrollmentRecord.Status.ENROLLED : EnrollmentRecord.Status.WAITLISTED);
                 getEnrollmentDao().insert(conn, record);
 
-                if (hasSeat) {
-                    addNotification(new NotificationMessage(
-                            NotificationMessage.Audience.STUDENT,
-                            studentId,
-                            "You are enrolled in " + section.getTitle() + " (" + section.getSectionId() + ").",
-                            "Registration"));
-                    refreshStudentEnrollmentMetrics(studentId);
-                } else {
-                    int position = getWaitlistDao().findEntries(sectionId).size() + 1;
+                if (!hasSeat) {
+                    int position = getWaitlistDao().findEntries(conn, sectionId).size() + 1;
                     getWaitlistDao().insert(conn, sectionId, studentId, position, autoApproved);
-                    String approvalText = autoApproved
-                            ? "You are approved and will be auto-enrolled when a seat opens."
-                            : "Advisor approval is required before you can be auto-enrolled.";
-                    addNotification(new NotificationMessage(
-                            NotificationMessage.Audience.STUDENT,
-                            studentId,
-                            "Section " + section.getTitle() + " is full. You are #"
-                                    + position + " on the waitlist. " + approvalText,
-                            "Registration"));
                 }
+
                 conn.commit();
             } catch (Exception e) {
                 conn.rollback();
                 throw e;
             }
         } catch (SQLException ex) {
-            LoggerFactory.getLogger(DatabaseUtil.class).error("Database error during enrollment: {}", ex.getMessage(),
-                    ex);
+            LOGGER.error("Database error during registration: {}", ex.getMessage(), ex);
             throw new IllegalStateException("System error during registration", ex);
         }
+
+        // Send notifications AFTER commit
+        if (record != null) {
+            if (record.getStatus() == EnrollmentRecord.Status.ENROLLED) {
+                addNotification(new NotificationMessage(
+                        NotificationMessage.Audience.STUDENT,
+                        studentId,
+                        "You are enrolled in " + section.getTitle() + " (" + section.getSectionId() + ").",
+                        "Registration"));
+                refreshStudentEnrollmentMetrics(studentId);
+            } else {
+                // Waitlisted
+                String approvalText = autoApproved
+                        ? "You are approved and will be auto-enrolled when a seat opens."
+                        : "Advisor approval is required before you can be auto-enrolled.";
+                // Need to get position again for notification? Or just guess?
+                // Ideally we should have captured it. But it's just a message.
+                // Re-calculating position outside transaction is racy but benign for
+                // notification text.
+                int position = getWaitlistDao().findEntries(sectionId).size(); // Approximate
+                addNotification(new NotificationMessage(
+                        NotificationMessage.Audience.STUDENT,
+                        studentId,
+                        "Section " + section.getTitle() + " is full. You are on the waitlist. " + approvalText,
+                        "Registration"));
+            }
+        }
+
         String actorName = performedBy == null ? "system" : performedBy;
-        AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE, actorName,
+        AuditLogService.log(AuditLogService.EventType.ENROLLMENT_CHANGE,
+                actorName,
                 String.format("Registered %s in %s (%s)", studentId, section.getTitle(), record.getStatus()));
         return record;
-    }
-
-    private static boolean hasScheduleConflict(String studentId, Section targetSection) {
-        return getEnrollmentDao().findByStudent(studentId).stream()
-                .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
-                .map(rec -> getSection(rec.getSectionId()))
-                .filter(Objects::nonNull)
-                .anyMatch(existing -> overlaps(existing, targetSection));
     }
 
     private static boolean overlaps(Section a, Section b) {
@@ -1578,6 +1708,43 @@ public class DatabaseUtil {
     public static List<NotificationMessage> getNotifications(NotificationMessage.Audience audience, String targetId) {
         NotificationMessage.Audience resolvedAudience = audience == null ? NotificationMessage.Audience.ALL : audience;
         return getNotificationDao().findVisible(resolvedAudience, targetId);
+    }
+
+    // Helper for schedule conflicts
+    private static boolean hasScheduleConflict(Connection conn, String studentId, Section targetSection) {
+        List<Section> schedule = getScheduleForStudent(conn, studentId);
+        for (Section existing : schedule) {
+            if (existing.getDayOfWeek() == targetSection.getDayOfWeek()) {
+                // Check for overlap
+                if (isTimeOverlap(existing.getStartTime(), existing.getEndTime(),
+                        targetSection.getStartTime(), targetSection.getEndTime())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isTimeOverlap(LocalTime start1, LocalTime end1, LocalTime start2, LocalTime end2) {
+        return start1.isBefore(end2) && start2.isBefore(end1);
+    }
+
+    public static boolean hasScheduleConflict(String studentId, Section targetSection) {
+        try (Connection conn = getEnrollmentDao().getConnection()) {
+            return hasScheduleConflict(conn, studentId, targetSection);
+        } catch (SQLException e) {
+            LOGGER.error("Error checking schedule conflict", e);
+            return true; // Fail safe
+        }
+    }
+
+    public static List<Section> getScheduleForStudent(Connection conn, String studentId) {
+        return getEnrollmentDao().findByStudent(conn, studentId).stream()
+                .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .map(rec -> getSection(rec.getSectionId()))
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(Section::getDayOfWeek).thenComparing(Section::getStartTime))
+                .collect(Collectors.toList());
     }
 
     public static List<NotificationMessage> getNotificationsForStudent(String studentId) {
@@ -1998,8 +2165,20 @@ public class DatabaseUtil {
         if (studentId == null) {
             return Collections.emptySet();
         }
+        try (Connection conn = getEnrollmentDao().getConnection()) {
+            return getCompletedCourseIds(conn, studentId);
+        } catch (SQLException e) {
+            LOGGER.error("Error fetching completed courses", e);
+            return Collections.emptySet();
+        }
+    }
+
+    public static Set<String> getCompletedCourseIds(Connection conn, String studentId) {
+        if (studentId == null) {
+            return Collections.emptySet();
+        }
         Set<String> completed = new HashSet<>();
-        for (EnrollmentRecord record : getEnrollmentsForStudent(studentId)) {
+        for (EnrollmentRecord record : getEnrollmentDao().findByStudent(conn, studentId)) {
             Section section = getSection(record.getSectionId());
             if (section == null) {
                 continue;
@@ -2015,8 +2194,20 @@ public class DatabaseUtil {
         if (studentId == null) {
             return Collections.emptySet();
         }
+        try (Connection conn = getEnrollmentDao().getConnection()) {
+            return getActiveCourseIds(conn, studentId);
+        } catch (SQLException e) {
+            LOGGER.error("Error fetching active courses", e);
+            return Collections.emptySet();
+        }
+    }
+
+    public static Set<String> getActiveCourseIds(Connection conn, String studentId) {
+        if (studentId == null) {
+            return Collections.emptySet();
+        }
         Set<String> active = new HashSet<>();
-        for (EnrollmentRecord record : getEnrollmentsForStudent(studentId)) {
+        for (EnrollmentRecord record : getEnrollmentDao().findByStudent(conn, studentId)) {
             if (record.getStatus() == EnrollmentRecord.Status.ENROLLED
                     || record.getStatus() == EnrollmentRecord.Status.WAITLISTED) {
                 Section section = getSection(record.getSectionId());
@@ -2029,12 +2220,21 @@ public class DatabaseUtil {
     }
 
     public static List<String> getMissingPrerequisites(String studentId, String courseId) {
+        try (Connection conn = getEnrollmentDao().getConnection()) {
+            return getMissingPrerequisites(conn, studentId, courseId);
+        } catch (SQLException e) {
+            LOGGER.error("Error checking prereqs", e);
+            return Collections.emptyList();
+        }
+    }
+
+    public static List<String> getMissingPrerequisites(Connection conn, String studentId, String courseId) {
         List<String> prereqs = getCoursePrerequisites(courseId);
         if (prereqs.isEmpty()) {
             return Collections.emptyList();
         }
-        Set<String> completed = getCompletedCourseIds(studentId);
-        Set<String> active = getActiveCourseIds(studentId);
+        Set<String> completed = getCompletedCourseIds(conn, studentId);
+        Set<String> active = getActiveCourseIds(conn, studentId);
         List<String> missing = new ArrayList<>();
         for (String prereq : prereqs) {
             if (!completed.contains(prereq) && !active.contains(prereq)) {
@@ -2045,12 +2245,21 @@ public class DatabaseUtil {
     }
 
     public static List<String> getMissingCorequisites(String studentId, String courseId) {
+        try (Connection conn = getEnrollmentDao().getConnection()) {
+            return getMissingCorequisites(conn, studentId, courseId);
+        } catch (SQLException e) {
+            LOGGER.error("Error checking coreqs", e);
+            return Collections.emptyList();
+        }
+    }
+
+    public static List<String> getMissingCorequisites(Connection conn, String studentId, String courseId) {
         List<String> coreqs = getCourseCorequisites(courseId);
         if (coreqs.isEmpty()) {
             return Collections.emptyList();
         }
-        Set<String> completed = getCompletedCourseIds(studentId);
-        Set<String> active = getActiveCourseIds(studentId);
+        Set<String> completed = getCompletedCourseIds(conn, studentId);
+        Set<String> active = getActiveCourseIds(conn, studentId);
         List<String> missing = new ArrayList<>();
         for (String coreq : coreqs) {
             if (!completed.contains(coreq) && !active.contains(coreq)) {
@@ -2061,12 +2270,21 @@ public class DatabaseUtil {
     }
 
     public static List<String> getAntirequisiteConflicts(String studentId, String courseId) {
+        try (Connection conn = getEnrollmentDao().getConnection()) {
+            return getAntirequisiteConflicts(conn, studentId, courseId);
+        } catch (SQLException e) {
+            LOGGER.error("Error checking antireqs", e);
+            return Collections.emptyList();
+        }
+    }
+
+    public static List<String> getAntirequisiteConflicts(Connection conn, String studentId, String courseId) {
         List<String> antireqs = getCourseAntirequisites(courseId);
         if (antireqs.isEmpty()) {
             return Collections.emptyList();
         }
-        Set<String> completed = getCompletedCourseIds(studentId);
-        Set<String> active = getActiveCourseIds(studentId);
+        Set<String> completed = getCompletedCourseIds(conn, studentId);
+        Set<String> active = getActiveCourseIds(conn, studentId);
         List<String> conflicts = new ArrayList<>();
         for (String antireq : antireqs) {
             if (completed.contains(antireq) || active.contains(antireq)) {
@@ -2085,7 +2303,16 @@ public class DatabaseUtil {
     }
 
     private static int calculateEnrolledCredits(String studentId) {
-        return getEnrollmentDao().findByStudent(studentId).stream()
+        try (Connection conn = getEnrollmentDao().getConnection()) {
+            return calculateEnrolledCredits(conn, studentId);
+        } catch (SQLException e) {
+            LOGGER.error("Error calculating credits", e);
+            return 0;
+        }
+    }
+
+    private static int calculateEnrolledCredits(Connection conn, String studentId) {
+        return getEnrollmentDao().findByStudent(conn, studentId).stream()
                 .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
                 .mapToInt(rec -> {
                     Section section = getSection(rec.getSectionId());
