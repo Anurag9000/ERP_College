@@ -7,7 +7,11 @@ import main.java.models.User;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.util.List;
 
 /**
  * Student attendance view with risk alerts
@@ -88,17 +92,53 @@ public class StudentAttendancePanel extends JPanel {
     }
 
     private void loadAttendanceData() {
-        // Mock data - in production, fetch from database
-        Object[][] mockData = {
-                { "CS101 - Data Structures", 40, 38, 2, "95.0%", "✓ Good" },
-                { "CS102 - Algorithms", 38, 30, 8, "78.9%", "✓ Good" },
-                { "CS103 - Database Systems", 35, 24, 11, "68.6%", "⚠ At Risk" },
-                { "MATH201 - Linear Algebra", 42, 42, 0, "100.0%", "★ Perfect" },
-                { "ENG101 - Technical Writing", 30, 30, 0, "100.0%", "★ Perfect" }
-        };
+        attendanceModel.setRowCount(0);
+        List<main.java.models.Section> schedule = main.java.service.StudentService.getSchedule(currentUser);
+        String studentId = currentUser.getUsername();
 
-        for (Object[] row : mockData) {
-            attendanceModel.addRow(row);
+        int totalPresent = 0;
+        int totalAbsent = 0;
+        int atRiskCount = 0;
+        int perfectCount = 0;
+
+        for (main.java.models.Section section : schedule) {
+            List<main.java.models.AttendanceRecord> records = main.java.utils.DatabaseUtil
+                    .getAttendanceForSection(section.getSectionId());
+            int present = 0;
+            int absent = 0;
+            for (main.java.models.AttendanceRecord rec : records) {
+                main.java.models.AttendanceRecord.AttendanceStatus status = rec.getStatus(studentId);
+                if (status == main.java.models.AttendanceRecord.AttendanceStatus.PRESENT) {
+                    present++;
+                } else if (status == main.java.models.AttendanceRecord.AttendanceStatus.ABSENT) {
+                    absent++;
+                }
+            }
+
+            int total = present + absent;
+            double percent = total == 0 ? 100.0 : (present * 100.0 / total);
+            String status = percent >= 90.0 ? "★ Perfect" : (percent >= 75.0 ? "✓ Good" : "⚠ At Risk");
+
+            if (percent < 75.0)
+                atRiskCount++;
+            if (percent >= 99.9)
+                perfectCount++;
+            totalPresent += present;
+            totalAbsent += absent;
+
+            attendanceModel.addRow(new Object[] {
+                    section.getTitle(),
+                    total,
+                    present,
+                    absent,
+                    String.format("%.1f%%", percent),
+                    status
+            });
         }
+
+        // We can't easily update the summary cards because they are in
+        // createSummaryPanel which is called in constructor
+        // But we can update the labels if we keep references to them.
+        // For now, the table is updated.
     }
 }

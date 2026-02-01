@@ -17,9 +17,14 @@ public class AuthService {
     // Injected or statically retrieved DAO as per project pattern
     private static final AuthUserDao authUserDao = new AuthUserDao();
 
-    private static final int MAX_FAILED_ATTEMPTS = 5; // Should ideally come from config
-    private static final int LOCKOUT_MINUTES = 15;
-    private static final int PASSWORD_HISTORY_SIZE = 5;
+    private static final int MAX_FAILED_ATTEMPTS = Integer.parseInt(
+            main.java.config.ConfigLoader.getOrDefault("auth.maxFailedAttempts", "5"));
+    private static final int LOCKOUT_MINUTES = Integer.parseInt(
+            main.java.config.ConfigLoader.getOrDefault("auth.lockoutMinutes", "15"));
+    private static final int PASSWORD_HISTORY_SIZE = Integer.parseInt(
+            main.java.config.ConfigLoader.getOrDefault("auth.passwordHistorySize", "5"));
+    private static final int LOCKOUT_INCREMENT_MINUTES = Integer.parseInt(
+            main.java.config.ConfigLoader.getOrDefault("auth.lockoutIncrement", "0"));
 
     public static User authenticateUser(String username, String password) {
         LocalDateTime now = LocalDateTime.now();
@@ -61,10 +66,14 @@ public class AuthService {
             int failedAttempts = user.getFailedAttempts() + 1;
             LocalDateTime lockUntil = null;
             if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-                lockUntil = now.plusMinutes(LOCKOUT_MINUTES);
+                int extraMinutes = (failedAttempts - MAX_FAILED_ATTEMPTS) * LOCKOUT_INCREMENT_MINUTES;
+                lockUntil = now.plusMinutes(LOCKOUT_MINUTES + extraMinutes);
                 AuditLogService.log(AuditLogService.EventType.ACCOUNT_LOCKED, username,
-                        "Exceeded failed login attempts");
-                failedAttempts = 0;
+                        "Exceeded failed login attempts. Locked for " + (LOCKOUT_MINUTES + extraMinutes) + " mins.");
+                // We keep incrementing failedAttempts to increase next lockout if they try
+                // before it expires?
+                // Actually, standard behavior is to reset or keep it.
+                // Let's keep it so next failure adds more time.
             } else {
                 AuditLogService.log(AuditLogService.EventType.LOGIN_FAILURE, username,
                         "Invalid credentials (" + failedAttempts + "/" + MAX_FAILED_ATTEMPTS + ")");

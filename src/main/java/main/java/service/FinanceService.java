@@ -45,52 +45,53 @@ public class FinanceService {
         PaymentTransaction transaction = new PaymentTransaction(studentId, amount, LocalDate.now(), method, reference,
                 notes);
 
-        main.java.config.DataSourceRegistry.erpDataSource().ifPresent(ds -> {
-            try (Connection conn = ds.getConnection()) {
-                conn.setAutoCommit(false);
-                try {
-                    paymentTransactionDao.insert(conn, transaction);
+        javax.sql.DataSource ds = main.java.config.DataSourceRegistry.erpDataSource()
+                .orElseThrow(() -> new IllegalStateException("ERP database connection not available."));
 
-                    // Update student's fees paid
-                    double updatedPaid = student.getFeesPaid() + amount;
-                    student.setFeesPaid(updatedPaid);
-                    studentDao.update(conn, student);
+        try (Connection conn = ds.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                paymentTransactionDao.insert(conn, transaction);
 
-                    // Allocate payment to installments
-                    List<FeeInstallment> schedule = feeInstallmentDao.findByStudent(studentId);
-                    schedule.sort(Comparator
-                            .comparing(inst -> inst.getDueDate() == null ? LocalDate.MAX : inst.getDueDate()));
+                // Update student's fees paid
+                double updatedPaid = student.getFeesPaid() + amount;
+                student.setFeesPaid(updatedPaid);
+                studentDao.update(conn, student);
 
-                    double remaining = amount;
-                    final double EPSILON = 1e-9;
+                // Allocate payment to installments
+                List<FeeInstallment> schedule = feeInstallmentDao.findByStudent(studentId);
+                schedule.sort(Comparator
+                        .comparing(inst -> inst.getDueDate() == null ? LocalDate.MAX : inst.getDueDate()));
 
-                    for (FeeInstallment installment : schedule) {
-                        if (installment.getStatus() == FeeInstallment.Status.PAID)
-                            continue;
+                double remaining = amount;
+                final double EPSILON = 1e-9;
 
-                        double installmentAmount = installment.getAmount();
-                        if (remaining >= installmentAmount - EPSILON) {
-                            installment.setStatus(FeeInstallment.Status.PAID);
-                            installment.setPaidOn(LocalDate.now());
-                            remaining -= installmentAmount;
-                            feeInstallmentDao.update(conn, installment);
-                        } else if (remaining > EPSILON) {
-                            break;
-                        } else {
-                            break;
-                        }
+                for (FeeInstallment installment : schedule) {
+                    if (installment.getStatus() == FeeInstallment.Status.PAID)
+                        continue;
+
+                    double installmentAmount = installment.getAmount();
+                    if (remaining >= installmentAmount - EPSILON) {
+                        installment.setStatus(FeeInstallment.Status.PAID);
+                        installment.setPaidOn(LocalDate.now());
+                        remaining -= installmentAmount;
+                        feeInstallmentDao.update(conn, installment);
+                    } else if (remaining > EPSILON) {
+                        break;
+                    } else {
+                        break;
                     }
-
-                    conn.commit();
-                } catch (SQLException e) {
-                    conn.rollback();
-                    throw e;
                 }
-            } catch (SQLException ex) {
-                LOGGER.error("Transaction failed for payment: {}", ex.getMessage(), ex);
-                throw new IllegalStateException("Payment processing failed due to database error", ex);
+
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
             }
-        });
+        } catch (SQLException ex) {
+            LOGGER.error("Transaction failed for payment: {}", ex.getMessage(), ex);
+            throw new IllegalStateException("Payment processing failed due to database error", ex);
+        }
 
         AuditLogService.log(AuditLogService.EventType.FINANCE_PAYMENT,
                 actorUsername != null ? actorUsername : "system",

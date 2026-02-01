@@ -102,12 +102,14 @@ public class WeeklyPlannerPanel extends JPanel {
         eventsPanel.setLayout(new BoxLayout(eventsPanel, BoxLayout.Y_AXIS));
         eventsPanel.setOpaque(false);
 
-        // Mock events
-        if (date.getDayOfWeek().getValue() < 6) { // Weekdays
-            eventsPanel.add(createEventBlock("CS101 Lecture", "9:00 AM", PastelTheme.PASTEL_BLUE_DARK));
-            eventsPanel.add(Box.createVerticalStrut(5));
-            eventsPanel.add(createEventBlock("Lab Session", "2:00 PM", PastelTheme.PASTEL_GREEN_DARK));
-        }
+        main.java.service.StudentService.getSchedule(currentUser).stream()
+                .filter(s -> s.getDayOfWeek() != null && s.getDayOfWeek().getValue() == date.getDayOfWeek().getValue())
+                .forEach(section -> {
+                    String time = (section.getStartTime() != null ? section.getStartTime().toString() : "TBA")
+                            + " - " + (section.getEndTime() != null ? section.getEndTime().toString() : "");
+                    eventsPanel.add(createEventBlock(section.getTitle(), time, PastelTheme.PASTEL_BLUE_DARK));
+                    eventsPanel.add(Box.createVerticalStrut(5));
+                });
 
         card.add(new JScrollPane(eventsPanel), BorderLayout.CENTER);
         return card;

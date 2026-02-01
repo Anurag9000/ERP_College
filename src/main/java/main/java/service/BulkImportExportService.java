@@ -2,59 +2,63 @@ package main.java.service;
 
 import main.java.models.*;
 import main.java.utils.DatabaseUtil;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.CSVRecord;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * Service for bulk import/export operations
+ * Service for bulk import/export operations using Apache Commons CSV for
+ * robustness.
  */
 public class BulkImportExportService {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final CSVFormat CSV_DEFAULT = CSVFormat.DEFAULT.builder()
+            .setHeader()
+            .setSkipHeaderRecord(true)
+            .setIgnoreHeaderCase(true)
+            .setTrim(true)
+            .build();
 
     /**
      * Import students from CSV
-     * Format: studentId,firstName,lastName,email,phone,dob,address,course,semester
      */
     public static List<String> importStudents(File csvFile) throws IOException {
         List<String> errors = new ArrayList<>();
-        int lineNum = 0;
+        try (Reader reader = new FileReader(csvFile, StandardCharsets.UTF_8);
+                CSVParser parser = new CSVParser(reader, CSV_DEFAULT)) {
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(csvFile))) {
-            String line = reader.readLine(); // Skip header
-            lineNum++;
-
-            while ((line = reader.readLine()) != null) {
-                lineNum++;
+            for (CSVRecord record : parser) {
                 try {
-                    String[] parts = line.split(",");
-                    if (parts.length < 9) {
-                        errors.add("Line " + lineNum + ": Insufficient columns");
-                        continue;
+                    Student student = new Student();
+                    student.setStudentId(record.get("StudentID"));
+                    student.setFirstName(record.get("FirstName"));
+                    student.setLastName(record.get("LastName"));
+                    student.setEmail(record.get("Email"));
+                    student.setPhone(record.get("Phone"));
+
+                    String dobStr = record.get("DOB");
+                    if (dobStr != null && !dobStr.isBlank()) {
+                        student.setDateOfBirth(LocalDate.parse(dobStr, DATE_FORMAT));
                     }
 
-                    Student student = new Student();
-                    student.setStudentId(parts[0].trim());
-                    student.setFirstName(parts[1].trim());
-                    student.setLastName(parts[2].trim());
-                    student.setEmail(parts[3].trim());
-                    student.setPhone(parts[4].trim());
-                    student.setDateOfBirth(LocalDate.parse(parts[5].trim(), DATE_FORMAT));
-                    student.setAddress(parts[6].trim());
-                    student.setCourse(parts[7].trim());
-                    student.setSemester(Integer.parseInt(parts[8].trim()));
+                    student.setAddress(record.get("Address"));
+                    student.setCourse(record.get("Course"));
+                    student.setSemester(Integer.parseInt(record.get("Semester")));
 
                     DatabaseUtil.addStudent(student);
-
                 } catch (Exception e) {
-                    errors.add("Line " + lineNum + ": " + e.getMessage());
+                    errors.add("Line " + record.getRecordNumber() + ": " + e.getMessage());
                 }
             }
         }
-
         return errors;
     }
 
@@ -62,21 +66,24 @@ public class BulkImportExportService {
      * Export students to CSV
      */
     public static void exportStudents(File csvFile) throws IOException {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFile))) {
-            writer.println("StudentID,FirstName,LastName,Email,Phone,DOB,Address,Course,Semester,CGPA,Status");
+        try (Writer writer = new FileWriter(csvFile, StandardCharsets.UTF_8);
+                CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
+                        .setHeader("StudentID", "FirstName", "LastName", "Email", "Phone", "DOB", "Address", "Course",
+                                "Semester", "CGPA", "Status")
+                        .build())) {
 
             for (Student s : DatabaseUtil.getAllStudents()) {
-                writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%d,%.2f,%s%n",
+                printer.printRecord(
                         s.getStudentId(),
                         s.getFirstName(),
                         s.getLastName(),
                         s.getEmail(),
                         s.getPhone(),
                         s.getDateOfBirth() != null ? s.getDateOfBirth().format(DATE_FORMAT) : "",
-                        s.getAddress() != null ? s.getAddress().replace(",", ";") : "",
+                        s.getAddress(),
                         s.getCourse(),
                         s.getSemester(),
-                        s.getCgpa(),
+                        String.format("%.2f", s.getCgpa()),
                         s.getStatus());
             }
         }
@@ -84,45 +91,31 @@ public class BulkImportExportService {
 
     /**
      * Import faculty from CSV
-     * Format:
-     * facultyId,firstName,lastName,email,phone,department,designation,qualification,salary
      */
     public static List<String> importFaculty(File csvFile) throws IOException {
         List<String> errors = new ArrayList<>();
-        int lineNum = 0;
+        try (Reader reader = new FileReader(csvFile, StandardCharsets.UTF_8);
+                CSVParser parser = new CSVParser(reader, CSV_DEFAULT)) {
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(csvFile))) {
-            String line = reader.readLine(); // Skip header
-            lineNum++;
-
-            while ((line = reader.readLine()) != null) {
-                lineNum++;
+            for (CSVRecord record : parser) {
                 try {
-                    String[] parts = line.split(",");
-                    if (parts.length < 9) {
-                        errors.add("Line " + lineNum + ": Insufficient columns");
-                        continue;
-                    }
-
                     Faculty faculty = new Faculty();
-                    faculty.setFacultyId(parts[0].trim());
-                    faculty.setFirstName(parts[1].trim());
-                    faculty.setLastName(parts[2].trim());
-                    faculty.setEmail(parts[3].trim());
-                    faculty.setPhone(parts[4].trim());
-                    faculty.setDepartment(parts[5].trim());
-                    faculty.setDesignation(parts[6].trim());
-                    faculty.setQualification(parts[7].trim());
-                    faculty.setSalary(Double.parseDouble(parts[8].trim()));
+                    faculty.setFacultyId(record.get("FacultyID"));
+                    faculty.setFirstName(record.get("FirstName"));
+                    faculty.setLastName(record.get("LastName"));
+                    faculty.setEmail(record.get("Email"));
+                    faculty.setPhone(record.get("Phone"));
+                    faculty.setDepartment(record.get("Department"));
+                    faculty.setDesignation(record.get("Designation"));
+                    faculty.setQualification(record.get("Qualification"));
+                    faculty.setSalary(Double.parseDouble(record.get("Salary")));
 
                     DatabaseUtil.addFaculty(faculty);
-
                 } catch (Exception e) {
-                    errors.add("Line " + lineNum + ": " + e.getMessage());
+                    errors.add("Line " + record.getRecordNumber() + ": " + e.getMessage());
                 }
             }
         }
-
         return errors;
     }
 
@@ -130,12 +123,14 @@ public class BulkImportExportService {
      * Export faculty to CSV
      */
     public static void exportFaculty(File csvFile) throws IOException {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFile))) {
-            writer.println(
-                    "FacultyID,FirstName,LastName,Email,Phone,Department,Designation,Qualification,Salary,Status");
+        try (Writer writer = new FileWriter(csvFile, StandardCharsets.UTF_8);
+                CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
+                        .setHeader("FacultyID", "FirstName", "LastName", "Email", "Phone", "Department", "Designation",
+                                "Qualification", "Salary", "Status")
+                        .build())) {
 
             for (Faculty f : DatabaseUtil.getAllFaculty()) {
-                writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s%n",
+                printer.printRecord(
                         f.getFacultyId(),
                         f.getFirstName(),
                         f.getLastName(),
@@ -144,7 +139,7 @@ public class BulkImportExportService {
                         f.getDepartment(),
                         f.getDesignation(),
                         f.getQualification(),
-                        f.getSalary(),
+                        String.format("%.2f", f.getSalary()),
                         f.getStatus());
             }
         }
@@ -159,27 +154,32 @@ public class BulkImportExportService {
             throw new IllegalArgumentException("Section not found: " + sectionId);
         }
 
-        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFile))) {
-            // Header
-            writer.print("StudentID,Name");
-            for (String component : section.getAssessmentWeights().keySet()) {
-                writer.print("," + component);
-            }
-            writer.println(",FinalGrade");
+        List<String> components = new ArrayList<>(section.getAssessmentWeights().keySet());
+        List<String> header = new ArrayList<>(Arrays.asList("StudentID", "Name"));
+        header.addAll(components);
+        header.add("FinalGrade");
 
-            // Data rows
+        try (Writer writer = new FileWriter(csvFile, StandardCharsets.UTF_8);
+                CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
+                        .setHeader(header.toArray(new String[0]))
+                        .build())) {
+
             for (String studentId : section.getEnrolledStudentIds()) {
                 Student student = DatabaseUtil.getStudent(studentId);
-                writer.print(studentId + "," + (student != null ? student.getFullName() : "Unknown"));
+                List<Object> record = new ArrayList<>();
+                record.add(studentId);
+                record.add(student != null ? student.getFullName() : "Unknown");
 
                 Map<String, Double> grades = DatabaseUtil.getGrades(studentId, sectionId);
-                for (String component : section.getAssessmentWeights().keySet()) {
+                for (String component : components) {
                     Double grade = grades.get(component);
-                    writer.print("," + (grade != null ? String.format("%.2f", grade) : ""));
+                    record.add(grade != null ? String.format("%.2f", grade) : "");
                 }
 
                 Double finalGrade = DatabaseUtil.getFinalGrade(studentId, sectionId);
-                writer.println("," + (finalGrade != null ? String.format("%.2f", finalGrade) : ""));
+                record.add(finalGrade != null ? String.format("%.2f", finalGrade) : "");
+
+                printer.printRecord(record);
             }
         }
     }
@@ -188,20 +188,22 @@ public class BulkImportExportService {
      * Export all schedules to CSV
      */
     public static void exportSchedules(File csvFile) throws IOException {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFile))) {
-            writer.println(
-                    "SectionID,CourseID,Title,Instructor,Day,StartTime,EndTime,Location,Capacity,Enrolled,Semester,Year");
+        try (Writer writer = new FileWriter(csvFile, StandardCharsets.UTF_8);
+                CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
+                        .setHeader("SectionID", "CourseID", "Title", "Instructor", "Day", "StartTime", "EndTime",
+                                "Location", "Capacity", "Enrolled", "Semester", "Year")
+                        .build())) {
 
             for (Section s : DatabaseUtil.getAllSections()) {
-                writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%d,%d,%s,%d%n",
+                printer.printRecord(
                         s.getSectionId(),
                         s.getCourseId(),
-                        s.getTitle() != null ? s.getTitle().replace(",", ";") : "",
+                        s.getTitle(),
                         s.getFacultyId(),
                         s.getDayOfWeek() != null ? s.getDayOfWeek().name() : "",
                         s.getStartTime() != null ? s.getStartTime().toString() : "",
                         s.getEndTime() != null ? s.getEndTime().toString() : "",
-                        s.getLocation() != null ? s.getLocation().replace(",", ";") : "",
+                        s.getLocation(),
                         s.getCapacity(),
                         s.getEnrolledStudentIds().size(),
                         s.getSemester(),
@@ -214,9 +216,13 @@ public class BulkImportExportService {
      * Generate student import template CSV
      */
     public static void generateStudentTemplate(File csvFile) throws IOException {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFile))) {
-            writer.println("StudentID,FirstName,LastName,Email,Phone,DOB,Address,Course,Semester");
-            writer.println("S101,John,Doe,john.doe@example.com,1234567890,2000-01-01,123 Main St,CS,1");
+        try (Writer writer = new FileWriter(csvFile, StandardCharsets.UTF_8);
+                CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
+                        .setHeader("StudentID", "FirstName", "LastName", "Email", "Phone", "DOB", "Address", "Course",
+                                "Semester")
+                        .build())) {
+            printer.printRecord("S101", "John", "Doe", "john.doe@example.com", "1234567890", "2000-01-01",
+                    "123 Main St", "CS", "1");
         }
     }
 
@@ -224,9 +230,13 @@ public class BulkImportExportService {
      * Generate faculty import template CSV
      */
     public static void generateFacultyTemplate(File csvFile) throws IOException {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFile))) {
-            writer.println("FacultyID,FirstName,LastName,Email,Phone,Department,Designation,Qualification,Salary");
-            writer.println("F101,Jane,Smith,jane.smith@example.com,0987654321,CS,Professor,PhD,80000");
+        try (Writer writer = new FileWriter(csvFile, StandardCharsets.UTF_8);
+                CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
+                        .setHeader("FacultyID", "FirstName", "LastName", "Email", "Phone", "Department", "Designation",
+                                "Qualification", "Salary")
+                        .build())) {
+            printer.printRecord("F101", "Jane", "Smith", "jane.smith@example.com", "0987654321", "CS", "Professor",
+                    "PhD", "80000");
         }
     }
 }

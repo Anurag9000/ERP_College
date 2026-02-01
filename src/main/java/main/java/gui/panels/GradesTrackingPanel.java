@@ -145,11 +145,24 @@ public class GradesTrackingPanel extends JPanel {
         table.setFont(PastelTheme.BODY_FONT);
         table.setRowHeight(30);
 
-        // Mock data
-        model.addRow(new Object[] { "Fall 2023", 20, "8.5", "8.5" });
-        model.addRow(new Object[] { "Spring 2024", 22, "8.3", "8.4" });
-        model.addRow(new Object[] { "Fall 2024", 20, "8.6", "8.45" });
-        model.addRow(new Object[] { "Spring 2025 (Current)", 16, "8.72", "8.52" });
+        List<main.java.utils.DatabaseUtil.TermGpa> history = main.java.utils.DatabaseUtil
+                .getStudentGpaHistory(currentUser.getUsername());
+        double cumulativePoints = 0;
+        int count = 0;
+        for (main.java.utils.DatabaseUtil.TermGpa term : history) {
+            count++;
+            cumulativePoints += term.gpa();
+            model.addRow(new Object[] {
+                    term.termLabel(),
+                    "-", // Credits not directly available in TermGpa, could be added if needed
+                    String.format("%.2f", term.gpa()),
+                    String.format("%.2f", cumulativePoints / count)
+            });
+        }
+
+        if (history.isEmpty()) {
+            model.addRow(new Object[] { "No history available", 0, "0.00", "0.00" });
+        }
 
         card.add(new JScrollPane(table), BorderLayout.CENTER);
         return card;
