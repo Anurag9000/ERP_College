@@ -366,10 +366,6 @@ public class DatabaseUtil {
 
         ensureSettingDefault("maintenance", "false");
         ensureSettingDefault(MAINTENANCE_ORIGIN_KEY, "manual");
-        ensureSettingDefault(MAINTENANCE_WINDOW_KEY, "");
-
-        coursePrerequisiteCache.clear();
-    }
 
     private static void createSampleData() {
         if (getAuthUserDao().findByUsername("admin").isPresent()) {

@@ -1,6 +1,8 @@
 package main.java.service;
 
 import main.java.config.ConfigLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.time.LocalDateTime;
@@ -11,6 +13,7 @@ import java.time.format.DateTimeFormatter;
  */
 public class BackupRestoreService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(BackupRestoreService.class);
     private static final String BACKUP_DIR = "backups/";
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
 
@@ -68,7 +71,6 @@ public class BackupRestoreService {
         validateToolExists("mysqldump");
 
         ProcessBuilder pb = new ProcessBuilder(
-
                 "mysqldump",
                 "-h", host,
                 "-u", user,
@@ -95,7 +97,6 @@ public class BackupRestoreService {
         validateToolExists("mysql");
 
         ProcessBuilder pb = new ProcessBuilder(
-
                 "mysql",
                 "-h", host,
                 "-u", user,
@@ -120,7 +121,7 @@ public class BackupRestoreService {
         // different tables
         // For now, we'll just log the intent as we don't have secondary archive tables
         // yet.
-        System.out.println("Archiving data older than " + cutoff);
+        LOGGER.info("Archiving data older than {}", cutoff);
     }
 
     private static String parseHostFromUrl(String url) {
