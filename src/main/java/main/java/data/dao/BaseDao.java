@@ -20,7 +20,9 @@ public abstract class BaseDao {
 
     public Connection getConnection() throws SQLException {
         if (dataSource == null) {
-            throw new SQLException("DataSource not configured for " + getClass().getSimpleName());
+            String daoName = getClass().getSimpleName();
+            throw new SQLException("CRITICAL: DataSource is not configured for " + daoName +
+                    ". Verify your application.properties settings (jdbcUrl, username, password).");
         }
         Connection conn = dataSource.getConnection();
         if (conn == null || conn.isClosed()) {

@@ -17,14 +17,19 @@ public class AuthService {
     // Injected or statically retrieved DAO as per project pattern
     private static final AuthUserDao authUserDao = new AuthUserDao();
 
-    private static final int MAX_FAILED_ATTEMPTS = Integer.parseInt(
-            main.java.config.ConfigLoader.getOrDefault("auth.maxFailedAttempts", "5"));
-    private static final int LOCKOUT_MINUTES = Integer.parseInt(
-            main.java.config.ConfigLoader.getOrDefault("auth.lockoutMinutes", "15"));
-    private static final int PASSWORD_HISTORY_SIZE = Integer.parseInt(
-            main.java.config.ConfigLoader.getOrDefault("auth.passwordHistorySize", "5"));
-    private static final int LOCKOUT_INCREMENT_MINUTES = Integer.parseInt(
-            main.java.config.ConfigLoader.getOrDefault("auth.lockoutIncrement", "0"));
+    private static int getSafeIntConfig(String key, int defaultValue) {
+        try {
+            String val = main.java.config.ConfigLoader.get(key);
+            return val != null ? Integer.parseInt(val.trim()) : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    private static final int MAX_FAILED_ATTEMPTS = getSafeIntConfig("auth.maxFailedAttempts", 5);
+    private static final int LOCKOUT_MINUTES = getSafeIntConfig("auth.lockoutMinutes", 15);
+    private static final int PASSWORD_HISTORY_SIZE = getSafeIntConfig("auth.passwordHistorySize", 5);
+    private static final int LOCKOUT_INCREMENT_MINUTES = getSafeIntConfig("auth.lockoutIncrement", 0);
 
     public static User authenticateUser(String username, String password) {
         LocalDateTime now = LocalDateTime.now();

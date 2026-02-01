@@ -40,8 +40,7 @@ public class FeeInstallmentDao extends BaseDao {
             """;
 
     public FeeInstallmentDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public void insert(FeeInstallment installment) {

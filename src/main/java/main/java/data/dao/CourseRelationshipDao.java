@@ -19,8 +19,7 @@ public class CourseRelationshipDao extends BaseDao {
     private static final String INSERT_ANTIREQ = "INSERT INTO course_antirequisites (course_code, antirequisite_code) VALUES (?, ?)";
 
     public CourseRelationshipDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public List<String> findCorequisites(String courseCode) {

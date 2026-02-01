@@ -17,27 +17,27 @@ public class RegistrationRequestDao extends BaseDao {
     private static final String SELECT_BY_ID = "SELECT * FROM registration_requests WHERE id = ?";
 
     public RegistrationRequestDao() {
-        super(DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public void insert(String studentCode, String sectionCode, String requestedBy) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT)) {
             ps.setString(1, studentCode);
             ps.setString(2, sectionCode);
             ps.setString(3, "PENDING");
             ps.setString(4, requestedBy);
             ps.executeUpdate();
         } catch (SQLException ex) {
-            logger.error("Error inserting registration request {}:{} - {}", studentCode, sectionCode, ex.getMessage(), ex);
+            logger.error("Error inserting registration request {}:{} - {}", studentCode, sectionCode, ex.getMessage(),
+                    ex);
             throw new IllegalStateException("Unable to create registration request", ex);
         }
     }
 
     public void updateStatus(long id, String status, String decidedBy, String notes) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
             ps.setString(1, status);
             ps.setString(2, decidedBy);
             ps.setString(3, notes);
@@ -52,8 +52,8 @@ public class RegistrationRequestDao extends BaseDao {
     public List<RequestRecord> findPending() {
         List<RequestRecord> list = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_PENDING);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_PENDING);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 list.add(map(rs));
             }
@@ -65,7 +65,7 @@ public class RegistrationRequestDao extends BaseDao {
 
     public Optional<RequestRecord> findByStudentSection(String studentCode, String sectionCode) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_STUDENT_SECTION)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_STUDENT_SECTION)) {
             ps.setString(1, studentCode);
             ps.setString(2, sectionCode);
             try (ResultSet rs = ps.executeQuery()) {
@@ -74,14 +74,15 @@ public class RegistrationRequestDao extends BaseDao {
                 }
             }
         } catch (SQLException ex) {
-            logger.error("Error loading registration request {}:{} - {}", studentCode, sectionCode, ex.getMessage(), ex);
+            logger.error("Error loading registration request {}:{} - {}", studentCode, sectionCode, ex.getMessage(),
+                    ex);
         }
         return Optional.empty();
     }
 
     public Optional<RequestRecord> findById(long id) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_ID)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_ID)) {
             ps.setLong(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -108,13 +109,13 @@ public class RegistrationRequestDao extends BaseDao {
     }
 
     public record RequestRecord(long id,
-                                String studentCode,
-                                String sectionCode,
-                                String status,
-                                String requestedBy,
-                                String decidedBy,
-                                java.time.Instant decidedAt,
-                                String notes,
-                                java.time.Instant createdAt) {
+            String studentCode,
+            String sectionCode,
+            String status,
+            String requestedBy,
+            String decidedBy,
+            java.time.Instant decidedAt,
+            String notes,
+            java.time.Instant createdAt) {
     }
 }

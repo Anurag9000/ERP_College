@@ -56,7 +56,7 @@ try {
   const jars = dependencies.map(d => findJar(d.g, d.a, d.v)).filter(Boolean);
   console.log(`Found ${jars.length} of ${dependencies.length} required JARs in .m2 repo`);
 
-  const cp = ['src/main/java', 'classes', '.', ...jars].join(';');
+  const cp = ['src/main/java', 'src/main/resources', 'classes', '.', ...jars].join(';');
   const compileCommand = `javac -d classes -cp "${cp}" ${javaFiles.join(' ')}`;
 
   console.log('Compiling Java files...');

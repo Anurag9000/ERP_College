@@ -21,8 +21,7 @@ public class StudentDao extends BaseDao {
     private static final String DELETE = "DELETE FROM students WHERE student_code = ?";
 
     public StudentDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public List<Student> findAll() {

@@ -31,8 +31,7 @@ public class MaintenanceWindowDao extends BaseDao {
     private static final String DELETE = "DELETE FROM maintenance_windows WHERE id = ?";
 
     public MaintenanceWindowDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public List<MaintenanceWindow> findAll() {

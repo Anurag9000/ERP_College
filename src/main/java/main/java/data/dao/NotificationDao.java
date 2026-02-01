@@ -28,8 +28,7 @@ public class NotificationDao extends BaseDao {
     private static final String UPDATE_READ_SQL = "UPDATE notifications SET is_read = ?, read_at = ? WHERE id = ?";
 
     public NotificationDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public NotificationMessage insert(NotificationMessage notification) {

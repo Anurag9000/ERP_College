@@ -27,13 +27,12 @@ public class InstructorMessageDao extends BaseDao {
             """;
 
     public InstructorMessageDao() {
-        super(DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public void insert(String username, String sectionId, String subject, String body, String recipientIds) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
             ps.setString(1, username);
             ps.setString(2, sectionId);
             ps.setString(3, subject);
@@ -49,7 +48,7 @@ public class InstructorMessageDao extends BaseDao {
     public List<MessageLog> findByInstructor(String username) {
         List<MessageLog> results = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_INSTRUCTOR)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_INSTRUCTOR)) {
             ps.setString(1, username);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -70,16 +69,15 @@ public class InstructorMessageDao extends BaseDao {
                 rs.getString("subject"),
                 rs.getString("body"),
                 rs.getString("recipient_ids"),
-                rs.getTimestamp("created_at").toLocalDateTime()
-        );
+                rs.getTimestamp("created_at").toLocalDateTime());
     }
 
     public record MessageLog(long id,
-                             String instructorUsername,
-                             String sectionId,
-                             String subject,
-                             String body,
-                             String recipientIds,
-                             LocalDateTime createdAt) {
+            String instructorUsername,
+            String sectionId,
+            String subject,
+            String body,
+            String recipientIds,
+            LocalDateTime createdAt) {
     }
 }

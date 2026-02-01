@@ -20,14 +20,13 @@ public class AttendanceDao extends BaseDao {
     private static final String DELETE_SECTION_DATE = "DELETE FROM attendance_records WHERE section_code = ? AND attendance_date = ?";
 
     public AttendanceDao() {
-        super(DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public List<AttendanceRecord> findBySection(String sectionCode) {
         List<AttendanceRecord> list = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_SECTION)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_SECTION)) {
             ps.setString(1, sectionCode);
             try (ResultSet rs = ps.executeQuery()) {
                 java.util.LinkedHashMap<LocalDate, AttendanceRecord> map = new java.util.LinkedHashMap<>();
@@ -46,9 +45,14 @@ public class AttendanceDao extends BaseDao {
     }
 
     public void insert(AttendanceRecord record) {
+        var statusEntries = record.getStatusByStudent().entrySet();
+        if (statusEntries.isEmpty()) {
+            return;
+        }
+
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT)) {
-            for (var entry : record.getStatusByStudent().entrySet()) {
+                PreparedStatement ps = conn.prepareStatement(INSERT)) {
+            for (var entry : statusEntries) {
                 AttendanceStatus status = entry.getValue() == null ? AttendanceStatus.ABSENT : entry.getValue();
                 ps.setString(1, record.getSectionId());
                 ps.setDate(2, Date.valueOf(record.getDate()));
@@ -58,6 +62,7 @@ public class AttendanceDao extends BaseDao {
                 ps.addBatch();
             }
             ps.executeBatch();
+
         } catch (SQLException ex) {
             logger.error("Error inserting attendance for section {}: {}", record.getSectionId(), ex.getMessage(), ex);
             throw new IllegalStateException("Unable to insert attendance", ex);
@@ -76,7 +81,7 @@ public class AttendanceDao extends BaseDao {
 
     public void deleteBySectionAndDate(String sectionCode, LocalDate date) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE_SECTION_DATE)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE_SECTION_DATE)) {
             ps.setString(1, sectionCode);
             ps.setDate(2, Date.valueOf(date));
             ps.executeUpdate();
@@ -87,7 +92,7 @@ public class AttendanceDao extends BaseDao {
 
     public void deleteBySection(String sectionCode) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE_SECTION)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE_SECTION)) {
             ps.setString(1, sectionCode);
             ps.executeUpdate();
         } catch (SQLException ex) {

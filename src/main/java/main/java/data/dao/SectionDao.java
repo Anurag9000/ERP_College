@@ -30,8 +30,7 @@ public class SectionDao extends BaseDao {
     private static final String INSERT_ASSESSMENT = "INSERT INTO section_assessments (section_code, component, weight) VALUES (?, ?, ?)";
 
     public SectionDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public List<Section> findAll() {

@@ -3,13 +3,13 @@ package main.java.gui.panels;
 import main.java.gui.components.JCard;
 import main.java.gui.style.PastelTheme;
 import main.java.models.*;
+import main.java.service.GradebookService;
 import main.java.utils.DatabaseUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -294,7 +294,8 @@ public class ReportsPanel extends JPanel {
 
                 List<Section> sections = DatabaseUtil.getAllSections();
                 for (Section s : sections) {
-                        List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForSection(s.getSectionId());
+                        List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentDao()
+                                        .findBySection(s.getSectionId());
                         if (enrollments.isEmpty())
                                 continue;
 
@@ -316,7 +317,7 @@ public class ReportsPanel extends JPanel {
                                 totalScore += score;
                                 counted++;
 
-                                double points = DatabaseUtil.calculateRelativePoints(score, s.getSectionId());
+                                double points = GradebookService.calculateRelativePoints(score, s.getSectionId());
                                 if (points >= 9.0)
                                         aPlus++;
                                 else if (points >= 8.0)

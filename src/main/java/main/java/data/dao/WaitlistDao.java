@@ -15,8 +15,7 @@ public class WaitlistDao extends BaseDao {
     private static final String DELETE_SECTION = "DELETE FROM section_waitlist WHERE section_code = ?";
 
     public WaitlistDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public List<String> findWaitlist(String sectionCode) {

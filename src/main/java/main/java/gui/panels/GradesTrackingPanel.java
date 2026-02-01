@@ -5,6 +5,7 @@ import main.java.gui.style.PastelTheme;
 import main.java.models.EnrollmentRecord;
 import main.java.models.Section;
 import main.java.models.User;
+import main.java.service.GradebookService;
 import main.java.service.StudentService;
 import main.java.utils.DatabaseUtil;
 
@@ -116,7 +117,7 @@ public class GradesTrackingPanel extends JPanel {
                 score = s.computeFinalScore(rec.getComponentScores());
             }
 
-            double points = DatabaseUtil.calculateRelativePoints(score, s.getSectionId());
+            double points = GradebookService.calculateRelativePoints(score, s.getSectionId());
             model.addRow(new Object[] {
                     s.getTitle(),
                     DatabaseUtil.getCourseCreditHours(s.getCourseId()),

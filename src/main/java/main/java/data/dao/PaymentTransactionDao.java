@@ -40,8 +40,7 @@ public class PaymentTransactionDao extends BaseDao {
             """;
 
     public PaymentTransactionDao() {
-        super(DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public void insert(PaymentTransaction transaction) {

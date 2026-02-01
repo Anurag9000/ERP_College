@@ -27,8 +27,7 @@ public class EnrollmentDao extends BaseDao {
     private static final String INSERT_GRADE = "INSERT INTO grades (enrollment_id, component, score, feedback) VALUES (?, ?, ?, ?)";
 
     public EnrollmentDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public List<EnrollmentRecord> findByStudent(String studentCode) {

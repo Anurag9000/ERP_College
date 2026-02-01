@@ -17,12 +17,12 @@ import java.util.Optional;
  */
 public class NotificationPreferenceDao extends BaseDao {
     private static final String SELECT_SQL = "SELECT user_id, digest_frequency, digest_hour, email_enabled, sms_enabled, updated_at FROM notification_preferences WHERE user_id = ?";
-    private static final String UPSERT_SQL = "INSERT INTO notification_preferences (user_id, digest_frequency, digest_hour, email_enabled, sms_enabled) VALUES (?, ?, ?, ?, ?) " +
+    private static final String UPSERT_SQL = "INSERT INTO notification_preferences (user_id, digest_frequency, digest_hour, email_enabled, sms_enabled) VALUES (?, ?, ?, ?, ?) "
+            +
             "ON DUPLICATE KEY UPDATE digest_frequency = VALUES(digest_frequency), digest_hour = VALUES(digest_hour), email_enabled = VALUES(email_enabled), sms_enabled = VALUES(sms_enabled), updated_at = CURRENT_TIMESTAMP";
 
     public NotificationPreferenceDao() {
-        super(DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public Optional<NotificationPreference> findByUserId(String userId) {
@@ -30,7 +30,7 @@ public class NotificationPreferenceDao extends BaseDao {
             return Optional.empty();
         }
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_SQL)) {
             ps.setString(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -45,7 +45,7 @@ public class NotificationPreferenceDao extends BaseDao {
 
     public NotificationPreference upsert(NotificationPreference preference) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPSERT_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(UPSERT_SQL)) {
             ps.setString(1, preference.getUserId());
             ps.setString(2, preference.getDigestFrequency().name());
             ps.setInt(3, preference.getDigestHour());
@@ -53,7 +53,8 @@ public class NotificationPreferenceDao extends BaseDao {
             ps.setBoolean(5, preference.isSmsEnabled());
             ps.executeUpdate();
         } catch (SQLException ex) {
-            logger.error("Error saving notification preference for {}: {}", preference.getUserId(), ex.getMessage(), ex);
+            logger.error("Error saving notification preference for {}: {}", preference.getUserId(), ex.getMessage(),
+                    ex);
             throw new IllegalStateException("Unable to save notification preference", ex);
         }
         return findByUserId(preference.getUserId()).orElse(preference);
@@ -68,7 +69,6 @@ public class NotificationPreferenceDao extends BaseDao {
                 rs.getBoolean("sms_enabled"),
                 Optional.ofNullable(rs.getTimestamp("updated_at"))
                         .map(Timestamp::toLocalDateTime)
-                        .orElse(LocalDateTime.now())
-        );
+                        .orElse(LocalDateTime.now()));
     }
 }

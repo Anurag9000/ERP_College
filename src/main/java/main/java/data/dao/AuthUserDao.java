@@ -28,8 +28,7 @@ public class AuthUserDao extends BaseDao {
     private static final String UPDATE_PASSWORD = "UPDATE users SET password_hash = ?, salt = ?, must_change_password = ?, failed_attempts = 0, locked_until = NULL WHERE id = ?";
 
     public AuthUserDao() {
-        super(main.java.config.DataSourceRegistry.authDataSource()
-                .orElseThrow(() -> new IllegalStateException("Auth datasource is not configured.")));
+        super(main.java.config.DataSourceRegistry.authDataSource().orElse(null));
     }
 
     public Optional<User> findByUsername(String username) {

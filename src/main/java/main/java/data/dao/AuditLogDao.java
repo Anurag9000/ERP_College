@@ -25,8 +25,7 @@ public class AuditLogDao extends BaseDao {
             "ORDER BY created_at DESC";
 
     public AuditLogDao() {
-        super(DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public void insert(AuditLogService.AuditEvent event) {

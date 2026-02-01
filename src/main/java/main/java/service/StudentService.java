@@ -59,8 +59,8 @@ public final class StudentService {
         return "F";
     }
 
-    public static double calculatePoints(double score) {
-        return DatabaseUtil.calculateRelativePoints(score, null);
+    public static double calculatePoints(double score, String sectionId) {
+        return GradebookService.calculateRelativePoints(score, sectionId);
     }
 
     public static int getTotalCredits(String studentId) {
@@ -90,7 +90,8 @@ public final class StudentService {
         int totalCredits = 0;
 
         for (EnrollmentRecord rec : enrollments) {
-            if (rec.getStatus() != EnrollmentRecord.Status.ENROLLED)
+            // Only include ENROLLED courses that have been graded (finalGrade >= 0)
+            if (rec.getStatus() != EnrollmentRecord.Status.ENROLLED || rec.getFinalGrade() < 0)
                 continue;
 
             Section section = DatabaseUtil.getSection(rec.getSectionId());
@@ -103,7 +104,7 @@ public final class StudentService {
             }
 
             int credits = DatabaseUtil.getCourseCreditHours(section.getCourseId());
-            double points = calculatePoints(rec.getFinalGrade());
+            double points = calculatePoints(rec.getFinalGrade(), rec.getSectionId());
             totalPoints += points * credits;
             totalCredits += credits;
         }

@@ -4,7 +4,6 @@ import main.java.data.dao.AssessmentTemplateDao;
 import main.java.models.EnrollmentRecord;
 import main.java.models.Faculty;
 import main.java.models.Section;
-import main.java.models.Student;
 import main.java.models.User;
 import main.java.utils.AuditLogService;
 import main.java.utils.DatabaseUtil;
@@ -16,7 +15,6 @@ import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -175,7 +173,7 @@ public final class GradebookService {
             min = Math.min(min, grade);
             max = Math.max(max, grade);
 
-            double points = DatabaseUtil.calculateRelativePoints(grade, sectionId);
+            double points = calculateRelativePoints(grade, sectionId);
             if (points >= 4.0) {
                 passCount++;
             } else {
@@ -278,6 +276,82 @@ public final class GradebookService {
         }
     }
 
+    public static double calculateRelativePoints(double score, String sectionId) {
+        if (sectionId == null || sectionId.isBlank()) {
+            return calculateAbsolutePoints(score);
+        }
+
+        List<main.java.models.EnrollmentRecord> allRecords = main.java.utils.DatabaseUtil.getEnrollmentDao()
+                .findBySection(sectionId);
+        if (allRecords == null || allRecords.isEmpty()) {
+            return calculateAbsolutePoints(score);
+        }
+
+        List<Double> scores = allRecords.stream()
+                .filter(r -> r.getStatus() == main.java.models.EnrollmentRecord.Status.ENROLLED)
+                .map(r -> {
+                    double sg = r.getFinalGrade();
+                    // If not graded but has scores, compute a temporary final for relative basis
+                    if (sg < 0 && !r.getComponentScores().isEmpty()) {
+                        main.java.models.Section s = main.java.utils.DatabaseUtil.getSection(sectionId);
+                        return s != null ? s.computeFinalScore(r.getComponentScores()) : -1.0;
+                    }
+                    return sg;
+                })
+                .filter(s -> s >= 0) // Only include graded or computable scores
+                .collect(Collectors.toList());
+
+        if (scores.size() < 3) {
+            return calculateAbsolutePoints(score);
+        }
+
+        double sum = scores.stream().mapToDouble(Double::doubleValue).sum();
+        double mean = sum / scores.size();
+
+        double sqSum = scores.stream().mapToDouble(s -> Math.pow(s - mean, 2)).sum();
+
+        // Use sample standard deviation (n-1) for better estimation in small classes
+        double stdDev = Math.sqrt(sqSum / (scores.size() - 1));
+
+        // Minimum floor for stdDev to avoid extreme grading in very uniform classes
+        stdDev = Math.max(stdDev, 2.0);
+
+        if (score >= mean + 1.5 * stdDev)
+            return 10.0;
+        if (score >= mean + 1.0 * stdDev)
+            return 9.0;
+        if (score >= mean + 0.5 * stdDev)
+            return 8.0;
+        if (score >= mean)
+            return 7.0;
+        if (score >= mean - 0.5 * stdDev)
+            return 6.0;
+        if (score >= mean - 1.0 * stdDev)
+            return 5.0;
+        if (score >= mean - 1.5 * stdDev)
+            return 4.0;
+
+        return 2.0; // Fail
+    }
+
+    public static double calculateAbsolutePoints(double score) {
+        if (score >= 90)
+            return 10.0;
+        if (score >= 80)
+            return 9.0;
+        if (score >= 70)
+            return 8.0;
+        if (score >= 60)
+            return 7.0;
+        if (score >= 50)
+            return 6.0;
+        if (score >= 40)
+            return 5.0;
+        if (score >= 33)
+            return 4.0;
+        return 2.0;
+    }
+
     private static EnrollmentRecord locateEnrollment(String sectionId, String studentId) {
         EnrollmentRecord record = DatabaseUtil.getEnrollment(sectionId, studentId);
         if (record == null) {
@@ -287,7 +361,7 @@ public final class GradebookService {
     }
 
     private static String bucketFor(double grade, String sectionId) {
-        double points = DatabaseUtil.calculateRelativePoints(grade, sectionId);
+        double points = calculateRelativePoints(grade, sectionId);
         if (points >= 10.0)
             return "O (1.5σ+)";
         if (points >= 9.0)

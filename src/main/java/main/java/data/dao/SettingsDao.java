@@ -16,8 +16,7 @@ public class SettingsDao extends BaseDao {
             "ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)";
 
     public SettingsDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public Map<String, String> findAll() {

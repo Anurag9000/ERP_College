@@ -19,11 +19,13 @@ public final class ConfigLoader {
         try (InputStream in = ConfigLoader.class.getResourceAsStream(DEFAULT_RESOURCE)) {
             if (in != null) {
                 PROPERTIES.load(in);
+                LOGGER.info("Configured application settings from classpath:{}", DEFAULT_RESOURCE);
             } else {
-                LOGGER.warn("Configuration file {} not found on classpath.", DEFAULT_RESOURCE);
+                LOGGER.error("CRITICAL: Configuration file {} not found on classpath. Database connectivity will fail.",
+                        DEFAULT_RESOURCE);
             }
         } catch (IOException e) {
-            LOGGER.error("Unable to load configuration from {}", DEFAULT_RESOURCE, e);
+            LOGGER.error("CRITICAL: Unable to load configuration from {}: {}", DEFAULT_RESOURCE, e.getMessage(), e);
         }
     }
 
@@ -32,6 +34,14 @@ public final class ConfigLoader {
 
     public static String get(String key) {
         return PROPERTIES.getProperty(key);
+    }
+
+    public static String getRequired(String key) {
+        String val = get(key);
+        if (val == null) {
+            throw new IllegalStateException("Missing required configuration property: " + key);
+        }
+        return val;
     }
 
     public static String getOrDefault(String key, String defaultValue) {

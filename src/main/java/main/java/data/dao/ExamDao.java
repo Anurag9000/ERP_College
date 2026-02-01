@@ -9,8 +9,7 @@ import java.util.List;
 public class ExamDao extends BaseDao {
 
     public ExamDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public void submitExamForm(ExamForm form) {

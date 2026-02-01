@@ -88,6 +88,21 @@ public final class DataSourceRegistry {
         return dataSource(ERP_KEY);
     }
 
+    public static boolean isAvailable(String key) {
+        return DATA_SOURCES.containsKey(key);
+    }
+
+    public static boolean testConnection(String key) {
+        return dataSource(key).map(ds -> {
+            try (java.sql.Connection conn = ds.getConnection()) {
+                return conn.isValid(5);
+            } catch (java.sql.SQLException e) {
+                LOGGER.error("Connection test failed for {}: {}", key, e.getMessage());
+                return false;
+            }
+        }).orElse(false);
+    }
+
     public static void shutdownAll() {
         DATA_SOURCES.values().forEach(ds -> {
             try {

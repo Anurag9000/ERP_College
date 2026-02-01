@@ -85,37 +85,37 @@ public class DatabaseUtil {
     private static AuditLogDao auditLogDao;
 
     // Getters with lazy initialization
-    private static AuthUserDao getAuthUserDao() {
+    public static synchronized AuthUserDao getAuthUserDao() {
         if (authUserDao == null)
             authUserDao = new AuthUserDao();
         return authUserDao;
     }
 
-    private static StudentDao getStudentDao() {
+    public static synchronized StudentDao getStudentDao() {
         if (studentDao == null)
             studentDao = new StudentDao();
         return studentDao;
     }
 
-    private static CourseDao getCourseDao() {
+    public static synchronized CourseDao getCourseDao() {
         if (courseDao == null)
             courseDao = new CourseDao();
         return courseDao;
     }
 
-    private static InstructorDao getInstructorDao() {
+    public static synchronized InstructorDao getInstructorDao() {
         if (instructorDao == null)
             instructorDao = new InstructorDao();
         return instructorDao;
     }
 
-    private static SectionDao getSectionDao() {
+    public static synchronized SectionDao getSectionDao() {
         if (sectionDao == null)
             sectionDao = new SectionDao();
         return sectionDao;
     }
 
-    private static EnrollmentDao getEnrollmentDao() {
+    public static synchronized EnrollmentDao getEnrollmentDao() {
         if (enrollmentDao == null)
             enrollmentDao = new EnrollmentDao();
         return enrollmentDao;
@@ -125,91 +125,91 @@ public class DatabaseUtil {
         return getEnrollmentDao().findBySectionAndStudent(sectionId, studentId);
     }
 
-    private static WaitlistDao getWaitlistDao() {
+    public static synchronized WaitlistDao getWaitlistDao() {
         if (waitlistDao == null)
             waitlistDao = new WaitlistDao();
         return waitlistDao;
     }
 
-    private static AttendanceDao getAttendanceDao() {
+    public static synchronized AttendanceDao getAttendanceDao() {
         if (attendanceDao == null)
             attendanceDao = new AttendanceDao();
         return attendanceDao;
     }
 
-    private static NotificationDao getNotificationDao() {
+    public static synchronized NotificationDao getNotificationDao() {
         if (notificationDao == null)
             notificationDao = new NotificationDao();
         return notificationDao;
     }
 
-    private static SettingsDao getSettingsDao() {
+    public static synchronized SettingsDao getSettingsDao() {
         if (settingsDao == null)
             settingsDao = new SettingsDao();
         return settingsDao;
     }
 
-    private static CoursePrerequisiteDao getCoursePrerequisiteDao() {
+    public static synchronized CoursePrerequisiteDao getCoursePrerequisiteDao() {
         if (coursePrerequisiteDao == null)
             coursePrerequisiteDao = new CoursePrerequisiteDao();
         return coursePrerequisiteDao;
     }
 
-    private static CourseRelationshipDao getCourseRelationshipDao() {
+    public static synchronized CourseRelationshipDao getCourseRelationshipDao() {
         if (courseRelationshipDao == null)
             courseRelationshipDao = new CourseRelationshipDao();
         return courseRelationshipDao;
     }
 
-    private static AssessmentTemplateDao getAssessmentTemplateDao() {
+    public static synchronized AssessmentTemplateDao getAssessmentTemplateDao() {
         if (assessmentTemplateDao == null)
             assessmentTemplateDao = new AssessmentTemplateDao();
         return assessmentTemplateDao;
     }
 
-    private static PaymentTransactionDao getPaymentTransactionDao() {
+    public static synchronized PaymentTransactionDao getPaymentTransactionDao() {
         if (paymentTransactionDao == null)
             paymentTransactionDao = new PaymentTransactionDao();
         return paymentTransactionDao;
     }
 
-    private static FeeInstallmentDao getFeeInstallmentDao() {
+    public static synchronized FeeInstallmentDao getFeeInstallmentDao() {
         if (feeInstallmentDao == null)
             feeInstallmentDao = new FeeInstallmentDao();
         return feeInstallmentDao;
     }
 
-    private static RegistrationRequestDao getRegistrationRequestDao() {
+    public static synchronized RegistrationRequestDao getRegistrationRequestDao() {
         if (registrationRequestDao == null)
             registrationRequestDao = new RegistrationRequestDao();
         return registrationRequestDao;
     }
 
-    private static InstructorMessageDao getInstructorMessageDao() {
+    public static synchronized InstructorMessageDao getInstructorMessageDao() {
         if (instructorMessageDao == null)
             instructorMessageDao = new InstructorMessageDao();
         return instructorMessageDao;
     }
 
-    private static FeeScheduleTemplateDao getFeeScheduleTemplateDao() {
+    public static synchronized FeeScheduleTemplateDao getFeeScheduleTemplateDao() {
         if (feeScheduleTemplateDao == null)
             feeScheduleTemplateDao = new FeeScheduleTemplateDao();
         return feeScheduleTemplateDao;
     }
 
-    private static MaintenanceWindowDao getMaintenanceWindowDaoInternal() {
+    public static synchronized MaintenanceWindowDao getMaintenanceWindowDaoInternal() {
         if (maintenanceWindowDao == null)
             maintenanceWindowDao = new MaintenanceWindowDao();
         return maintenanceWindowDao;
     }
 
-    private static NotificationPreferenceDao getNotificationPreferenceDao() {
+    public static synchronized NotificationPreferenceDao getNotificationPreferenceDao() {
         if (notificationPreferenceDao == null)
             notificationPreferenceDao = new NotificationPreferenceDao();
         return notificationPreferenceDao;
     }
 
-    private static AuditLogDao getAuditLogDaoInternal() {
+    public static synchronized AuditLogDao getAuditLogDaoInternal() {
         if (auditLogDao == null)
             auditLogDao = new AuditLogDao();
         return auditLogDao;
@@ -2439,7 +2439,7 @@ public class DatabaseUtil {
                         double score = record.getFinalGrade();
 
                         // Use centralized relative grading logic
-                        double points = calculateRelativePoints(score, record.getSectionId());
+                        double points = GradebookService.calculateRelativePoints(score, record.getSectionId());
 
                         totalPoints += points * credits;
                         totalCredits += credits;
@@ -2449,80 +2449,6 @@ public class DatabaseUtil {
                     return new TermGpa(entry.getKey().label(), gpa, probation);
                 })
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Calculates points on a 10-point scale using relative grading (Mean-Sigma)
-     * Centralized in DatabaseUtil to avoid service-layer circular dependencies.
-     */
-    public static double calculateRelativePoints(double score, String sectionId) {
-        List<EnrollmentRecord> allRecords = getEnrollmentsForSection(sectionId);
-        if (allRecords == null || allRecords.isEmpty()) {
-            return calculateAbsolutePoints(score);
-        }
-
-        List<Double> scores = allRecords.stream()
-                .filter(r -> r.getStatus() == EnrollmentRecord.Status.ENROLLED)
-                .map(r -> {
-                    double sg = r.getFinalGrade();
-                    if (sg <= 0 && !r.getComponentScores().isEmpty()) {
-                        Section s = getSection(sectionId);
-                        return s != null ? s.computeFinalScore(r.getComponentScores()) : 0.0;
-                    }
-                    return sg;
-                })
-                .collect(Collectors.toList());
-
-        if (scores.size() < 3) {
-            return calculateAbsolutePoints(score);
-        }
-
-        double sum = 0;
-        for (double s : scores)
-            sum += s;
-        double mean = sum / scores.size();
-
-        double sqSum = 0;
-        for (double s : scores)
-            sqSum += Math.pow(s - mean, 2);
-        double stdDev = Math.sqrt(sqSum / scores.size());
-
-        stdDev = Math.max(stdDev, 5.0);
-
-        if (score >= mean + 1.5 * stdDev)
-            return 10.0;
-        if (score >= mean + 1.0 * stdDev)
-            return 9.0;
-        if (score >= mean + 0.5 * stdDev)
-            return 8.0;
-        if (score >= mean)
-            return 7.0;
-        if (score >= mean - 0.5 * stdDev)
-            return 6.0;
-        if (score >= mean - 1.0 * stdDev)
-            return 5.0;
-        if (score >= mean - 1.5 * stdDev)
-            return 4.0;
-
-        return 2.0; // Fail (per user request)
-    }
-
-    private static double calculateAbsolutePoints(double score) {
-        if (score >= 90)
-            return 10.0;
-        if (score >= 80)
-            return 9.0;
-        if (score >= 70)
-            return 8.0;
-        if (score >= 60)
-            return 7.0;
-        if (score >= 50)
-            return 6.0;
-        if (score >= 40)
-            return 5.0;
-        if (score >= 33)
-            return 4.0;
-        return 2.0;
     }
 
     private record TermKey(int year, String semester) {

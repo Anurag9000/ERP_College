@@ -37,8 +37,13 @@ public class BulkImportExportService {
 
             for (CSVRecord record : parser) {
                 try {
+                    String studentId = record.get("StudentID");
+                    if (studentId == null || studentId.isBlank()) {
+                        throw new IllegalArgumentException("StudentID is missing");
+                    }
+
                     Student student = new Student();
-                    student.setStudentId(record.get("StudentID"));
+                    student.setStudentId(studentId.trim());
                     student.setFirstName(record.get("FirstName"));
                     student.setLastName(record.get("LastName"));
                     student.setEmail(record.get("Email"));
@@ -46,16 +51,27 @@ public class BulkImportExportService {
 
                     String dobStr = record.get("DOB");
                     if (dobStr != null && !dobStr.isBlank()) {
-                        student.setDateOfBirth(LocalDate.parse(dobStr, DATE_FORMAT));
+                        try {
+                            student.setDateOfBirth(LocalDate.parse(dobStr.trim(), DATE_FORMAT));
+                        } catch (Exception e) {
+                            throw new IllegalArgumentException("Invalid DOB format. Expected yyyy-MM-dd");
+                        }
                     }
 
                     student.setAddress(record.get("Address"));
                     student.setCourse(record.get("Course"));
-                    student.setSemester(Integer.parseInt(record.get("Semester")));
+
+                    String semStr = record.get("Semester");
+                    if (semStr != null && !semStr.isBlank()) {
+                        student.setSemester(Integer.parseInt(semStr.trim()));
+                    } else {
+                        student.setSemester(1); // Default
+                    }
 
                     DatabaseUtil.addStudent(student);
                 } catch (Exception e) {
-                    errors.add("Line " + record.getRecordNumber() + ": " + e.getMessage());
+                    errors.add("Line " + record.getRecordNumber() + " (" + record.get("StudentID") + "): "
+                            + e.getMessage());
                 }
             }
         }
@@ -99,8 +115,13 @@ public class BulkImportExportService {
 
             for (CSVRecord record : parser) {
                 try {
+                    String facultyId = record.get("FacultyID");
+                    if (facultyId == null || facultyId.isBlank()) {
+                        throw new IllegalArgumentException("FacultyID is missing");
+                    }
+
                     Faculty faculty = new Faculty();
-                    faculty.setFacultyId(record.get("FacultyID"));
+                    faculty.setFacultyId(facultyId.trim());
                     faculty.setFirstName(record.get("FirstName"));
                     faculty.setLastName(record.get("LastName"));
                     faculty.setEmail(record.get("Email"));
@@ -108,11 +129,22 @@ public class BulkImportExportService {
                     faculty.setDepartment(record.get("Department"));
                     faculty.setDesignation(record.get("Designation"));
                     faculty.setQualification(record.get("Qualification"));
-                    faculty.setSalary(Double.parseDouble(record.get("Salary")));
+
+                    String salaryStr = record.get("Salary");
+                    if (salaryStr != null && !salaryStr.isBlank()) {
+                        try {
+                            faculty.setSalary(Double.parseDouble(salaryStr.trim()));
+                        } catch (NumberFormatException e) {
+                            throw new IllegalArgumentException("Invalid salary format. Expected numeric value.");
+                        }
+                    } else {
+                        faculty.setSalary(0.0);
+                    }
 
                     DatabaseUtil.addFaculty(faculty);
                 } catch (Exception e) {
-                    errors.add("Line " + record.getRecordNumber() + ": " + e.getMessage());
+                    errors.add("Line " + record.getRecordNumber() + " (" + record.get("FacultyID") + "): "
+                            + e.getMessage());
                 }
             }
         }

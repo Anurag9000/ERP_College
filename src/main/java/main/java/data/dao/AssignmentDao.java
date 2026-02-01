@@ -4,15 +4,13 @@ import main.java.models.Assignment;
 import main.java.models.AssignmentSubmission;
 
 import java.sql.*;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class AssignmentDao extends BaseDao {
 
     public AssignmentDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public void insertAssignment(Assignment assignment) {

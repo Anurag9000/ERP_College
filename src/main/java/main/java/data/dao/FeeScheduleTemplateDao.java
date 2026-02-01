@@ -7,7 +7,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class FeeScheduleTemplateDao extends BaseDao {
     private static final String SELECT_BY_COURSE = "SELECT id, course_code, label, amount, offset_days FROM fee_schedule_templates WHERE course_code = ? ORDER BY offset_days";
@@ -16,14 +15,13 @@ public class FeeScheduleTemplateDao extends BaseDao {
     private static final String DELETE = "DELETE FROM fee_schedule_templates WHERE id = ?";
 
     public FeeScheduleTemplateDao() {
-        super(DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public List<TemplateRecord> findByCourse(String courseCode) {
         List<TemplateRecord> list = new ArrayList<>();
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_COURSE)) {
+                PreparedStatement ps = conn.prepareStatement(SELECT_BY_COURSE)) {
             ps.setString(1, courseCode);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -38,7 +36,7 @@ public class FeeScheduleTemplateDao extends BaseDao {
 
     public TemplateRecord insert(String courseCode, String label, double amount, int offsetDays) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement ps = conn.prepareStatement(INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, courseCode);
             ps.setString(2, label);
             ps.setDouble(3, amount);
@@ -58,7 +56,7 @@ public class FeeScheduleTemplateDao extends BaseDao {
 
     public void update(long id, String label, double amount, int offsetDays) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             ps.setString(1, label);
             ps.setDouble(2, amount);
             ps.setInt(3, offsetDays);
@@ -72,7 +70,7 @@ public class FeeScheduleTemplateDao extends BaseDao {
 
     public void delete(long id) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setLong(1, id);
             ps.executeUpdate();
         } catch (SQLException ex) {

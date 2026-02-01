@@ -16,8 +16,7 @@ public class CoursePrerequisiteDao extends BaseDao {
     private static final String INSERT = "INSERT INTO course_prerequisites (course_code, prerequisite_code) VALUES (?, ?)";
 
     public CoursePrerequisiteDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public List<String> findPrerequisites(String courseCode) {

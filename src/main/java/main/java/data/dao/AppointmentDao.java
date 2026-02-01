@@ -5,15 +5,13 @@ import main.java.models.OfficeHour;
 
 import java.sql.*;
 import java.time.DayOfWeek;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class AppointmentDao extends BaseDao {
 
     public AppointmentDao() {
-        super(main.java.config.DataSourceRegistry.erpDataSource()
-                .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
+        super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
     public void insertAppointment(Appointment apt) {
