@@ -367,12 +367,15 @@ public class DatabaseUtil {
         ensureSettingDefault("maintenance", "false");
         ensureSettingDefault(MAINTENANCE_ORIGIN_KEY, "manual");
 
+    }
+
     private static void createSampleData() {
         if (getAuthUserDao().findByUsername("admin").isPresent()) {
             return;
         }
         // Create default accounts with policy-compliant passwords
-        addUser("admin", "Admin", "Administrator", "admin@college.edu", "Admin@12345");
+        String adminPass = ConfigLoader.getOrDefault("admin.default.password", "Admin@12345");
+        addUser("admin", "Admin", "Administrator", "admin@college.edu", adminPass);
         addUser("inst1", "Instructor", "John Smith", "john.smith@college.edu", "Instructor@123");
         addUser("stu1", "Student", "Alice Johnson", "alice.johnson@student.college.edu", "Student@1231");
         addUser("stu2", "Student", "Bob Williams", "bob.williams@student.college.edu", "Student@1232");
