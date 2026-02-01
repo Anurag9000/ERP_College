@@ -1073,13 +1073,11 @@ public class DatabaseUtil {
 
     public static List<CapacityWarning> findCapacityWarnings() {
         List<CapacityWarning> warnings = new ArrayList<>();
+        Map<String, Long> enrollmentCounts = getEnrollmentDao().countEnrolledBySections();
         for (Section section : getAllSections()) {
-            int enrolled = getEnrollmentDao().findBySection(section.getSectionId()).stream()
-                    .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
-                    .mapToInt(rec -> 1)
-                    .sum();
+            long enrolled = enrollmentCounts.getOrDefault(section.getSectionId(), 0L);
             if (enrolled > section.getCapacity()) {
-                warnings.add(new CapacityWarning(section.getSectionId(), section.getCapacity(), enrolled));
+                warnings.add(new CapacityWarning(section.getSectionId(), section.getCapacity(), (int) enrolled));
             }
         }
         return warnings;
@@ -1155,6 +1153,14 @@ public class DatabaseUtil {
 
     public static void updateEnrollment(EnrollmentRecord record) {
         getEnrollmentDao().update(record);
+    }
+
+    public static boolean isStudentEnrolledInCourse(String studentId, String courseId) {
+        return getEnrollmentDao().findByStudent(studentId).stream()
+                .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .map(rec -> getSection(rec.getSectionId()))
+                .filter(Objects::nonNull)
+                .anyMatch(section -> section.getCourseId().equals(courseId));
     }
 
     public static List<EnrollmentRecord> getEnrollmentsForSection(String sectionId) {
@@ -1293,33 +1299,29 @@ public class DatabaseUtil {
     }
 
     private static void enforceRoomScheduleClash(Section candidate) {
-        if (candidate.getLocation() == null || candidate.getLocation().isBlank()) {
+        if (candidate.getLocation() == null || candidate.getLocation().isBlank()
+                || candidate.getDayOfWeek() == null || candidate.getStartTime() == null
+                || candidate.getEndTime() == null) {
             return;
         }
-        for (Section existing : getSectionDao().findAll()) {
+        List<Section> conflicts = getSectionDao().findByLocationAndSchedule(
+                candidate.getLocation(),
+                candidate.getDayOfWeek(),
+                candidate.getStartTime(),
+                candidate.getEndTime());
+
+        for (Section existing : conflicts) {
             if (existing.getSectionId().equalsIgnoreCase(candidate.getSectionId())) {
                 continue;
             }
-            if (roomsConflict(existing, candidate)) {
-                throw new IllegalStateException(String.format(
-                        "Room %s is already in use by %s (%s %s-%s).",
-                        existing.getLocation(),
-                        existing.getSectionId(),
-                        existing.getDayOfWeek(),
-                        existing.getStartTime(),
-                        existing.getEndTime()));
-            }
+            throw new IllegalStateException(String.format(
+                    "Room %s is already in use by %s (%s %s-%s).",
+                    existing.getLocation(),
+                    existing.getSectionId(),
+                    existing.getDayOfWeek(),
+                    existing.getStartTime(),
+                    existing.getEndTime()));
         }
-    }
-
-    private static boolean roomsConflict(Section a, Section b) {
-        if (a.getLocation() == null || b.getLocation() == null) {
-            return false;
-        }
-        if (!a.getLocation().equalsIgnoreCase(b.getLocation())) {
-            return false;
-        }
-        return overlaps(a, b);
     }
 
     public static synchronized void dropStudentFromSection(String studentId, String sectionId) {
@@ -2169,7 +2171,8 @@ public class DatabaseUtil {
                 ? "Scheduled infrastructure maintenance"
                 : message.trim();
 
-        MaintenanceWindow window = getMaintenanceWindowDaoInternal().insert(start, end, safeMessage, status, actor.getUsername())
+        MaintenanceWindow window = getMaintenanceWindowDaoInternal()
+                .insert(start, end, safeMessage, status, actor.getUsername())
                 .orElseThrow(() -> new IllegalStateException("Unable to persist maintenance window"));
 
         maintenanceWindowCache.add(window);

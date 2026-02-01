@@ -8,9 +8,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class EnrollmentDao extends BaseDao {
     private static final String SELECT_BY_STUDENT = "SELECT id, student_code, section_code, status, final_grade, updated_at FROM enrollments WHERE student_code = ?";
@@ -19,7 +22,6 @@ public class EnrollmentDao extends BaseDao {
     private static final String UPDATE_STATUS = "UPDATE enrollments SET status = ?, final_grade = ?, updated_at = CURRENT_TIMESTAMP WHERE student_code = ? AND section_code = ?";
     private static final String DELETE_BY_SECTION = "DELETE FROM enrollments WHERE section_code = ?";
 
-    private static final String SELECT_GRADES = "SELECT component, score, feedback FROM grades WHERE enrollment_id = ?";
     private static final String DELETE_GRADES = "DELETE FROM grades WHERE enrollment_id = ?";
     private static final String INSERT_GRADE = "INSERT INTO grades (enrollment_id, component, score, feedback) VALUES (?, ?, ?, ?)";
 
@@ -44,6 +46,21 @@ public class EnrollmentDao extends BaseDao {
                     ex.getMessage(), ex);
             throw new IllegalStateException("Unable to insert enrollment", ex);
         }
+    }
+
+    public Map<String, Long> countEnrolledBySections() {
+        Map<String, Long> counts = new HashMap<>();
+        String sql = "SELECT section_code, COUNT(*) as enrolled FROM enrollments WHERE status = 'ENROLLED' GROUP BY section_code";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                counts.put(rs.getString("section_code"), rs.getLong("enrolled"));
+            }
+        } catch (SQLException ex) {
+            logger.error("Error counting enrollments: {}", ex.getMessage(), ex);
+        }
+        return counts;
     }
 
     public void insert(Connection conn, EnrollmentRecord record) throws SQLException {
@@ -124,31 +141,47 @@ public class EnrollmentDao extends BaseDao {
                     list.add(mapRecord(rs));
                 }
             }
+            if (!list.isEmpty()) {
+                loadGradesForBatch(conn, list);
+            }
         } catch (SQLException ex) {
             logger.error("Error loading enrollments for {}: {}", param, ex.getMessage(), ex);
-        }
-        for (EnrollmentRecord record : list) {
-            loadGrades(record);
         }
         return list;
     }
 
-    private void loadGrades(EnrollmentRecord record) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(SELECT_GRADES)) {
-            ps.setLong(1, record.getId());
+    private void loadGradesForBatch(Connection conn, List<EnrollmentRecord> records) throws SQLException {
+        if (records == null || records.isEmpty())
+            return;
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT enrollment_id, component, score, feedback FROM grades WHERE enrollment_id IN (");
+        for (int i = 0; i < records.size(); i++) {
+            sql.append(i == 0 ? "?" : ", ?");
+        }
+        sql.append(")");
+
+        Map<Long, EnrollmentRecord> recordMap = records.stream()
+                .collect(Collectors.toMap(EnrollmentRecord::getId, r -> r));
+
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < records.size(); i++) {
+                ps.setLong(i + 1, records.get(i).getId());
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String component = rs.getString("component");
-                    record.putScore(component, rs.getDouble("score"));
-                    String feedback = rs.getString("feedback");
-                    if (feedback != null) {
-                        record.putFeedback(component, feedback);
+                    long enrollmentId = rs.getLong("enrollment_id");
+                    EnrollmentRecord record = recordMap.get(enrollmentId);
+                    if (record != null) {
+                        String component = rs.getString("component");
+                        record.putScore(component, rs.getDouble("score"));
+                        String feedback = rs.getString("feedback");
+                        if (feedback != null) {
+                            record.putFeedback(component, feedback);
+                        }
                     }
                 }
             }
-        } catch (SQLException ex) {
-            logger.error("Error loading grades for enrollment {}: {}", record.getId(), ex.getMessage(), ex);
         }
     }
 

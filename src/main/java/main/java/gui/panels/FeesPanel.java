@@ -9,6 +9,8 @@ import main.java.utils.DatabaseUtil;
 import main.java.gui.panels.MaintenanceAware;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -34,6 +36,7 @@ import java.util.UUID;
  * Panel for managing student finance operations.
  */
 public class FeesPanel extends JPanel implements MaintenanceAware {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FeesPanel.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy");
     private static final DateTimeFormatter INPUT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -57,7 +60,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
     private boolean maintenanceMode;
 
     public FeesPanel() {
-        this.tableModel = new DefaultTableModel(new Object[]{
+        this.tableModel = new DefaultTableModel(new Object[] {
                 "Student ID", "Name", "Course", "Total Fees",
                 "Fees Paid", "Outstanding", "Status", "Next Due"
         }, 0) {
@@ -74,7 +77,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         this.configureInstallmentsButton = new JButton("Configure Installments");
         this.refreshButton = new JButton("Refresh");
         this.totalOutstandingLabel = new JLabel();
-        this.templateModel = new DefaultTableModel(new Object[]{
+        this.templateModel = new DefaultTableModel(new Object[] {
                 "ID", "Label", "Amount", "Offset (days)", "Timeline Note"
         }, 0) {
             @Override
@@ -248,39 +251,63 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
     }
 
     private void loadFeesData() {
+        refreshButton.setEnabled(false);
         tableModel.setRowCount(0);
-        Collection<Student> students = DatabaseUtil.getAllStudents();
-        double totalOutstanding = 0.0;
 
-        for (Student student : students) {
-            double outstanding = Math.max(0.0, student.getTotalFees() - student.getFeesPaid());
-            totalOutstanding += outstanding;
-            FeeInstallment next = DatabaseUtil.nextDueInstallment(student.getStudentId());
-            String nextDue = "-";
-            if (next != null && next.getDueDate() != null) {
-                nextDue = DATE_FORMATTER.format(next.getDueDate());
-                if (next.isOverdue(LocalDate.now())) {
-                    nextDue += " (Overdue)";
+        new SwingWorker<List<Object[]>, Void>() {
+            private double totalOutstandingValue = 0.0;
+
+            @Override
+            protected List<Object[]> doInBackground() {
+                List<Object[]> rows = new ArrayList<>();
+                Collection<Student> students = DatabaseUtil.getAllStudents();
+                for (Student student : students) {
+                    double outstanding = Math.max(0.0, student.getTotalFees() - student.getFeesPaid());
+                    totalOutstandingValue += outstanding;
+
+                    FeeInstallment next = DatabaseUtil.nextDueInstallment(student.getStudentId());
+                    String nextDue = "-";
+                    if (next != null && next.getDueDate() != null) {
+                        nextDue = DATE_FORMATTER.format(next.getDueDate());
+                        if (next.isOverdue(LocalDate.now())) {
+                            nextDue += " (Overdue)";
+                        }
+                    } else if (student.getNextFeeDueDate() != null) {
+                        nextDue = DATE_FORMATTER.format(student.getNextFeeDueDate());
+                    }
+                    String status = outstanding > 0 ? "Pending" : "Settled";
+
+                    rows.add(new Object[] {
+                            student.getStudentId(),
+                            student.getFullName(),
+                            student.getCourse(),
+                            formatCurrency(student.getTotalFees()),
+                            formatCurrency(student.getFeesPaid()),
+                            formatCurrency(outstanding),
+                            status,
+                            nextDue
+                    });
                 }
-            } else if (student.getNextFeeDueDate() != null) {
-                nextDue = DATE_FORMATTER.format(student.getNextFeeDueDate());
+                return rows;
             }
-            String status = outstanding > 0 ? "Pending" : "Settled";
 
-            tableModel.addRow(new Object[]{
-                    student.getStudentId(),
-                    student.getFullName(),
-                    student.getCourse(),
-                    formatCurrency(student.getTotalFees()),
-                    formatCurrency(student.getFeesPaid()),
-                    formatCurrency(outstanding),
-                    status,
-                    nextDue
-            });
-        }
-
-        totalOutstandingLabel.setText("Total Outstanding: " + formatCurrency(totalOutstanding));
-        updateActionButtons();
+            @Override
+            protected void done() {
+                try {
+                    List<Object[]> rows = get();
+                    for (Object[] row : rows) {
+                        tableModel.addRow(row);
+                    }
+                    totalOutstandingLabel.setText("Total Outstanding: " + formatCurrency(totalOutstandingValue));
+                } catch (Exception ex) {
+                    LOGGER.error("Failed to load fees data", ex);
+                    JOptionPane.showMessageDialog(FeesPanel.this, "Error loading fees data: " + ex.getMessage());
+                } finally {
+                    refreshButton.setEnabled(true);
+                    updateActionButtons();
+                }
+            }
+        }.execute();
     }
 
     private void filterTable() {
@@ -323,7 +350,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         List<FeeScheduleTemplateDao.TemplateRecord> records = DatabaseUtil.getFeeScheduleTemplates(courseCode);
         for (FeeScheduleTemplateDao.TemplateRecord record : records) {
             templateIndex.put(record.id(), record);
-            templateModel.addRow(new Object[]{
+            templateModel.addRow(new Object[] {
                     record.id(),
                     record.label(),
                     formatCurrency(record.amount()),
@@ -412,7 +439,8 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
                     dialog.getOffsetDaysValue());
             loadTemplatesForSelectedCourse();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update template", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to update template",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -437,7 +465,8 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
             DatabaseUtil.deleteFeeScheduleTemplate(record.id());
             loadTemplatesForSelectedCourse();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to delete template", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Unable to delete template",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -540,25 +569,43 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
             return;
         }
 
+        double amountTemp;
         try {
-            double amount = Double.parseDouble(amountField.getText().trim());
+            amountTemp = Double.parseDouble(amountField.getText().trim());
             double outstanding = Math.max(0.0, student.getTotalFees() - student.getFeesPaid());
-            if (amount <= 0 || amount > outstanding) {
+            if (amountTemp <= 0 || amountTemp > outstanding) {
                 JOptionPane.showMessageDialog(this, "Enter an amount between 0 and " + formatCurrency(outstanding),
                         "Invalid Amount", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            DatabaseUtil.recordPayment("finance-panel", student.getStudentId(), amount,
-                    methodField.getText().trim(),
-                    referenceField.getText().trim(),
-                    notesArea.getText().trim());
-            JOptionPane.showMessageDialog(this, "Payment recorded successfully.");
-            loadFeesData();
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Invalid amount format.", "Error", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            return;
         }
+
+        final double amount = amountTemp;
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                DatabaseUtil.recordPayment("finance-panel", student.getStudentId(), amount,
+                        methodField.getText().trim(),
+                        referenceField.getText().trim(),
+                        notesArea.getText().trim());
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(FeesPanel.this, "Payment recorded successfully.");
+                    loadFeesData();
+                } catch (Exception ex) {
+                    LOGGER.error("Payment failed", ex);
+                    JOptionPane.showMessageDialog(FeesPanel.this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
     }
 
     private void openInstallmentDialog() {
@@ -585,7 +632,8 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         }
 
         try (CSVPrinter printer = new CSVPrinter(new FileWriter(chooser.getSelectedFile()),
-                CSVFormat.DEFAULT.withHeader("Student ID", "Name", "Course", "Total Fees", "Fees Paid", "Outstanding", "Status", "Next Due"))) {
+                CSVFormat.DEFAULT.withHeader("Student ID", "Name", "Course", "Total Fees", "Fees Paid", "Outstanding",
+                        "Status", "Next Due"))) {
             for (int row = 0; row < tableModel.getRowCount(); row++) {
                 printer.printRecord(
                         tableModel.getValueAt(row, 0),
@@ -595,8 +643,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
                         tableModel.getValueAt(row, 4),
                         tableModel.getValueAt(row, 5),
                         tableModel.getValueAt(row, 6),
-                        tableModel.getValueAt(row, 7)
-                );
+                        tableModel.getValueAt(row, 7));
             }
             JOptionPane.showMessageDialog(this, "Summary exported successfully.");
         } catch (IOException ex) {
@@ -625,7 +672,8 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
             printer.printRecord("Program", student.getCourse());
             printer.printRecord("Total Fees", formatCurrency(student.getTotalFees()));
             printer.printRecord("Fees Paid", formatCurrency(student.getFeesPaid()));
-            printer.printRecord("Outstanding", formatCurrency(Math.max(0.0, student.getTotalFees() - student.getFeesPaid())));
+            printer.printRecord("Outstanding",
+                    formatCurrency(Math.max(0.0, student.getTotalFees() - student.getFeesPaid())));
             printer.println();
 
             printer.printRecord("Payments");
@@ -636,8 +684,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
                         formatCurrency(tx.getAmount()),
                         emptyIfNull(tx.getMethod()),
                         emptyIfNull(tx.getReference()),
-                        emptyIfNull(tx.getNotes())
-                );
+                        emptyIfNull(tx.getNotes()));
             }
             printer.println();
 
@@ -650,8 +697,9 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
                         installment.getStatus().name(),
                         emptyIfNull(installment.getDescription()),
                         installment.getPaidOn() != null ? DATE_FORMATTER.format(installment.getPaidOn()) : "-",
-                        installment.getLastReminderSent() != null ? DATE_FORMATTER.format(installment.getLastReminderSent()) : "-"
-                );
+                        installment.getLastReminderSent() != null
+                                ? DATE_FORMATTER.format(installment.getLastReminderSent())
+                                : "-");
             }
             JOptionPane.showMessageDialog(this, "Statement exported successfully.");
         } catch (IOException ex) {
@@ -706,7 +754,8 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         TemplateEditorDialog(Window owner, String title, FeeScheduleTemplateDao.TemplateRecord record) {
             super(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
             this.labelField = new JTextField(record != null ? record.label() : "", 20);
-            this.amountField = new JTextField(record != null ? String.format(Locale.ENGLISH, "%.2f", record.amount()) : "", 12);
+            this.amountField = new JTextField(
+                    record != null ? String.format(Locale.ENGLISH, "%.2f", record.amount()) : "", 12);
             this.offsetSpinner = new JSpinner(new SpinnerNumberModel(
                     record != null ? record.offsetDays() : 0,
                     0,
@@ -801,9 +850,10 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         private boolean saved = false;
 
         InstallmentEditorDialog(Window owner, Student student) {
-            super(owner, "Configure Installments - " + student.getFullName(), java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+            super(owner, "Configure Installments - " + student.getFullName(),
+                    java.awt.Dialog.ModalityType.APPLICATION_MODAL);
             this.student = student;
-            this.model = new DefaultTableModel(new Object[]{
+            this.model = new DefaultTableModel(new Object[] {
                     "ID", "Due Date (yyyy-MM-dd)", "Amount", "Status", "Description", "Paid On (yyyy-MM-dd)"
             }, 0) {
                 @Override
@@ -825,7 +875,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         private void populateRows() {
             model.setRowCount(0);
             for (FeeInstallment installment : DatabaseUtil.getInstallmentsForStudent(student.getStudentId())) {
-                model.addRow(new Object[]{
+                model.addRow(new Object[] {
                         installment.getInstallmentId(),
                         installment.getDueDate() != null ? INPUT_DATE_FORMAT.format(installment.getDueDate()) : "",
                         installment.getAmount(),
@@ -861,7 +911,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
         }
 
         private void handleAdd(ActionEvent event) {
-            model.addRow(new Object[]{
+            model.addRow(new Object[] {
                     "", "", 0.0, FeeInstallment.Status.DUE.name(), "", ""
             });
         }
@@ -910,8 +960,7 @@ public class FeesPanel extends JPanel implements MaintenanceAware {
                             status,
                             description,
                             paidOn,
-                            null
-                    );
+                            null);
                     DatabaseUtil.upsertInstallment(student.getStudentId(), installment);
                 }
 

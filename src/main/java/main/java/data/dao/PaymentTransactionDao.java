@@ -45,8 +45,17 @@ public class PaymentTransactionDao extends BaseDao {
     }
 
     public void insert(PaymentTransaction transaction) {
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
+        try (Connection conn = getConnection()) {
+            insert(conn, transaction);
+        } catch (SQLException ex) {
+            logger.error("Failed to insert payment transaction {}: {}", transaction.getTransactionId(), ex.getMessage(),
+                    ex);
+            throw new IllegalStateException("Unable to persist payment transaction", ex);
+        }
+    }
+
+    public void insert(Connection conn, PaymentTransaction transaction) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
             ps.setString(1, transaction.getTransactionId());
             ps.setString(2, transaction.getStudentId());
             ps.setDouble(3, transaction.getAmount());
@@ -55,15 +64,12 @@ public class PaymentTransactionDao extends BaseDao {
             ps.setString(6, transaction.getReference());
             ps.setString(7, transaction.getNotes());
             ps.executeUpdate();
-        } catch (SQLException ex) {
-            logger.error("Failed to insert payment transaction {}: {}", transaction.getTransactionId(), ex.getMessage(), ex);
-            throw new IllegalStateException("Unable to persist payment transaction", ex);
         }
     }
 
     public void update(PaymentTransaction transaction) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(UPDATE_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(UPDATE_SQL)) {
             ps.setString(1, transaction.getStudentId());
             ps.setDouble(2, transaction.getAmount());
             ps.setDate(3, Date.valueOf(transaction.getPaidOn()));
@@ -73,14 +79,15 @@ public class PaymentTransactionDao extends BaseDao {
             ps.setString(7, transaction.getTransactionId());
             ps.executeUpdate();
         } catch (SQLException ex) {
-            logger.error("Failed to update payment transaction {}: {}", transaction.getTransactionId(), ex.getMessage(), ex);
+            logger.error("Failed to update payment transaction {}: {}", transaction.getTransactionId(), ex.getMessage(),
+                    ex);
             throw new IllegalStateException("Unable to update payment transaction", ex);
         }
     }
 
     public void delete(String transactionId) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(DELETE_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(DELETE_SQL)) {
             ps.setString(1, transactionId);
             ps.executeUpdate();
         } catch (SQLException ex) {
@@ -91,7 +98,7 @@ public class PaymentTransactionDao extends BaseDao {
 
     public List<PaymentTransaction> findByStudent(String studentId) {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(FIND_BY_STUDENT_SQL)) {
+                PreparedStatement ps = conn.prepareStatement(FIND_BY_STUDENT_SQL)) {
             ps.setString(1, studentId);
             try (ResultSet rs = ps.executeQuery()) {
                 return mapResult(rs);
@@ -104,8 +111,8 @@ public class PaymentTransactionDao extends BaseDao {
 
     public List<PaymentTransaction> findAll() {
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(FIND_ALL_SQL);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(FIND_ALL_SQL);
+                ResultSet rs = ps.executeQuery()) {
             return mapResult(rs);
         } catch (SQLException ex) {
             logger.error("Failed to load payment transactions: {}", ex.getMessage(), ex);

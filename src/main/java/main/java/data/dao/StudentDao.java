@@ -100,8 +100,16 @@ public class StudentDao extends BaseDao {
     }
 
     public void update(Student student) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(UPDATE)) {
+        try (Connection conn = getConnection()) {
+            update(conn, student);
+        } catch (SQLException ex) {
+            logger.error("Error updating student {}: {}", student.getStudentId(), ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to update student", ex);
+        }
+    }
+
+    public void update(Connection conn, Student student) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             ps.setString(1, student.getUsername());
             ps.setString(2, student.getFirstName());
             ps.setString(3, student.getLastName());
@@ -130,9 +138,6 @@ public class StudentDao extends BaseDao {
             ps.setString(18, student.getAcademicStanding());
             ps.setString(19, student.getStudentId());
             ps.executeUpdate();
-        } catch (SQLException ex) {
-            logger.error("Error updating student {}: {}", student.getStudentId(), ex.getMessage(), ex);
-            throw new IllegalStateException("Unable to update student", ex);
         }
     }
 

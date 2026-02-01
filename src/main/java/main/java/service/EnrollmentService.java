@@ -32,6 +32,10 @@ public final class EnrollmentService {
             throw new IllegalStateException("Missing prerequisite(s): " + String.join(", ", missingPrereqs));
         }
 
+        if (DatabaseUtil.isStudentEnrolledInCourse(studentId, section.getCourseId())) {
+            throw new IllegalStateException("Student is already enrolled in another section of this course.");
+        }
+
         if (isStudent(actor)) {
             enforceStudentOwnsRecord(actor, student);
         }

@@ -75,8 +75,16 @@ public class FeeInstallmentDao extends BaseDao {
     }
 
     public boolean update(FeeInstallment installment) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(UPDATE_SQL)) {
+        try (Connection conn = getConnection()) {
+            return update(conn, installment);
+        } catch (SQLException ex) {
+            logger.error("Failed to update installment {}: {}", installment.getInstallmentId(), ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to update fee installment", ex);
+        }
+    }
+
+    public boolean update(Connection conn, FeeInstallment installment) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE_SQL)) {
             ps.setString(1, installment.getStudentId());
             if (installment.getDueDate() != null) {
                 ps.setDate(2, Date.valueOf(installment.getDueDate()));
@@ -98,9 +106,6 @@ public class FeeInstallmentDao extends BaseDao {
             }
             ps.setString(8, installment.getInstallmentId());
             return ps.executeUpdate() > 0;
-        } catch (SQLException ex) {
-            logger.error("Failed to update installment {}: {}", installment.getInstallmentId(), ex.getMessage(), ex);
-            throw new IllegalStateException("Unable to update fee installment", ex);
         }
     }
 

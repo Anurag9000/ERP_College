@@ -10,6 +10,8 @@ import main.java.utils.DatabaseUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -24,6 +26,7 @@ public class FinanceService {
 
     private static final PaymentTransactionDao paymentTransactionDao = new PaymentTransactionDao();
     private static final FeeInstallmentDao feeInstallmentDao = new FeeInstallmentDao();
+    private static final main.java.data.dao.StudentDao studentDao = new main.java.data.dao.StudentDao();
 
     public static synchronized PaymentTransaction recordPayment(String actorUsername,
             String studentId,
@@ -41,44 +44,53 @@ public class FinanceService {
 
         PaymentTransaction transaction = new PaymentTransaction(studentId, amount, LocalDate.now(), method, reference,
                 notes);
-        paymentTransactionDao.insert(transaction);
 
-        // Update student's fees paid
-        double updatedPaid = student.getFeesPaid() + amount;
-        if (updatedPaid > student.getTotalFees()) {
-            LOGGER.warn("Total fees paid ({}) exceeds total fees ({}) for student {}", updatedPaid,
-                    student.getTotalFees(), studentId);
-            // We allow overpayment but log it
-        }
-        student.setFeesPaid(updatedPaid);
-        DatabaseUtil.updateStudent(student);
+        main.java.config.DataSourceRegistry.erpDataSource().ifPresent(ds -> {
+            try (Connection conn = ds.getConnection()) {
+                conn.setAutoCommit(false);
+                try {
+                    paymentTransactionDao.insert(conn, transaction);
 
-        // Allocate payment to installments
-        List<FeeInstallment> schedule = feeInstallmentDao.findByStudent(studentId);
-        schedule.sort(Comparator.comparing(inst -> inst.getDueDate() == null ? LocalDate.MAX : inst.getDueDate()));
+                    // Update student's fees paid
+                    double updatedPaid = student.getFeesPaid() + amount;
+                    student.setFeesPaid(updatedPaid);
+                    studentDao.update(conn, student);
 
-        double remaining = amount;
-        final double EPSILON = 1e-9; // Robust floating-point comparison
+                    // Allocate payment to installments
+                    List<FeeInstallment> schedule = feeInstallmentDao.findByStudent(studentId);
+                    schedule.sort(Comparator
+                            .comparing(inst -> inst.getDueDate() == null ? LocalDate.MAX : inst.getDueDate()));
 
-        for (FeeInstallment installment : schedule) {
-            if (installment.getStatus() == FeeInstallment.Status.PAID)
-                continue;
+                    double remaining = amount;
+                    final double EPSILON = 1e-9;
 
-            double installmentAmount = installment.getAmount();
-            if (remaining >= installmentAmount - EPSILON) {
-                installment.setStatus(FeeInstallment.Status.PAID);
-                installment.setPaidOn(LocalDate.now());
-                remaining -= installmentAmount;
-                feeInstallmentDao.update(installment);
-            } else if (remaining > EPSILON) {
-                // Partial payment logic (optional, but for robustness we mark as PARTIAL if
-                // supported by model)
-                // If model doesn't support PARTIAL, we keep it as DUE for now
-                break;
-            } else {
-                break;
+                    for (FeeInstallment installment : schedule) {
+                        if (installment.getStatus() == FeeInstallment.Status.PAID)
+                            continue;
+
+                        double installmentAmount = installment.getAmount();
+                        if (remaining >= installmentAmount - EPSILON) {
+                            installment.setStatus(FeeInstallment.Status.PAID);
+                            installment.setPaidOn(LocalDate.now());
+                            remaining -= installmentAmount;
+                            feeInstallmentDao.update(conn, installment);
+                        } else if (remaining > EPSILON) {
+                            break;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    conn.commit();
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                }
+            } catch (SQLException ex) {
+                LOGGER.error("Transaction failed for payment: {}", ex.getMessage(), ex);
+                throw new IllegalStateException("Payment processing failed due to database error", ex);
             }
-        }
+        });
 
         AuditLogService.log(AuditLogService.EventType.FINANCE_PAYMENT,
                 actorUsername != null ? actorUsername : "system",

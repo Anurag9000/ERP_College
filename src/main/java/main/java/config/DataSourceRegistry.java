@@ -68,7 +68,7 @@ public final class DataSourceRegistry {
         config.setPassword(props.getPassword());
         config.setMaximumPoolSize(props.getMaximumPoolSize());
         config.setPoolName("ERP-" + key.toUpperCase() + "-POOL");
-        config.setAutoCommit(false);
+        config.setAutoCommit(true);
         config.setInitializationFailTimeout(-1L);
 
         HikariDataSource dataSource = new HikariDataSource(config);

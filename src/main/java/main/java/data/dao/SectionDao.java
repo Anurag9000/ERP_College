@@ -12,7 +12,9 @@ import java.time.DayOfWeek;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class SectionDao extends BaseDao {
     private static final String BASE_SELECT = "SELECT id, section_code, course_code, title, instructor_code, day_of_week, start_time, end_time, location, capacity, enrollment_deadline, drop_deadline, semester, year, requires_advisor_approval FROM sections";
@@ -39,13 +41,64 @@ public class SectionDao extends BaseDao {
             while (rs.next()) {
                 sections.add(mapSection(rs));
             }
+            if (!sections.isEmpty()) {
+                loadAssessmentsForBatch(conn, sections);
+            }
         } catch (SQLException ex) {
             logger.error("Error loading sections: {}", ex.getMessage(), ex);
         }
-        for (Section section : sections) {
-            loadAssessments(section);
-        }
         return sections;
+    }
+
+    private void loadAssessmentsForBatch(Connection conn, List<Section> sections) throws SQLException {
+        if (sections == null || sections.isEmpty())
+            return;
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT section_code, component, weight FROM section_assessments WHERE section_code IN (");
+        for (int i = 0; i < sections.size(); i++) {
+            sql.append(i == 0 ? "?" : ", ?");
+        }
+        sql.append(")");
+
+        Map<String, Section> sectionMap = sections.stream()
+                .collect(Collectors.toMap(Section::getSectionId, s -> s));
+
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < sections.size(); i++) {
+                ps.setString(i + 1, sections.get(i).getSectionId());
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String code = rs.getString("section_code");
+                    Section section = sectionMap.get(code);
+                    if (section != null) {
+                        section.setAssessmentWeight(rs.getString("component"), rs.getDouble("weight"));
+                    }
+                }
+            }
+        }
+    }
+
+    public List<Section> findByLocationAndSchedule(String location, DayOfWeek day, java.time.LocalTime start,
+            java.time.LocalTime end) {
+        List<Section> list = new ArrayList<>();
+        String sql = BASE_SELECT + " WHERE location = ? AND day_of_week = ? AND start_time < ? AND end_time > ?";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, location);
+            ps.setString(2, day.name());
+            ps.setTime(3, Time.valueOf(end));
+            ps.setTime(4, Time.valueOf(start));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapSection(rs));
+                }
+            }
+        } catch (SQLException ex) {
+            logger.error("Error finding conflicting sections: {}", ex.getMessage(), ex);
+        }
+        return list;
     }
 
     public Optional<Section> findByCode(String code) {
