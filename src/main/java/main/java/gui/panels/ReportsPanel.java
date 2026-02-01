@@ -171,19 +171,48 @@ public class ReportsPanel extends JPanel {
                 DefaultTableModel model = new DefaultTableModel(columns, 0);
                 JTable table = new JTable(model);
 
-                // Mock data - in real implementation, calculate from attendance records
-                List<Student> students = DatabaseUtil.getAllStudents();
-                for (Student student : students.subList(0, Math.min(10, students.size()))) {
-                        double mockAttendance = 60 + Math.random() * 30; // Mock 60-90%
-                        String status = mockAttendance < 75 ? "AT RISK" : "OK";
+                // Real data calculation
+                List<Section> sections = DatabaseUtil.getAllSections();
+                for (Section section : sections) {
+                        List<AttendanceRecord> history = DatabaseUtil.getAttendanceForSection(section.getSectionId());
+                        if (history.isEmpty())
+                                continue;
 
-                        model.addRow(new Object[] {
-                                        student.getStudentId(),
-                                        student.getFullName(),
-                                        student.getCourse(),
-                                        String.format("%.1f%%", mockAttendance),
-                                        status
-                        });
+                        Map<String, Integer> presentCounts = new HashMap<>();
+                        Map<String, Integer> totalSessions = new HashMap<>();
+
+                        for (AttendanceRecord record : history) {
+                                for (Map.Entry<String, AttendanceRecord.AttendanceStatus> entry : record
+                                                .getStatusByStudent().entrySet()) {
+                                        String studentId = entry.getKey();
+                                        totalSessions.merge(studentId, 1, Integer::sum);
+                                        if (entry.getValue() == AttendanceRecord.AttendanceStatus.PRESENT
+                                                        || entry.getValue() == AttendanceRecord.AttendanceStatus.LATE) {
+                                                presentCounts.merge(studentId, 1, Integer::sum);
+                                        }
+                                }
+                        }
+
+                        for (String studentId : section.getEnrolledStudentIds()) {
+                                int total = totalSessions.getOrDefault(studentId, 0);
+                                if (total == 0)
+                                        continue;
+
+                                int present = presentCounts.getOrDefault(studentId, 0);
+                                double percentage = (present * 100.0) / total;
+
+                                if (percentage < 75.0) {
+                                        Student student = DatabaseUtil.getStudent(studentId);
+                                        String name = student != null ? student.getFullName() : "Unknown";
+                                        model.addRow(new Object[] {
+                                                        studentId,
+                                                        name,
+                                                        section.getCourseId() + " (" + section.getSectionId() + ")",
+                                                        String.format("%.1f%%", percentage),
+                                                        "AT RISK"
+                                        });
+                                }
+                        }
                 }
 
                 card.add(new JScrollPane(table), BorderLayout.CENTER);
@@ -263,22 +292,52 @@ public class ReportsPanel extends JPanel {
                 DefaultTableModel model = new DefaultTableModel(columns, 0);
                 JTable table = new JTable(model);
 
-                // Mock data - in real implementation, calculate from grades
                 List<Section> sections = DatabaseUtil.getAllSections();
-                for (Section s : sections.subList(0, Math.min(15, sections.size()))) {
-                        int enrolled = s.getEnrolledStudentIds().size();
-                        if (enrolled > 0) {
-                                // Mock distribution
+                for (Section s : sections) {
+                        List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForSection(s.getSectionId());
+                        if (enrollments.isEmpty())
+                                continue;
+
+                        int aPlus = 0, a = 0, bPlus = 0, b = 0, c = 0, f = 0;
+                        double totalScore = 0;
+                        int counted = 0;
+
+                        for (EnrollmentRecord record : enrollments) {
+                                if (record.getStatus() != EnrollmentRecord.Status.ENROLLED)
+                                        continue;
+
+                                double score = record.getFinalGrade();
+                                // If final grade isn't computed yet, try to compute it on the fly or just use
+                                // what's there
+                                if (score <= 0 && !record.getComponentScores().isEmpty()) {
+                                        score = s.computeFinalScore(record.getComponentScores());
+                                }
+
+                                totalScore += score;
+                                counted++;
+
+                                double points = DatabaseUtil.calculateRelativePoints(score, s.getSectionId());
+                                if (points >= 9.0)
+                                        aPlus++;
+                                else if (points >= 8.0)
+                                        a++;
+                                else if (points >= 7.0)
+                                        bPlus++;
+                                else if (points >= 6.0)
+                                        b++;
+                                else if (points >= 5.0)
+                                        c++;
+                                else
+                                        f++;
+                        }
+
+                        if (counted > 0) {
+                                double avg = totalScore / counted;
                                 model.addRow(new Object[] {
                                                 s.getCourseId(),
                                                 s.getSectionId(),
-                                                (int) (enrolled * 0.1),
-                                                (int) (enrolled * 0.2),
-                                                (int) (enrolled * 0.3),
-                                                (int) (enrolled * 0.2),
-                                                (int) (enrolled * 0.15),
-                                                (int) (enrolled * 0.05),
-                                                String.format("%.1f", 70 + Math.random() * 20)
+                                                aPlus, a, bPlus, b, c, f,
+                                                String.format("%.1f", avg)
                                 });
                         }
                 }

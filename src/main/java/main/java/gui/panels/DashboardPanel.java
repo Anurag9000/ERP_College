@@ -3,6 +3,7 @@ package main.java.gui.panels;
 import main.java.utils.DatabaseUtil;
 import main.java.models.*;
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.Collection;
 
@@ -16,11 +17,13 @@ public class DashboardPanel extends JPanel {
     private JLabel pendingFeesLabel;
     private JLabel waitlistLabel;
     private JLabel attendanceLabel;
+    private DefaultTableModel activityModel;
 
     public DashboardPanel() {
         initializeComponents();
         setupLayout();
         updateStatistics();
+        updateRecentActivity();
     }
 
     private void initializeComponents() {
@@ -110,10 +113,17 @@ public class DashboardPanel extends JPanel {
         add(topPanel, BorderLayout.NORTH);
         add(actionsPanel, BorderLayout.CENTER);
 
-        // Recent activity panel (placeholder)
-        JPanel recentPanel = new JPanel();
+        // Recent activity panel
+        JPanel recentPanel = new JPanel(new BorderLayout());
         recentPanel.setBorder(BorderFactory.createTitledBorder("Recent Activity"));
-        recentPanel.add(new JLabel("No recent activity"));
+
+        String[] columns = { "Timestamp", "Type", "Actor", "Details" };
+        activityModel = new DefaultTableModel(columns, 0);
+        JTable activityTable = new JTable(activityModel);
+        activityTable.setFillsViewportHeight(true);
+
+        recentPanel.add(new JScrollPane(activityTable), BorderLayout.CENTER);
+        recentPanel.setPreferredSize(new Dimension(800, 200));
         add(recentPanel, BorderLayout.SOUTH);
     }
 
@@ -196,5 +206,36 @@ public class DashboardPanel extends JPanel {
 
     public void refreshData() {
         updateStatistics();
+        updateRecentActivity();
+    }
+
+    private void updateRecentActivity() {
+        new SwingWorker<java.util.List<main.java.utils.AuditLogService.AuditEvent>, Void>() {
+            @Override
+            protected java.util.List<main.java.utils.AuditLogService.AuditEvent> doInBackground() {
+                // Fetch only top 20 for dashboard
+                return main.java.utils.AuditLogService.recentEvents().stream().limit(20)
+                        .collect(java.util.stream.Collectors.toList());
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    java.util.List<main.java.utils.AuditLogService.AuditEvent> events = get();
+                    activityModel.setRowCount(0);
+                    for (main.java.utils.AuditLogService.AuditEvent event : events) {
+                        activityModel.addRow(new Object[] {
+                                event.getTimestamp()
+                                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                                event.getType(),
+                                event.getActor(),
+                                event.getDetails()
+                        });
+                    }
+                } catch (Exception ex) {
+                    // Ignore or log
+                }
+            }
+        }.execute();
     }
 }

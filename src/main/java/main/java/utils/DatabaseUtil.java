@@ -357,7 +357,7 @@ public class DatabaseUtil {
         try {
             LegacyDataMigrator.defaultMigrator().migrateAll();
         } catch (Exception ex) {
-            System.err.println("Legacy data migration failed: " + ex.getMessage());
+            LOGGER.error("Legacy data migration failed: ", ex);
         }
         boolean hasUsers = !getAuthUserDao().findAll().isEmpty();
         if (!hasUsers) {
