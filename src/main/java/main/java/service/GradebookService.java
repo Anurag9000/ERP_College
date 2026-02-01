@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
  * Handles instructor gradebook operations and summary statistics.
  */
 public final class GradebookService {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(GradebookService.class);
 
     private GradebookService() {
     }
@@ -45,6 +46,7 @@ public final class GradebookService {
                             weights.put(name, Double.parseDouble(parts[1].trim()));
                         }
                     } catch (NumberFormatException ignored) {
+                        LOGGER.warn("Invalid weight value for component '{}': {}", parts[0], parts[1]);
                     }
                 }
             }
@@ -63,6 +65,7 @@ public final class GradebookService {
                         try {
                             weights.put(component, Double.parseDouble(value));
                         } catch (NumberFormatException ignored) {
+                            LOGGER.warn("Invalid weight value for component '{}': {}", component, value);
                         }
                     }
                 }

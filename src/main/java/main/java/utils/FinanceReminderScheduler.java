@@ -13,15 +13,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Periodically inspects finance data to send payment reminders and daily digests.
+ * Periodically inspects finance data to send payment reminders and daily
+ * digests.
  */
 public final class FinanceReminderScheduler {
-    private static final ScheduledExecutorService EXECUTOR =
-            Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread t = new Thread(r, "finance-reminder-scheduler");
-                t.setDaemon(true);
-                return t;
-            });
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(FinanceReminderScheduler.class);
+    private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "finance-reminder-scheduler");
+        t.setDaemon(true);
+        return t;
+    });
     private static final int REMINDER_LOOKAHEAD_DAYS = 7;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy");
     private static volatile boolean started = false;
@@ -55,7 +56,7 @@ public final class FinanceReminderScheduler {
                 processDailyDigest(student, today);
             }
         } catch (Exception ex) {
-            System.err.println("Finance reminder scheduler error: " + ex.getMessage());
+            LOGGER.error("Finance reminder scheduler error: ", ex);
         }
     }
 
@@ -106,6 +107,8 @@ public final class FinanceReminderScheduler {
             try {
                 lastSent = LocalDate.parse(lastSentRaw);
             } catch (Exception ignored) {
+                // Ignore invalid date format in settings
+                LOGGER.debug("Invalid date format in settings for key {}: {}", settingKey, lastSentRaw);
                 lastSent = null;
             }
         }
