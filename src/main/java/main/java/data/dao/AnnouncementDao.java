@@ -55,7 +55,7 @@ public class AnnouncementDao extends BaseDao {
                 list.add(mapAnnouncement(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching all announcements: {}", e.getMessage(), e);
         }
         return list;
     }
@@ -74,7 +74,7 @@ public class AnnouncementDao extends BaseDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching announcements for category {}: {}", category, e.getMessage(), e);
         }
         return list;
     }
@@ -94,7 +94,7 @@ public class AnnouncementDao extends BaseDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching announcements for department {}: {}", department, e.getMessage(), e);
         }
         return list;
     }
@@ -138,7 +138,10 @@ public class AnnouncementDao extends BaseDao {
         a.setTitle(rs.getString("title"));
         a.setContent(rs.getString("content"));
         a.setPostedBy(rs.getString("posted_by"));
-        a.setPostedAt(rs.getTimestamp("posted_at").toLocalDateTime());
+        Timestamp postedAt = rs.getTimestamp("posted_at");
+        if (postedAt != null) {
+            a.setPostedAt(postedAt.toLocalDateTime());
+        }
         Timestamp expires = rs.getTimestamp("expires_at");
         if (expires != null)
             a.setExpiresAt(expires.toLocalDateTime());

@@ -8,7 +8,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class EnrollmentDao extends BaseDao {
     private static final String SELECT_BY_STUDENT = "SELECT id, student_code, section_code, status, final_grade, updated_at FROM enrollments WHERE student_code = ?";
@@ -16,6 +18,10 @@ public class EnrollmentDao extends BaseDao {
     private static final String INSERT = "INSERT INTO enrollments (student_code, section_code, status, final_grade) VALUES (?, ?, ?, ?)";
     private static final String UPDATE_STATUS = "UPDATE enrollments SET status = ?, final_grade = ?, updated_at = CURRENT_TIMESTAMP WHERE student_code = ? AND section_code = ?";
     private static final String DELETE_BY_SECTION = "DELETE FROM enrollments WHERE section_code = ?";
+
+    private static final String SELECT_GRADES = "SELECT component, score, feedback FROM grades WHERE enrollment_id = ?";
+    private static final String DELETE_GRADES = "DELETE FROM grades WHERE enrollment_id = ?";
+    private static final String INSERT_GRADE = "INSERT INTO grades (enrollment_id, component, score, feedback) VALUES (?, ?, ?, ?)";
 
     public EnrollmentDao() {
         super(main.java.config.DataSourceRegistry.erpDataSource()
@@ -31,8 +37,17 @@ public class EnrollmentDao extends BaseDao {
     }
 
     public void insert(EnrollmentRecord record) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(INSERT)) {
+        try (Connection conn = getConnection()) {
+            insert(conn, record);
+        } catch (SQLException ex) {
+            logger.error("Error inserting enrollment {}:{} - {}", record.getStudentId(), record.getSectionId(),
+                    ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to insert enrollment", ex);
+        }
+    }
+
+    public void insert(Connection conn, EnrollmentRecord record) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(INSERT, java.sql.Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, record.getStudentId());
             ps.setString(2, record.getSectionId());
             ps.setString(3, record.getStatus().name());
@@ -42,16 +57,36 @@ public class EnrollmentDao extends BaseDao {
                 ps.setNull(4, java.sql.Types.DECIMAL);
             }
             ps.executeUpdate();
-        } catch (SQLException ex) {
-            logger.error("Error inserting enrollment {}:{} - {}", record.getStudentId(), record.getSectionId(),
-                    ex.getMessage(), ex);
-            throw new IllegalStateException("Unable to insert enrollment", ex);
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    record.setId(rs.getLong(1));
+                }
+            }
+            saveGrades(conn, record);
         }
     }
 
-    public void updateStatus(EnrollmentRecord record) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
+    public void update(EnrollmentRecord record) {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
+                    update(conn, record);
+                }
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException ex) {
+            logger.error("Error updating enrollment {}:{} - {}", record.getStudentId(), record.getSectionId(),
+                    ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to update enrollment", ex);
+        }
+    }
+
+    public void update(Connection conn, EnrollmentRecord record) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
             ps.setString(1, record.getStatus().name());
             if (record.getFinalGrade() > 0) {
                 ps.setDouble(2, record.getFinalGrade());
@@ -61,11 +96,12 @@ public class EnrollmentDao extends BaseDao {
             ps.setString(3, record.getStudentId());
             ps.setString(4, record.getSectionId());
             ps.executeUpdate();
-        } catch (SQLException ex) {
-            logger.error("Error updating enrollment {}:{} - {}", record.getStudentId(), record.getSectionId(),
-                    ex.getMessage(), ex);
-            throw new IllegalStateException("Unable to update enrollment", ex);
         }
+        saveGrades(conn, record);
+    }
+
+    public void updateStatus(EnrollmentRecord record) {
+        update(record);
     }
 
     public void deleteBySection(String sectionCode) {
@@ -91,11 +127,70 @@ public class EnrollmentDao extends BaseDao {
         } catch (SQLException ex) {
             logger.error("Error loading enrollments for {}: {}", param, ex.getMessage(), ex);
         }
+        for (EnrollmentRecord record : list) {
+            loadGrades(record);
+        }
         return list;
+    }
+
+    private void loadGrades(EnrollmentRecord record) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(SELECT_GRADES)) {
+            ps.setLong(1, record.getId());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String component = rs.getString("component");
+                    record.putScore(component, rs.getDouble("score"));
+                    String feedback = rs.getString("feedback");
+                    if (feedback != null) {
+                        record.putFeedback(component, feedback);
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            logger.error("Error loading grades for enrollment {}: {}", record.getId(), ex.getMessage(), ex);
+        }
+    }
+
+    private void saveGrades(Connection conn, EnrollmentRecord record) throws SQLException {
+        try (PreparedStatement psDel = conn.prepareStatement(DELETE_GRADES)) {
+            psDel.setLong(1, record.getId());
+            psDel.executeUpdate();
+        }
+        if (record.getComponentScores().isEmpty()) {
+            return;
+        }
+        try (PreparedStatement psIns = conn.prepareStatement(INSERT_GRADE)) {
+            // Combine components from both scores and feedback
+            Set<String> components = new HashSet<>(record.getComponentScores().keySet());
+            components.addAll(record.getComponentFeedback().keySet());
+
+            for (String comp : components) {
+                psIns.setLong(1, record.getId());
+                psIns.setString(2, comp);
+
+                Double score = record.getComponentScores().get(comp);
+                if (score != null) {
+                    psIns.setDouble(3, score);
+                } else {
+                    psIns.setNull(3, java.sql.Types.DECIMAL);
+                }
+
+                String feedback = record.getComponentFeedback().get(comp);
+                if (feedback != null) {
+                    psIns.setString(4, feedback);
+                } else {
+                    psIns.setNull(4, java.sql.Types.VARCHAR);
+                }
+                psIns.addBatch();
+            }
+            psIns.executeBatch();
+        }
     }
 
     private EnrollmentRecord mapRecord(ResultSet rs) throws SQLException {
         EnrollmentRecord record = new EnrollmentRecord();
+        record.setId(rs.getLong("id"));
         record.setStudentId(rs.getString("student_code"));
         record.setSectionId(rs.getString("section_code"));
         record.setStatus(EnrollmentRecord.Status.valueOf(rs.getString("status")));

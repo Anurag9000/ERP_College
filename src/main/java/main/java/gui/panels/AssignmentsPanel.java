@@ -140,9 +140,18 @@ public class AssignmentsPanel extends JPanel {
             });
         }
 
-        // Load submitted assignments (mock for now)
+        // Load submitted assignments
         submittedModel.setRowCount(0);
-        // TODO: Query submitted assignments
+        List<AssignmentSubmission> submitted = assignmentDao.getSubmissionsByStudent(currentUser.getUsername());
+        for (AssignmentSubmission s : submitted) {
+            submittedModel.addRow(new Object[] {
+                    s.getAssignmentTitle(),
+                    s.getSubmittedAt().format(DATE_FORMAT),
+                    s.getMarksObtained() != null ? s.getMarksObtained() : "NOT GRADED",
+                    s.getFeedback() != null ? s.getFeedback() : "N/A",
+                    s.getStatus().name()
+            });
+        }
     }
 
     private void submitAssignment(int row) {

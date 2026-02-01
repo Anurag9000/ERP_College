@@ -6,6 +6,8 @@ import main.java.models.*;
 import main.java.utils.DatabaseUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -26,6 +28,9 @@ public class EnrollmentServiceTest {
     private CourseDao mockCourseDao;
     private NotificationDao mockNotificationDao;
     private AuthUserDao mockAuthUserDao;
+    private AuditLogDao mockAuditLogDao;
+    private CourseRelationshipDao mockCourseRelationshipDao;
+    private CoursePrerequisiteDao mockCoursePrerequisiteDao;
     private MaintenanceWindowDao mockMaintenanceWindowDao;
 
     @BeforeEach
@@ -37,6 +42,9 @@ public class EnrollmentServiceTest {
         mockCourseDao = mock(CourseDao.class);
         mockNotificationDao = mock(NotificationDao.class);
         mockAuthUserDao = mock(AuthUserDao.class);
+        mockAuditLogDao = mock(AuditLogDao.class);
+        mockCourseRelationshipDao = mock(CourseRelationshipDao.class);
+        mockCoursePrerequisiteDao = mock(CoursePrerequisiteDao.class);
 
         DatabaseUtil.setSectionDao(mockSectionDao);
         DatabaseUtil.setStudentDao(mockStudentDao);
@@ -44,18 +52,30 @@ public class EnrollmentServiceTest {
         DatabaseUtil.setWaitlistDao(mockWaitlistDao);
         DatabaseUtil.setCourseDao(mockCourseDao);
         DatabaseUtil.setNotificationDao(mockNotificationDao);
+        DatabaseUtil.setAuthUserDao(mockAuthUserDao);
+        DatabaseUtil.setAuditLogDao(mockAuditLogDao);
+        DatabaseUtil.setCourseRelationshipDao(mockCourseRelationshipDao);
+        DatabaseUtil.setCoursePrerequisiteDao(mockCoursePrerequisiteDao);
         mockMaintenanceWindowDao = mock(MaintenanceWindowDao.class);
         DatabaseUtil.setMaintenanceWindowDao(mockMaintenanceWindowDao);
         when(mockMaintenanceWindowDao.findAll()).thenReturn(Collections.emptyList());
 
-        DatabaseUtil.setAuthUserDao(mockAuthUserDao); // For Maintenance checks
+        // Stub getConnection calls for transactional methods
+        try {
+            Connection mockConn = mock(Connection.class);
+            when(mockEnrollmentDao.getConnection()).thenReturn(mockConn);
+            when(mockCourseDao.getConnection()).thenReturn(mockConn);
+            when(mockWaitlistDao.getConnection()).thenReturn(mockConn);
+        } catch (SQLException e) {
+            // Ignore in test setup
+        }
 
         // Ensure not in maintenance mode by default
         DatabaseUtil.setSettingsDao(mock(SettingsDao.class));
     }
 
     @Test
-    void testRegisterSection_Success() {
+    void testRegisterSection_Success() throws SQLException {
         User studentUser = new User("stu1", "hash", "salt", "Student", "Alice", "alice@test.com");
         Student studentProfile = new Student("stu1", "Alice", "Last", "email", "phone", LocalDate.now(), "addr", "CSE",
                 1);
@@ -70,21 +90,23 @@ public class EnrollmentServiceTest {
         when(mockStudentDao.findByCode("stu1")).thenReturn(Optional.of(studentProfile));
         when(mockCourseDao.findByCode("CSE101")).thenReturn(Optional.of(course));
         when(mockEnrollmentDao.findBySection("SEC1")).thenReturn(new ArrayList<>()); // Empty enrollment
+        when(mockEnrollmentDao.findByStudent("stu1")).thenReturn(new ArrayList<>()); // Empty enrollment for credit
+                                                                                     // check
 
-        // Mock prerequisites to return empty (no missing prereqs)
-        // Since we can't easily mock static DatabaseUtil.getMissingPrerequisites
-        // without power mock, relies on DAO state if any
-        // Assuming default empty return from un-mocked PrereqDAO if not set, or we set
-        // a mock that returns empty list
-        CoursePrerequisiteDao mockPrereqDao = mock(CoursePrerequisiteDao.class);
-        when(mockPrereqDao.findPrerequisites("CSE101")).thenReturn(Collections.emptyList());
-        DatabaseUtil.setCoursePrerequisiteDao(mockPrereqDao);
+        when(mockCourseRelationshipDao.findCorequisites("CSE101")).thenReturn(Collections.emptyList());
+        when(mockCourseRelationshipDao.findAntirequisites("CSE101")).thenReturn(Collections.emptyList());
+        when(mockCoursePrerequisiteDao.findPrerequisites("CSE101")).thenReturn(Collections.emptyList());
+        try {
+            when(mockCourseDao.decrementAvailableSeats(any(Connection.class), eq("CSE101"))).thenReturn(true);
+        } catch (SQLException e) {
+            // Ignore for test
+        }
 
         EnrollmentRecord result = EnrollmentService.registerSection(studentUser, "stu1", "SEC1");
 
         assertNotNull(result);
         assertEquals(EnrollmentRecord.Status.ENROLLED, result.getStatus());
-        verify(mockEnrollmentDao).insert(any(EnrollmentRecord.class));
+        verify(mockEnrollmentDao).insert(any(Connection.class), any(EnrollmentRecord.class));
     }
 
     @Test
@@ -108,7 +130,7 @@ public class EnrollmentServiceTest {
     }
 
     @Test
-    void testDropSection_Success() {
+    void testDropSection_Success() throws SQLException {
         User studentUser = new User("stu1", "hash", "salt", "Student", "Alice", "alice@test.com");
         Student studentProfile = new Student("stu1", "Alice", "Last", "email", "phone", LocalDate.now(), "addr", "CSE",
                 1);
@@ -129,6 +151,6 @@ public class EnrollmentServiceTest {
         EnrollmentService.dropSection(studentUser, "stu1", "SEC1");
 
         assertEquals(EnrollmentRecord.Status.DROPPED, record.getStatus());
-        verify(mockEnrollmentDao).updateStatus(record);
+        verify(mockEnrollmentDao).update(any(Connection.class), eq(record));
     }
 }

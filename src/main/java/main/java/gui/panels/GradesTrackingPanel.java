@@ -2,12 +2,18 @@ package main.java.gui.panels;
 
 import main.java.gui.components.JCard;
 import main.java.gui.style.PastelTheme;
+import main.java.models.EnrollmentRecord;
+import main.java.models.Section;
 import main.java.models.User;
+import main.java.service.StudentService;
+import main.java.utils.DatabaseUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Enhanced grades panel with SGPA/CGPA tracking
@@ -53,10 +59,16 @@ public class GradesTrackingPanel extends JPanel {
         JPanel panel = new JPanel(new GridLayout(1, 4, 15, 0));
         panel.setOpaque(false);
 
-        panel.add(createStatCard("CGPA", "8.45", PastelTheme.PASTEL_BLUE_DARK));
-        panel.add(createStatCard("Current SGPA", "8.72", PastelTheme.PASTEL_GREEN_DARK));
-        panel.add(createStatCard("Credits Completed", "84", PastelTheme.PASTEL_PURPLE_DARK));
-        panel.add(createStatCard("Academic Standing", "Good", PastelTheme.PASTEL_YELLOW_DARK));
+        String sgpa = String.format("%.2f", StudentService.calculateSGPA(currentUser.getUsername(), null));
+        String cgpa = String.format("%.2f", StudentService.calculateCGPA(currentUser.getUsername()));
+        String credits = String.valueOf(StudentService.getTotalCredits(currentUser.getUsername()));
+        double dSgpa = Double.parseDouble(sgpa);
+        String standing = dSgpa >= 8.0 ? "Excellent" : (dSgpa >= 6.0 ? "Good" : "Probation");
+
+        panel.add(createStatCard("CGPA", cgpa, PastelTheme.PASTEL_BLUE_DARK));
+        panel.add(createStatCard("Current SGPA", sgpa, PastelTheme.PASTEL_GREEN_DARK));
+        panel.add(createStatCard("Credits Completed", credits, PastelTheme.PASTEL_PURPLE_DARK));
+        panel.add(createStatCard("Academic Standing", standing, PastelTheme.PASTEL_YELLOW_DARK));
 
         return panel;
     }
@@ -85,22 +97,38 @@ public class GradesTrackingPanel extends JPanel {
     private JPanel createCurrentSemesterPanel() {
         JCard card = new JCard(new BorderLayout());
 
-        String[] columns = { "Course", "Credits", "Midterm", "Assignments", "Final", "Grade", "Points" };
+        String[] columns = { "Course", "Credits", "Final Score", "Grade", "Points" };
         DefaultTableModel model = new DefaultTableModel(columns, 0);
         JTable table = new JTable(model);
         table.setFont(PastelTheme.BODY_FONT);
         table.setRowHeight(30);
 
-        // Mock data
-        model.addRow(new Object[] { "CS101 - Data Structures", 4, "85", "90", "88", "A", "9.0" });
-        model.addRow(new Object[] { "CS102 - Algorithms", 4, "78", "82", "80", "B+", "8.0" });
-        model.addRow(new Object[] { "CS103 - Database Systems", 3, "92", "88", "90", "A+", "10.0" });
-        model.addRow(new Object[] { "MATH201 - Linear Algebra", 3, "75", "78", "76", "B", "7.0" });
-        model.addRow(new Object[] { "ENG101 - Technical Writing", 2, "88", "85", "87", "A", "9.0" });
+        List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForStudent(currentUser.getUsername());
+        for (EnrollmentRecord rec : enrollments) {
+            if (rec.getStatus() != EnrollmentRecord.Status.ENROLLED)
+                continue;
+            Section s = DatabaseUtil.getSection(rec.getSectionId());
+            if (s == null)
+                continue;
+
+            double score = rec.getFinalGrade();
+            if (score <= 0 && !rec.getComponentScores().isEmpty()) {
+                score = s.computeFinalScore(rec.getComponentScores());
+            }
+
+            model.addRow(new Object[] {
+                    s.getTitle(),
+                    DatabaseUtil.getCourseCreditHours(s.getCourseId()),
+                    String.format("%.2f", score),
+                    StudentService.calculateLetterGrade(score),
+                    String.format("%.1f", StudentService.calculatePoints(score))
+            });
+        }
 
         card.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        JLabel sgpaLabel = new JLabel("Semester GPA: 8.72");
+        double gpa = StudentService.calculateSGPA(currentUser.getUsername(), null);
+        JLabel sgpaLabel = new JLabel(String.format("Semester GPA: %.2f", gpa));
         sgpaLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         sgpaLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
         card.add(sgpaLabel, BorderLayout.SOUTH);
@@ -130,24 +158,51 @@ public class GradesTrackingPanel extends JPanel {
     private JPanel createCourseBreakdownPanel() {
         JCard card = new JCard(new BorderLayout());
 
-        JLabel infoLabel = new JLabel("Detailed course-wise performance breakdown");
+        JLabel infoLabel = new JLabel("Detailed course-wise performance analysis");
         infoLabel.setFont(PastelTheme.BODY_FONT);
         infoLabel.setForeground(PastelTheme.TEXT_SECONDARY);
-        infoLabel.setBorder(new EmptyBorder(20, 20, 20, 20));
-
+        infoLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
         card.add(infoLabel, BorderLayout.NORTH);
 
-        // TODO: Add detailed breakdown visualization
+        StringBuilder analysis = new StringBuilder("Course Performance Analysis:\n\n");
+        List<EnrollmentRecord> enrollments = DatabaseUtil.getEnrollmentsForStudent(currentUser.getUsername());
+
+        List<EnrollmentRecord> graded = enrollments.stream()
+                .filter(e -> e.getStatus() == EnrollmentRecord.Status.ENROLLED)
+                .filter(e -> e.getFinalGrade() > 0 || !e.getComponentScores().isEmpty())
+                .collect(Collectors.toList());
+
+        if (graded.isEmpty()) {
+            analysis.append("No graded courses available for analysis.");
+        } else {
+            analysis.append("Strongest Areas:\n");
+            graded.stream()
+                    .filter(e -> {
+                        Section s = DatabaseUtil.getSection(e.getSectionId());
+                        double score = e.getFinalGrade() <= 0 ? s.computeFinalScore(e.getComponentScores())
+                                : e.getFinalGrade();
+                        return score >= 85;
+                    })
+                    .forEach(e -> analysis.append("- ").append(DatabaseUtil.getSection(e.getSectionId()).getTitle())
+                            .append("\n"));
+
+            analysis.append("\nAreas for Improvement:\n");
+            graded.stream()
+                    .filter(e -> {
+                        Section s = DatabaseUtil.getSection(e.getSectionId());
+                        double score = e.getFinalGrade() <= 0 ? s.computeFinalScore(e.getComponentScores())
+                                : e.getFinalGrade();
+                        return score < 75;
+                    })
+                    .forEach(e -> analysis.append("- ").append(DatabaseUtil.getSection(e.getSectionId()).getTitle())
+                            .append("\n"));
+        }
+
         JTextArea detailsArea = new JTextArea();
         detailsArea.setFont(PastelTheme.BODY_FONT);
         detailsArea.setEditable(false);
-        detailsArea.setText("Course Performance Analysis:\n\n" +
-                "Strongest Areas:\n" +
-                "- Database Systems (A+ average)\n" +
-                "- Data Structures (A average)\n\n" +
-                "Areas for Improvement:\n" +
-                "- Linear Algebra (B average)\n\n" +
-                "Overall Trend: Improving ↗");
+        detailsArea.setText(analysis.toString());
+        detailsArea.setMargin(new Insets(10, 10, 10, 10));
 
         card.add(new JScrollPane(detailsArea), BorderLayout.CENTER);
         return card;

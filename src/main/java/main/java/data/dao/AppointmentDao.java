@@ -64,7 +64,7 @@ public class AppointmentDao extends BaseDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching appointments for student {}: {}", studentId, e.getMessage(), e);
         }
         return list;
     }
@@ -89,7 +89,7 @@ public class AppointmentDao extends BaseDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching office hours for faculty {}: {}", facultyId, e.getMessage(), e);
         }
         return list;
     }
@@ -108,7 +108,10 @@ public class AppointmentDao extends BaseDao {
         a.setStatus(Appointment.Status.valueOf(rs.getString("status")));
         a.setPurpose(rs.getString("purpose"));
         a.setRejectionReason(rs.getString("rejection_reason"));
-        a.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        if (createdAt != null) {
+            a.setCreatedAt(createdAt.toLocalDateTime());
+        }
         return a;
     }
 }

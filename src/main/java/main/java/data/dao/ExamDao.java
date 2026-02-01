@@ -55,7 +55,6 @@ public class ExamDao extends BaseDao {
     public ExamForm getExamForm(String studentCode, String semester, int year) {
         String sql = "SELECT * FROM exam_forms WHERE student_code = ? AND semester = ? AND year = ?";
         try (Connection conn = getConnection();
-
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, studentCode);
             stmt.setString(2, semester);
@@ -68,7 +67,8 @@ public class ExamDao extends BaseDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching exam form for student {} in {} {}: {}", studentCode, semester, year,
+                    e.getMessage(), e);
         }
         return null;
     }
@@ -77,7 +77,6 @@ public class ExamDao extends BaseDao {
         String sql = "SELECT section_code FROM exam_registrations WHERE form_id = ?";
         List<String> sections = new ArrayList<>();
         try (Connection conn = getConnection();
-
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, formId);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -86,7 +85,7 @@ public class ExamDao extends BaseDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching registered sections for form {}: {}", formId, e.getMessage(), e);
         }
         return sections;
     }
@@ -123,7 +122,10 @@ public class ExamDao extends BaseDao {
         form.setStudentCode(rs.getString("student_code"));
         form.setSemester(rs.getString("semester"));
         form.setYear(rs.getInt("year"));
-        form.setSubmittedAt(rs.getTimestamp("submitted_at").toLocalDateTime());
+        Timestamp submittedAt = rs.getTimestamp("submitted_at");
+        if (submittedAt != null) {
+            form.setSubmittedAt(submittedAt.toLocalDateTime());
+        }
         form.setStatus(ExamForm.FormStatus.valueOf(rs.getString("status")));
         form.setExamFeePaid(rs.getBoolean("exam_fee_paid"));
         return form;

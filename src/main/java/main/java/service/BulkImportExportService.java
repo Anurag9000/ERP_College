@@ -209,4 +209,24 @@ public class BulkImportExportService {
             }
         }
     }
+
+    /**
+     * Generate student import template CSV
+     */
+    public static void generateStudentTemplate(File csvFile) throws IOException {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFile))) {
+            writer.println("StudentID,FirstName,LastName,Email,Phone,DOB,Address,Course,Semester");
+            writer.println("S101,John,Doe,john.doe@example.com,1234567890,2000-01-01,123 Main St,CS,1");
+        }
+    }
+
+    /**
+     * Generate faculty import template CSV
+     */
+    public static void generateFacultyTemplate(File csvFile) throws IOException {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFile))) {
+            writer.println("FacultyID,FirstName,LastName,Email,Phone,Department,Designation,Qualification,Salary");
+            writer.println("F101,Jane,Smith,jane.smith@example.com,0987654321,CS,Professor,PhD,80000");
+        }
+    }
 }

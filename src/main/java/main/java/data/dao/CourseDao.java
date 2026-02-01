@@ -16,6 +16,8 @@ public class CourseDao extends BaseDao {
     private static final String SELECT_BY_CODE = SELECT_ALL + " WHERE course_code = ?";
     private static final String INSERT = "INSERT INTO courses (course_code, course_name, department, duration_semesters, fees, description, total_seats, available_seats, credit_hours) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String UPDATE = "UPDATE courses SET course_name = ?, department = ?, duration_semesters = ?, fees = ?, description = ?, total_seats = ?, available_seats = ?, credit_hours = ? WHERE course_code = ?";
+    private static final String ATOMIC_DECREMENT_SEATS = "UPDATE courses SET available_seats = available_seats - 1 WHERE course_code = ? AND available_seats > 0";
+    private static final String ATOMIC_INCREMENT_SEATS = "UPDATE courses SET available_seats = LEAST(total_seats, available_seats + 1) WHERE course_code = ?";
     private static final String DELETE = "DELETE FROM courses WHERE course_code = ?";
 
     public CourseDao() {
@@ -72,8 +74,16 @@ public class CourseDao extends BaseDao {
     }
 
     public void update(Course course) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(UPDATE)) {
+        try (Connection conn = getConnection()) {
+            update(conn, course);
+        } catch (SQLException ex) {
+            logger.error("Error updating course {}: {}", course.getCourseId(), ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to update course", ex);
+        }
+    }
+
+    public void update(Connection conn, Course course) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             ps.setString(1, course.getCourseName());
             ps.setString(2, course.getDepartment());
             ps.setInt(3, course.getDuration());
@@ -84,9 +94,20 @@ public class CourseDao extends BaseDao {
             ps.setInt(8, course.getCreditHours());
             ps.setString(9, course.getCourseId());
             ps.executeUpdate();
-        } catch (SQLException ex) {
-            logger.error("Error updating course {}: {}", course.getCourseId(), ex.getMessage(), ex);
-            throw new IllegalStateException("Unable to update course", ex);
+        }
+    }
+
+    public boolean decrementAvailableSeats(Connection conn, String courseCode) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(ATOMIC_DECREMENT_SEATS)) {
+            ps.setString(1, courseCode);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    public void incrementAvailableSeats(Connection conn, String courseCode) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(ATOMIC_INCREMENT_SEATS)) {
+            ps.setString(1, courseCode);
+            ps.executeUpdate();
         }
     }
 

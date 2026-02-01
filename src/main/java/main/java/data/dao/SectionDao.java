@@ -22,6 +22,10 @@ public class SectionDao extends BaseDao {
     private static final String UPDATE = "UPDATE sections SET course_code = ?, title = ?, instructor_code = ?, day_of_week = ?, start_time = ?, end_time = ?, location = ?, capacity = ?, enrollment_deadline = ?, drop_deadline = ?, semester = ?, year = ?, requires_advisor_approval = ? WHERE section_code = ?";
     private static final String DELETE = "DELETE FROM sections WHERE section_code = ?";
 
+    private static final String SELECT_ASSESSMENTS = "SELECT component, weight FROM section_assessments WHERE section_code = ?";
+    private static final String DELETE_ASSESSMENTS = "DELETE FROM section_assessments WHERE section_code = ?";
+    private static final String INSERT_ASSESSMENT = "INSERT INTO section_assessments (section_code, component, weight) VALUES (?, ?, ?)";
+
     public SectionDao() {
         super(main.java.config.DataSourceRegistry.erpDataSource()
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
@@ -38,6 +42,9 @@ public class SectionDao extends BaseDao {
         } catch (SQLException ex) {
             logger.error("Error loading sections: {}", ex.getMessage(), ex);
         }
+        for (Section section : sections) {
+            loadAssessments(section);
+        }
         return sections;
     }
 
@@ -47,7 +54,9 @@ public class SectionDao extends BaseDao {
             ps.setString(1, code);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return Optional.of(mapSection(rs));
+                    Section section = mapSection(rs);
+                    loadAssessments(section);
+                    return Optional.of(section);
                 }
             }
         } catch (SQLException ex) {
@@ -61,6 +70,7 @@ public class SectionDao extends BaseDao {
                 PreparedStatement ps = conn.prepareStatement(INSERT)) {
             bind(ps, section, true);
             ps.executeUpdate();
+            saveAssessments(conn, section);
         } catch (SQLException ex) {
             logger.error("Error inserting section {}: {}", section.getSectionId(), ex.getMessage(), ex);
             throw new IllegalStateException("Unable to insert section", ex);
@@ -73,6 +83,7 @@ public class SectionDao extends BaseDao {
             bind(ps, section, false);
             ps.setString(13, section.getSectionId());
             ps.executeUpdate();
+            saveAssessments(conn, section);
         } catch (SQLException ex) {
             logger.error("Error updating section {}: {}", section.getSectionId(), ex.getMessage(), ex);
             throw new IllegalStateException("Unable to update section", ex);
@@ -80,13 +91,58 @@ public class SectionDao extends BaseDao {
     }
 
     public void delete(String sectionCode) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(DELETE)) {
-            ps.setString(1, sectionCode);
-            ps.executeUpdate();
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(DELETE_ASSESSMENTS)) {
+                    ps.setString(1, sectionCode);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(DELETE)) {
+                    ps.setString(1, sectionCode);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
         } catch (SQLException ex) {
             logger.error("Error deleting section {}: {}", sectionCode, ex.getMessage(), ex);
             throw new IllegalStateException("Unable to delete section", ex);
+        }
+    }
+
+    private void loadAssessments(Section section) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(SELECT_ASSESSMENTS)) {
+            ps.setString(1, section.getSectionId());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    section.setAssessmentWeight(rs.getString("component"), rs.getDouble("weight"));
+                }
+            }
+        } catch (SQLException ex) {
+            logger.error("Error loading assessments for section {}: {}", section.getSectionId(), ex.getMessage(), ex);
+        }
+    }
+
+    private void saveAssessments(Connection conn, Section section) throws SQLException {
+        try (PreparedStatement psDel = conn.prepareStatement(DELETE_ASSESSMENTS)) {
+            psDel.setString(1, section.getSectionId());
+            psDel.executeUpdate();
+        }
+        if (section.getAssessmentWeights().isEmpty()) {
+            return;
+        }
+        try (PreparedStatement psIns = conn.prepareStatement(INSERT_ASSESSMENT)) {
+            for (var entry : section.getAssessmentWeights().entrySet()) {
+                psIns.setString(1, section.getSectionId());
+                psIns.setString(2, entry.getKey());
+                psIns.setDouble(3, entry.getValue());
+                psIns.addBatch();
+            }
+            psIns.executeBatch();
         }
     }
 

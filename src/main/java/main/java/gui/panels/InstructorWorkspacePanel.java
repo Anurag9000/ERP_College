@@ -8,7 +8,6 @@ import main.java.models.User;
 import main.java.service.GradebookService;
 import main.java.service.InstructorService;
 import main.java.utils.DatabaseUtil;
-import java.util.List;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
@@ -20,9 +19,7 @@ import java.awt.*;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.nio.file.Files;
 import java.util.*;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -228,15 +225,7 @@ public class InstructorWorkspacePanel extends JPanel {
     }
 
     private Map<String, Double> parseWeights(String input) {
-        Map<String, Double> weights = new LinkedHashMap<>();
-        for (String token : input.split(",")) {
-            String[] parts = token.split(":");
-            if (parts.length != 2) {
-                throw new IllegalArgumentException("Invalid token: " + token);
-            }
-            weights.put(parts[0].trim(), Double.parseDouble(parts[1].trim()));
-        }
-        return weights;
+        return GradebookService.parseWeights(input);
     }
 
     private void recordScore() {
@@ -352,7 +341,9 @@ public class InstructorWorkspacePanel extends JPanel {
         File target = chooser.getSelectedFile();
         try (FileWriter writer = new FileWriter(target);
                 CSVPrinter printer = new CSVPrinter(writer,
-                        CSVFormat.DEFAULT.withHeader("Student ID", "Component", "Score", "Final Grade", "Feedback"))) {
+                        CSVFormat.DEFAULT.builder()
+                                .setHeader("Student ID", "Component", "Score", "Final Grade", "Feedback")
+                                .build())) {
             for (EnrollmentRecord record : enrollments) {
                 Map<String, Double> scores = record.getComponentScores();
                 Map<String, String> feedbackMap = record.getComponentFeedback();
@@ -389,9 +380,11 @@ public class InstructorWorkspacePanel extends JPanel {
         File source = chooser.getSelectedFile();
         int success = 0;
         java.util.List<String> failures = new ArrayList<>();
-        try (CSVParser parser = CSVFormat.DEFAULT
-                .withFirstRecordAsHeader()
-                .withTrim()
+        try (CSVParser parser = CSVFormat.DEFAULT.builder()
+                .setHeader()
+                .setSkipHeaderRecord(true)
+                .setTrim(true)
+                .build()
                 .parse(new FileReader(source))) {
             for (CSVRecord record : parser) {
                 String studentId = record.get("Student ID");

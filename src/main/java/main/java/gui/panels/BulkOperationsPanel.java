@@ -227,13 +227,30 @@ public class BulkOperationsPanel extends JPanel {
     }
 
     private void downloadTemplates() {
-        JOptionPane.showMessageDialog(this,
-                "Templates will be saved to:\n" +
-                        "- student_template.csv\n" +
-                        "- faculty_template.csv\n\n" +
-                        "Check your downloads folder.",
-                "Templates", JOptionPane.INFORMATION_MESSAGE);
-        // TODO: Actually create template files
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Select Directory to Save Templates");
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File dir = chooser.getSelectedFile();
+            try {
+                File studentFile = new File(dir, "student_template.csv");
+                File facultyFile = new File(dir, "faculty_template.csv");
+
+                BulkImportExportService.generateStudentTemplate(studentFile);
+                BulkImportExportService.generateFacultyTemplate(facultyFile);
+
+                JOptionPane.showMessageDialog(this,
+                        "Templates saved to:\n" +
+                                studentFile.getAbsolutePath() + "\n" +
+                                facultyFile.getAbsolutePath(),
+                        "Success", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this,
+                        "Error saving templates: " + e.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private void showErrors(String title, List<String> errors) {

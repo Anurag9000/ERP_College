@@ -53,7 +53,7 @@ public class AssignmentDao extends BaseDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching assignments for section {}: {}", sectionCode, e.getMessage(), e);
         }
         return list;
     }
@@ -74,7 +74,7 @@ public class AssignmentDao extends BaseDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching upcoming assignments for student {}: {}", studentCode, e.getMessage(), e);
         }
         return list;
     }
@@ -136,7 +136,30 @@ public class AssignmentDao extends BaseDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching submissions for assignment {}: {}", assignmentId, e.getMessage(), e);
+        }
+        return list;
+    }
+
+    public List<AssignmentSubmission> getSubmissionsByStudent(String studentCode) {
+        String sql = "SELECT s.*, a.title FROM assignment_submissions s " +
+                "JOIN assignments a ON s.assignment_id = a.assignment_id " +
+                "WHERE s.student_code = ? ORDER BY s.submitted_at DESC";
+        List<AssignmentSubmission> list = new ArrayList<>();
+        try (Connection conn = getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, studentCode);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    AssignmentSubmission sub = mapSubmission(rs);
+                    sub.setAssignmentTitle(rs.getString("title")); // Need to ensure AssignmentSubmission has title
+                                                                   // field
+                    list.add(sub);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error fetching submissions for student {}: {}", studentCode, e.getMessage(), e);
         }
         return list;
     }
@@ -154,7 +177,8 @@ public class AssignmentDao extends BaseDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Error fetching submission for assignment {} and student {}: {}", assignmentId, studentCode,
+                    e.getMessage(), e);
         }
         return null;
     }
@@ -165,10 +189,16 @@ public class AssignmentDao extends BaseDao {
         a.setSectionCode(rs.getString("section_code"));
         a.setTitle(rs.getString("title"));
         a.setDescription(rs.getString("description"));
-        a.setDueDate(rs.getTimestamp("due_date").toLocalDateTime());
+        Timestamp dueDate = rs.getTimestamp("due_date");
+        if (dueDate != null) {
+            a.setDueDate(dueDate.toLocalDateTime());
+        }
         a.setMaxMarks(rs.getDouble("max_marks"));
         a.setAssignmentType(Assignment.AssignmentType.valueOf(rs.getString("assignment_type")));
-        a.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        if (createdAt != null) {
+            a.setCreatedAt(createdAt.toLocalDateTime());
+        }
         return a;
     }
 
@@ -177,7 +207,10 @@ public class AssignmentDao extends BaseDao {
         s.setSubmissionId(rs.getLong("submission_id"));
         s.setAssignmentId(rs.getLong("assignment_id"));
         s.setStudentCode(rs.getString("student_code"));
-        s.setSubmittedAt(rs.getTimestamp("submitted_at").toLocalDateTime());
+        Timestamp submittedAt = rs.getTimestamp("submitted_at");
+        if (submittedAt != null) {
+            s.setSubmittedAt(submittedAt.toLocalDateTime());
+        }
         s.setFilePath(rs.getString("file_path"));
         Double marks = rs.getDouble("marks_obtained");
         if (!rs.wasNull())

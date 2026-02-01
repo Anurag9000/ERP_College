@@ -1,0 +1,379 @@
+﻿Executing: javac -d target/classes -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar;C:\Users\DELL\.m2\repository\com\zaxxer\HikariCP\5.1.0\HikariCP-5.1.0.jar;C:\Users\DELL\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.3.3\mariadb-java-client-3.3.3.jar;C:\Users\DELL\.m2\repository\org\flywaydb\flyway-core\10.12.0\flyway-core-10.12.0.jar;C:\Users\DELL\.m2\repository\org\apache\commons\commons-csv\1.11.0\commons-csv-1.11.0.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\pdfbox\2.0.32\pdfbox-2.0.32.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\fontbox\2.0.32\fontbox-2.0.32.jar;C:\Users\DELL\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\DELL\.m2\repository\com\formdev\flatlaf\3.5\flatlaf-3.5.jar" @main_files.txt
+node : Note: Some 
+input files use or 
+override a 
+deprecated API.
+At line:1 char:1
++ node 
+run_tests.js > test
+_results_v2.txt 
+2>&1
++ ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo 
+             : No  
+  tSpecified: (N   
+ ote: Some inpu    
+...deprecated     
+API.:String) [    
+], RemoteExcep    
+tion
+    + FullyQualifi 
+   edErrorId : Na  
+  tiveCommandErr   
+ or
+ 
+Note: Recompile 
+with 
+-Xlint:deprecation 
+for details.
+Note: Some input 
+files use 
+unchecked or 
+unsafe operations.
+Note: Recompile 
+with 
+-Xlint:unchecked 
+for details.
+Executing: javac -d target/test-classes -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar;C:\Users\DELL\.m2\repository\com\zaxxer\HikariCP\5.1.0\HikariCP-5.1.0.jar;C:\Users\DELL\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.3.3\mariadb-java-client-3.3.3.jar;C:\Users\DELL\.m2\repository\org\flywaydb\flyway-core\10.12.0\flyway-core-10.12.0.jar;C:\Users\DELL\.m2\repository\org\apache\commons\commons-csv\1.11.0\commons-csv-1.11.0.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\pdfbox\2.0.32\pdfbox-2.0.32.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\fontbox\2.0.32\fontbox-2.0.32.jar;C:\Users\DELL\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\DELL\.m2\repository\com\formdev\flatlaf\3.5\flatlaf-3.5.jar" @test_files.txt
+Executing: java -cp "target/classes;target/test-classes;src/test/resources;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\DELL\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;C:\Users\DELL\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\DELL\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\DELL\.m2\repository\org\assertj\assertj-core\3.26.0\assertj-core-3.26.0.jar;C:\Users\DELL\.m2\repository\org\mockito\mockito-core\5.12.0\mockito-core-5.12.0.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy\1.14.15\byte-buddy-1.14.15.jar;C:\Users\DELL\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.15\byte-buddy-agent-1.14.15.jar;C:\Users\DELL\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\DELL\.m2\repository\org\slf4j\slf4j-api\2.0.13\slf4j-api-2.0.13.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-classic\1.5.6\logback-classic-1.5.6.jar;C:\Users\DELL\.m2\repository\ch\qos\logback\logback-core\1.5.6\logback-core-1.5.6.jar;C:\Users\DELL\.m2\repository\com\zaxxer\HikariCP\5.1.0\HikariCP-5.1.0.jar;C:\Users\DELL\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.3.3\mariadb-java-client-3.3.3.jar;C:\Users\DELL\.m2\repository\org\flywaydb\flyway-core\10.12.0\flyway-core-10.12.0.jar;C:\Users\DELL\.m2\repository\org\apache\commons\commons-csv\1.11.0\commons-csv-1.11.0.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\pdfbox\2.0.32\pdfbox-2.0.32.jar;C:\Users\DELL\.m2\repository\org\apache\pdfbox\fontbox\2.0.32\fontbox-2.0.32.jar;C:\Users\DELL\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\DELL\.m2\repository\com\formdev\flatlaf\3.5\flatlaf-3.5.jar" main.java.utils.ManualTestRunner
+Running tests in PasswordUtilTest
+  - testHashPassword: PASSED
+  - testVerifyPasswordInvalid: PASSED
+Running tests in PasswordPolicyTest
+  - testValidPassword: PASSED
+  - testTooShort: PASSED
+  - testNoUppercase: PASSED
+  - testNoLowercase: PASSED
+  - testNoSpecialChar: PASSED
+  - testNoDigit: PASSED
+Running tests in AdminServiceTest
+  - testEnsureAdminFailure: PASSED
+WARNING: A Java 
+agent has been 
+loaded dynamically 
+(C:\Users\DELL\.m2\
+repository\net\byte
+buddy\byte-buddy-ag
+ent\1.14.15\byte-bu
+ddy-agent-1.14.15.j
+ar)
+WARNING: If a 
+serviceability 
+tool is in use, 
+please run with -XX
+:+EnableDynamicAgen
+tLoading to hide 
+this warning
+WARNING: If a 
+serviceability 
+tool is not in 
+use, please run 
+with -Djdk.instrume
+nt.traceUsage for 
+more information
+WARNING: Dynamic 
+loading of agents 
+will be disallowed 
+by default in a 
+future release
+  - testCreateUserAsAdmin: PASSED
+  - testEnsureAdminSuccess: PASSED
+  - testCreateUserAsNonAdmin: PASSED
+Running tests in EnrollmentServiceTest
+  - testDropSection_Success: 2026-01-31 19:12:12 INFO  [main] AUDIT - [ENROLLMENT_CHANGE] stu1 - Dropped stu1 from Intro
+2026-01-31 19:12:12 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-AUTH-POOL - Starting...
+2026-01-31 19:12:12 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-AUTH-POOL - Start completed.
+2026-01-31 19:12:12 INFO  [main] main.java.config.DataSourceRegistry - Initialised auth datasource (maxPoolSize=5)
+2026-01-31 19:12:12 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-ERP-POOL - Starting...
+2026-01-31 19:12:12 INFO  [main] com.zaxxer.hikari.HikariDataSource - ERP-ERP-POOL - Start completed.
+2026-01-31 19:12:12 INFO  [main] main.java.config.DataSourceRegistry - Initialised erp datasource (maxPoolSize=10)
+2026-01-31 19:12:42 ERROR [main] main.java.data.dao.AuditLogDao - Unable to insert audit event ENROLLMENT_CHANGE - ERP-ERP-POOL - Connection is not available, request timed out after 30007ms (total=0, active=0, idle=0, waiting=0)
+java.sql.SQLTransientConnectionException: ERP-ERP-POOL - Connection is not available, request timed out after 30007ms (total=0, active=0, idle=0, waiting=0)
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:686)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:179)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:144)
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:99)
+	at main.java.data.dao.BaseDao.getConnection(BaseDao.java:25)
+	at main.java.data.dao.AuditLogDao.insert(AuditLogDao.java:33)
+	at main.java.utils.AuditLogService.log(AuditLogService.java:87)
+	at main.java.utils.DatabaseUtil.dropStudentFromSection(DatabaseUtil.java:1376)
+	at main.java.service.EnrollmentService.dropSection(EnrollmentService.java:56)
+	at main.java.service.EnrollmentServiceTest.testDropSection_Success(EnrollmentServiceTest.java:141)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at main.java.utils.ManualTestRunner.main(ManualTestRunner.java:50)
+Caused by: java.sql.SQLException: RSA public key is not available client side (option serverRsaPublicKeyFile not set)
+	at org.mariadb.jdbc.plugin.authentication.standard.CachingSha2PasswordPlugin.process(CachingSha2PasswordPlugin.java:221)
+	at org.mariadb.jdbc.client.impl.ConnectionHelper.authenticationHandler(ConnectionHelper.java:268)
+	at org.mariadb.jdbc.client.impl.StandardClient.<init>(StandardClient.java:195)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:69)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:95)
+	at org.mariadb.jdbc.Driver.connect(Driver.java:26)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:137)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:360)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:202)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:461)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:724)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:703)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+FAILED
+Wanted but not 
+invoked:
+enrollmentDao.updat
+eStatus(
+    main.java.model
+s.EnrollmentRecord@
+4a29f290
+);
+-> at main.java.ser
+vice.EnrollmentServ
+iceTest.testDropSec
+tion_Success(Enroll
+mentServiceTest.jav
+a:144)
+
+However, there 
+were exactly 4 
+interactions with 
+this mock:
+enrollmentDao.getCo
+nnection();
+-> at main.java.uti
+ls.DatabaseUtil.dro
+pStudentFromSection
+(DatabaseUtil.java:
+1335)
+
+enrollmentDao.findB
+ySection("SEC1");
+-> at main.java.uti
+ls.DatabaseUtil.dro
+pStudentFromSection
+(DatabaseUtil.java:
+1338)
+
+enrollmentDao.updat
+e(
+    Mock for 
+Connection, 
+hashCode: 
+336927685,
+    main.java.model
+s.EnrollmentRecord@
+4a29f290
+);
+-> at main.java.uti
+ls.DatabaseUtil.dro
+pStudentFromSection
+(DatabaseUtil.java:
+1347)
+
+enrollmentDao.findB
+yStudent("stu1");
+-> at main.java.uti
+ls.DatabaseUtil.cal
+culateEnrolledCredi
+ts(DatabaseUtil.jav
+a:2076)
+
+
+	at main.java.servi
+ce.EnrollmentServic
+eTest.testDropSecti
+on_Success(Enrollme
+ntServiceTest.java:
+144)
+	at java.base/jdk.i
+nternal.reflect.Dir
+ectMethodHandleAcce
+ssor.invoke(DirectM
+ethodHandleAccessor
+.java:103)
+	at java.base/java.
+lang.reflect.Method
+.invoke(Method.java
+:580)
+	at main.java.utils
+.ManualTestRunner.m
+ain(ManualTestRunne
+r.java:50)
+  - testRegisterSection_DeadlinePassed: PASSED
+  - testRegisterSection_Success: FAILED
+java.lang.NullPoint
+erException
+	at java.base/java.
+util.Objects.requir
+eNonNull(Objects.ja
+va:233)
+	at main.java.utils
+.DatabaseUtil.getCo
+urseCorequisites(Da
+tabaseUtil.java:193
+9)
+	at main.java.utils
+.DatabaseUtil.getMi
+ssingCorequisites(D
+atabaseUtil.java:20
+36)
+	at main.java.utils
+.DatabaseUtil.regis
+terStudentToSection
+(DatabaseUtil.java:
+1186)
+	at main.java.servi
+ce.EnrollmentServic
+e.registerSection(E
+nrollmentService.ja
+va:39)
+	at main.java.servi
+ce.EnrollmentServic
+eTest.testRegisterS
+ection_Success(Enro
+llmentServiceTest.j
+ava:95)
+	at java.base/jdk.i
+nternal.reflect.Dir
+ectMethodHandleAcce
+ssor.invoke(DirectM
+ethodHandleAccessor
+.java:103)
+	at java.base/java.
+lang.reflect.Method
+.invoke(Method.java
+:580)
+	at main.java.utils
+.ManualTestRunner.m
+ain(ManualTestRunne
+r.java:50)
+Running tests in GradebookServiceTest
+  - testComputeFinal_Success: 2026-01-31 19:12:42 INFO  [main] AUDIT - [GRADE_EDIT] prof1 - Computed final grade 90.00 for stu1 in SEC1
+PASSED
+  - testRecordScore_Success: 2026-01-31 19:12:42 INFO  [main] AUDIT - [GRADE_EDIT] prof1 - Recorded Midterm=85.00 for stu1 in SEC1
+PASSED
+  - testRecordScore_SecurityException_WrongInstructor: PASSED
+Running tests in StudentServiceTest
+  - testGetProfile_Success: PASSED
+  - testGetSchedule_Success: PASSED
+  - testGetProfile_SecurityException: PASSED
+Running tests in FacultyServiceTest
+  - testGetOfficeHours: PASSED
+
+Test Results:
+Total:  22
+Passed: 20
+Failed: 2
+Command failed: 
+java -cp "target/cl
+asses;target/test-c
+lasses;src/test/res
+ources;C:\Users\DEL
+L\.m2\repository\or
+g\junit\jupiter\jun
+it-jupiter-api\5.10
+.2\junit-jupiter-ap
+i-5.10.2.jar;C:\Use
+rs\DELL\.m2\reposit
+ory\org\junit\jupit
+er\junit-jupiter-en
+gine\5.10.2\junit-j
+upiter-engine-5.10.
+2.jar;C:\Users\DELL
+\.m2\repository\org
+\junit\platform\jun
+it-platform-commons
+\1.10.2\junit-platf
+orm-commons-1.10.2.
+jar;C:\Users\DELL\.
+m2\repository\org\j
+unit\platform\junit
+-platform-engine\1.
+10.2\junit-platform
+-engine-1.10.2.jar;
+C:\Users\DELL\.m2\r
+epository\org\opent
+est4j\opentest4j\1.
+3.0\opentest4j-1.3.
+0.jar;C:\Users\DELL
+\.m2\repository\org
+\apiguardian\apigua
+rdian-api\1.1.2\api
+guardian-api-1.1.2.
+jar;C:\Users\DELL\.
+m2\repository\org\a
+ssertj\assertj-core
+\3.26.0\assertj-cor
+e-3.26.0.jar;C:\Use
+rs\DELL\.m2\reposit
+ory\org\mockito\moc
+kito-core\5.12.0\mo
+ckito-core-5.12.0.j
+ar;C:\Users\DELL\.m
+2\repository\net\by
+tebuddy\byte-buddy\
+1.14.15\byte-buddy-
+1.14.15.jar;C:\User
+s\DELL\.m2\reposito
+ry\net\bytebuddy\by
+te-buddy-agent\1.14
+.15\byte-buddy-agen
+t-1.14.15.jar;C:\Us
+ers\DELL\.m2\reposi
+tory\org\objenesis\
+objenesis\3.3\objen
+esis-3.3.jar;C:\Use
+rs\DELL\.m2\reposit
+ory\org\slf4j\slf4j
+-api\2.0.13\slf4j-a
+pi-2.0.13.jar;C:\Us
+ers\DELL\.m2\reposi
+tory\ch\qos\logback
+\logback-classic\1.
+5.6\logback-classic
+-1.5.6.jar;C:\Users
+\DELL\.m2\repositor
+y\ch\qos\logback\lo
+gback-core\1.5.6\lo
+gback-core-1.5.6.ja
+r;C:\Users\DELL\.m2
+\repository\com\zax
+xer\HikariCP\5.1.0\
+HikariCP-5.1.0.jar;
+C:\Users\DELL\.m2\r
+epository\org\maria
+db\jdbc\mariadb-jav
+a-client\3.3.3\mari
+adb-java-client-3.3
+.3.jar;C:\Users\DEL
+L\.m2\repository\or
+g\flywaydb\flyway-c
+ore\10.12.0\flyway-
+core-10.12.0.jar;C:
+\Users\DELL\.m2\rep
+ository\org\apache\
+commons\commons-csv
+\1.11.0\commons-csv
+-1.11.0.jar;C:\User
+s\DELL\.m2\reposito
+ry\org\apache\pdfbo
+x\pdfbox\2.0.32\pdf
+box-2.0.32.jar;C:\U
+sers\DELL\.m2\repos
+itory\org\apache\pd
+fbox\fontbox\2.0.32
+\fontbox-2.0.32.jar
+;C:\Users\DELL\.m2\
+repository\commons-
+logging\commons-log
+ging\1.2\commons-lo
+gging-1.2.jar;C:\Us
+ers\DELL\.m2\reposi
+tory\com\formdev\fl
+atlaf\3.5\flatlaf-3
+.5.jar" main.java.u
+tils.ManualTestRunn
+er

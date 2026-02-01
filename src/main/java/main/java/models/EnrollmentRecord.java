@@ -18,6 +18,7 @@ public class EnrollmentRecord implements Serializable {
         DROPPED
     }
 
+    private long id;
     private String studentId;
     private String sectionId;
     private Status status;
@@ -41,6 +42,14 @@ public class EnrollmentRecord implements Serializable {
         this.componentScores = new LinkedHashMap<>();
         this.componentFeedback = new LinkedHashMap<>();
         this.weighting = new LinkedHashMap<>();
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     public String getStudentId() {

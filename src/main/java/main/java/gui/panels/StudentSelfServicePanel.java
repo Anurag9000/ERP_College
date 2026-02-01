@@ -17,14 +17,6 @@ import main.java.gui.dialogs.ChangePasswordDialog;
 import main.java.gui.panels.calendar.CalendarPanel;
 import main.java.gui.panels.calendar.WeeklyPlannerPanel;
 import main.java.gui.panels.faculty.FacultyConnectPanel;
-import main.java.gui.panels.AssignmentsPanel;
-import main.java.gui.panels.AnnouncementsHubPanel;
-import main.java.gui.panels.ExaminationPanel;
-import main.java.gui.panels.StudentAttendancePanel;
-import main.java.gui.panels.GradesTrackingPanel;
-import main.java.gui.panels.NotificationPreferencesPanel;
-import main.java.gui.panels.ThemeCustomizationPanel;
-import main.java.gui.panels.MeetingSlotsPanel;
 import main.java.gui.style.PastelTheme;
 
 import javax.swing.*;

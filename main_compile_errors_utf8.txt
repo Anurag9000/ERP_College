@@ -1,0 +1,681 @@
+﻿javac : src\main\ja
+va\main\java\data\d
+ao\AttendanceDao.ja
+va:3: error: 
+package 
+main.java.config 
+does not exist
+At line:1 char:1
++ javac -d 
+target/classes -cp 
+"C:\Users\DELL\.m2\
+repository\org\slf4
+j\s ...
++ ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+    + CategoryInfo 
+             : No  
+  tSpecified: (s   
+ rc\main\java\m    
+... does not e    
+xist:String) [    
+], RemoteExcep    
+tion
+    + FullyQualifi 
+   edErrorId : Na  
+  tiveCommandErr   
+ or
+ 
+import main.java.co
+nfig.DataSourceRegi
+stry;
+                   
+    ^
+src\main\java\main\
+java\data\dao\Audit
+LogDao.java:3: 
+error: package 
+main.java.config 
+does not exist
+import main.java.co
+nfig.DataSourceRegi
+stry;
+                   
+    ^
+src\main\java\main\
+java\data\dao\FeeSc
+heduleTemplateDao.j
+ava:3: error: 
+package 
+main.java.config 
+does not exist
+import main.java.co
+nfig.DataSourceRegi
+stry;
+                   
+    ^
+src\main\java\main\
+java\data\dao\Instr
+uctorMessageDao.jav
+a:3: error: 
+package 
+main.java.config 
+does not exist
+import main.java.co
+nfig.DataSourceRegi
+stry;
+                   
+    ^
+src\main\java\main\
+java\data\dao\Notif
+icationPreferenceDa
+o.java:3: error: 
+package 
+main.java.config 
+does not exist
+import main.java.co
+nfig.DataSourceRegi
+stry;
+                   
+    ^
+src\main\java\main\
+java\data\dao\Payme
+ntTransactionDao.ja
+va:3: error: 
+package 
+main.java.config 
+does not exist
+import main.java.co
+nfig.DataSourceRegi
+stry;
+                   
+    ^
+src\main\java\main\
+java\data\dao\Regis
+trationRequestDao.j
+ava:3: error: 
+package 
+main.java.config 
+does not exist
+import main.java.co
+nfig.DataSourceRegi
+stry;
+                   
+    ^
+src\main\java\main\
+java\service\Backup
+RestoreService.java
+:3: error: package 
+main.java.config 
+does not exist
+import main.java.co
+nfig.ConfigLoader;
+                   
+    ^
+src\main\java\main\
+java\utils\Database
+Util.java:3: 
+error: package 
+main.java.config 
+does not exist
+import main.java.co
+nfig.ConfigLoader;
+                   
+    ^
+src\main\java\main\
+java\utils\Database
+Util.java:25: 
+error: package main
+.java.data.migratio
+n does not exist
+import main.java.da
+ta.migration.Legacy
+DataMigrator;
+                   
+            ^
+src\main\java\main\
+java\utils\HealthDi
+agnostics.java:3: 
+error: package 
+main.java.config 
+does not exist
+import main.java.co
+nfig.ConfigLoader;
+                   
+    ^
+src\main\java\main\
+java\utils\HealthDi
+agnostics.java:4: 
+error: package 
+main.java.config 
+does not exist
+import main.java.co
+nfig.DataSourceRegi
+stry;
+                   
+    ^
+src\main\java\main\
+java\data\dao\Annou
+ncementDao.java:12:
+ error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Appoi
+ntmentDao.java:15: 
+error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Asses
+smentTemplateDao.ja
+va:33: error: 
+package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Assig
+nmentDao.java:14: 
+error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Atten
+danceDao.java:23: 
+error: cannot find 
+symbol
+        super(DataS
+ourceRegistry.erpDa
+taSource()
+              ^
+  symbol:   
+variable 
+DataSourceRegistry
+  location: class 
+AttendanceDao
+src\main\java\main\
+java\data\dao\Audit
+LogDao.java:28: 
+error: cannot find 
+symbol
+        super(DataS
+ourceRegistry.erpDa
+taSource()
+              ^
+  symbol:   
+variable 
+DataSourceRegistry
+  location: class 
+AuditLogDao
+src\main\java\main\
+java\data\dao\AuthU
+serDao.java:31: 
+error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.authDat
+aSource()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Cours
+eDao.java:24: 
+error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Cours
+ePrerequisiteDao.ja
+va:19: error: 
+package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Cours
+eRelationshipDao.ja
+va:22: error: 
+package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Enrol
+lmentDao.java:27: 
+error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\ExamD
+ao.java:12: error: 
+package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\FeeIn
+stallmentDao.java:4
+3: error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\FeeSc
+heduleTemplateDao.j
+ava:19: error: 
+cannot find symbol
+        super(DataS
+ourceRegistry.erpDa
+taSource()
+              ^
+  symbol:   
+variable 
+DataSourceRegistry
+  location: class F
+eeScheduleTemplateD
+ao
+src\main\java\main\
+java\data\dao\Instr
+uctorDao.java:24: 
+error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Instr
+uctorMessageDao.jav
+a:30: error: 
+cannot find symbol
+        super(DataS
+ourceRegistry.erpDa
+taSource()
+              ^
+  symbol:   
+variable 
+DataSourceRegistry
+  location: class I
+nstructorMessageDao
+src\main\java\main\
+java\data\dao\Maint
+enanceWindowDao.jav
+a:34: error: 
+package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Notif
+icationDao.java:31:
+ error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Notif
+icationPreferenceDa
+o.java:24: error: 
+cannot find symbol
+        super(DataS
+ourceRegistry.erpDa
+taSource()
+              ^
+  symbol:   
+variable 
+DataSourceRegistry
+  location: class N
+otificationPreferen
+ceDao
+src\main\java\main\
+java\data\dao\Payme
+ntTransactionDao.ja
+va:43: error: 
+cannot find symbol
+        super(DataS
+ourceRegistry.erpDa
+taSource()
+              ^
+  symbol:   
+variable 
+DataSourceRegistry
+  location: class P
+aymentTransactionDa
+o
+src\main\java\main\
+java\data\dao\Regis
+trationRequestDao.j
+ava:20: error: 
+cannot find symbol
+        super(DataS
+ourceRegistry.erpDa
+taSource()
+              ^
+  symbol:   
+variable 
+DataSourceRegistry
+  location: class R
+egistrationRequestD
+ao
+src\main\java\main\
+java\data\dao\Secti
+onDao.java:30: 
+error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Setti
+ngsDao.java:19: 
+error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Stude
+ntDao.java:24: 
+error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\data\dao\Waitl
+istDao.java:18: 
+error: package 
+main.java.config 
+does not exist
+        super(main.
+java.config.DataSou
+rceRegistry.erpData
+Source()
+                   
+           ^
+src\main\java\main\
+java\service\Backup
+RestoreService.java
+:64: error: cannot 
+find symbol
+                Con
+figLoader.getOrDefa
+ult("auth.datasourc
+e.jdbcUrl", "jdbc:m
+ysql://localhost:33
+06/college_auth"));
+                ^
+  symbol:   
+variable 
+ConfigLoader
+  location: class B
+ackupRestoreService
+src\main\java\main\
+java\service\Backup
+RestoreService.java
+:65: error: cannot 
+find symbol
+        String 
+user = ConfigLoader
+.getOrDefault("auth
+.datasource.usernam
+e", "root");
+                   
+   ^
+  symbol:   
+variable 
+ConfigLoader
+  location: class B
+ackupRestoreService
+src\main\java\main\
+java\service\Backup
+RestoreService.java
+:66: error: cannot 
+find symbol
+        String 
+password = ConfigLo
+ader.getOrDefault("
+auth.datasource.pas
+sword", "");
+                   
+       ^
+  symbol:   
+variable 
+ConfigLoader
+  location: class B
+ackupRestoreService
+src\main\java\main\
+java\service\Backup
+RestoreService.java
+:91: error: cannot 
+find symbol
+                Con
+figLoader.getOrDefa
+ult("auth.datasourc
+e.jdbcUrl", "jdbc:m
+ysql://localhost:33
+06/college_auth"));
+                ^
+  symbol:   
+variable 
+ConfigLoader
+  location: class B
+ackupRestoreService
+src\main\java\main\
+java\service\Backup
+RestoreService.java
+:92: error: cannot 
+find symbol
+        String 
+user = ConfigLoader
+.getOrDefault("auth
+.datasource.usernam
+e", "root");
+                   
+   ^
+  symbol:   
+variable 
+ConfigLoader
+  location: class B
+ackupRestoreService
+src\main\java\main\
+java\service\Backup
+RestoreService.java
+:93: error: cannot 
+find symbol
+        String 
+password = ConfigLo
+ader.getOrDefault("
+auth.datasource.pas
+sword", "");
+                   
+       ^
+  symbol:   
+variable 
+ConfigLoader
+  location: class B
+ackupRestoreService
+src\main\java\main\
+java\utils\Database
+Util.java:199: 
+error: cannot find 
+symbol
+        String 
+value = ConfigLoade
+r.get(key);
+                   
+    ^
+  symbol:   
+variable 
+ConfigLoader
+  location: class 
+DatabaseUtil
+src\main\java\main\
+java\utils\Database
+Util.java:231: 
+error: cannot find 
+symbol
+            LegacyD
+ataMigrator.default
+Migrator().migrateA
+ll();
+            ^
+  symbol:   
+variable 
+LegacyDataMigrator
+  location: class 
+DatabaseUtil
+src\main\java\main\
+java\utils\HealthDi
+agnostics.java:21: 
+error: cannot find 
+symbol
+        results.add
+(checkDataSource("A
+uth datasource", Da
+taSourceRegistry.au
+thDataSource()));
+                   
+                   
+                 ^
+  symbol:   
+variable 
+DataSourceRegistry
+  location: class 
+HealthDiagnostics
+src\main\java\main\
+java\utils\HealthDi
+agnostics.java:22: 
+error: cannot find 
+symbol
+        results.add
+(checkDataSource("E
+RP datasource", Dat
+aSourceRegistry.erp
+DataSource()));
+                   
+                   
+                ^
+  symbol:   
+variable 
+DataSourceRegistry
+  location: class 
+HealthDiagnostics
+src\main\java\main\
+java\utils\HealthDi
+agnostics.java:47: 
+error: cannot find 
+symbol
+        String 
+value = ConfigLoade
+r.get(key);
+                   
+    ^
+  symbol:   
+variable 
+ConfigLoader
+  location: class 
+HealthDiagnostics
+src\main\java\main\
+java\utils\HealthDi
+agnostics.java:60: 
+error: cannot find 
+symbol
+        String 
+value = ConfigLoade
+r.getOrDefault("app
+.session.timeout.mi
+nutes", "30");
+                   
+    ^
+  symbol:   
+variable 
+ConfigLoader
+  location: class 
+HealthDiagnostics
+49 errors

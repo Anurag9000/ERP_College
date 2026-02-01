@@ -29,6 +29,68 @@ public final class GradebookService {
     private GradebookService() {
     }
 
+    public static Map<String, Double> parseWeights(String input) {
+        Map<String, Double> weights = new LinkedHashMap<>();
+        if (input == null || input.isBlank()) {
+            return weights;
+        }
+
+        // Try comma/colon format first (UI format: "Quiz:20,Midterm:30,Final:50")
+        if (input.contains(":") || input.contains(",")) {
+            String[] tokens = input.split(",");
+            for (String token : tokens) {
+                String[] parts = token.split(":");
+                if (parts.length == 2) {
+                    try {
+                        String name = parts[0].trim();
+                        if (!name.isEmpty()) {
+                            weights.put(name, Double.parseDouble(parts[1].trim()));
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+
+        // If weights is still empty or we want to support both, try newline/equals
+        // format (DB template format: "Quiz=20\nMidterm=30")
+        if (weights.isEmpty() || input.contains("=") || input.contains("\n")) {
+            String[] lines = input.split("\\n");
+            for (String line : lines) {
+                int idx = line.indexOf('=');
+                if (idx > 0) {
+                    String component = line.substring(0, idx).trim();
+                    String value = line.substring(idx + 1).trim();
+                    if (!component.isEmpty()) {
+                        try {
+                            weights.put(component, Double.parseDouble(value));
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                }
+            }
+        }
+        return weights;
+    }
+
+    public static String formatWeights(Map<String, Double> weights) {
+        if (weights == null || weights.isEmpty()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        weights.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
+                .forEach(entry -> {
+                    if (builder.length() > 0) {
+                        builder.append('\n');
+                    }
+                    builder.append(entry.getKey().replace("\n", " ").replace("=", " "))
+                            .append('=')
+                            .append(entry.getValue());
+                });
+        return builder.toString();
+    }
+
     public static void defineAssessments(User instructor, String sectionId, Map<String, Double> weights) {
         ensureInstructorAccess(instructor, sectionId);
         Section section = DatabaseUtil.getSection(sectionId);
@@ -45,6 +107,7 @@ public final class GradebookService {
         ensureInstructorAccess(instructor, sectionId);
         EnrollmentRecord record = locateEnrollment(sectionId, studentId);
         record.putScore(component, score);
+        DatabaseUtil.updateEnrollment(record);
         AuditLogService.log(AuditLogService.EventType.GRADE_EDIT,
                 instructor.getUsername(),
                 String.format("Recorded %s=%.2f for %s in %s", component, score, studentId, sectionId));
@@ -58,6 +121,7 @@ public final class GradebookService {
         record.setFinalGrade(finalGrade);
         record.setWeighting(new HashMap<>(section.getAssessmentWeights()));
         record.setUpdatedAt(LocalDateTime.now());
+        DatabaseUtil.updateEnrollment(record);
         AuditLogService.log(AuditLogService.EventType.GRADE_EDIT,
                 instructor.getUsername(),
                 String.format("Computed final grade %.2f for %s in %s", finalGrade, studentId, sectionId));

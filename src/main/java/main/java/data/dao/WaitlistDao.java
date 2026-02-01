@@ -46,16 +46,23 @@ public class WaitlistDao extends BaseDao {
         return list;
     }
 
-    public void insert(String sectionCode, String studentCode, int position, boolean approved) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(INSERT)) {
+    public void insert(String sectionCode, String studentCode, int position, boolean advisorApproved) {
+        try (Connection conn = getConnection()) {
+            insert(conn, sectionCode, studentCode, position, advisorApproved);
+        } catch (SQLException ex) {
+            logger.error("Error inserting waitlist entry: {}", ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to insert waitlist entry", ex);
+        }
+    }
+
+    public void insert(Connection conn, String sectionCode, String studentCode, int position, boolean advisorApproved)
+            throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(INSERT)) {
             ps.setString(1, sectionCode);
             ps.setString(2, studentCode);
             ps.setInt(3, position);
-            ps.setBoolean(4, approved);
+            ps.setBoolean(4, advisorApproved);
             ps.executeUpdate();
-        } catch (SQLException ex) {
-            logger.error("Error inserting waitlist entry {}:{} - {}", sectionCode, studentCode, ex.getMessage(), ex);
         }
     }
 
@@ -73,13 +80,19 @@ public class WaitlistDao extends BaseDao {
     }
 
     public void delete(String sectionCode, String studentCode) {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(DELETE)) {
+        try (Connection conn = getConnection()) {
+            delete(conn, sectionCode, studentCode);
+        } catch (SQLException ex) {
+            logger.error("Error deleting waitlist entry: {}", ex.getMessage(), ex);
+            throw new IllegalStateException("Unable to delete waitlist entry", ex);
+        }
+    }
+
+    public void delete(Connection conn, String sectionCode, String studentCode) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setString(1, sectionCode);
             ps.setString(2, studentCode);
             ps.executeUpdate();
-        } catch (SQLException ex) {
-            logger.error("Error deleting waitlist entry {}:{} - {}", sectionCode, studentCode, ex.getMessage(), ex);
         }
     }
 

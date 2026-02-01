@@ -2,11 +2,14 @@ package main.java.gui.panels;
 
 import main.java.gui.components.JCard;
 import main.java.gui.style.PastelTheme;
+import main.java.models.NotificationPreference;
 import main.java.models.User;
+import main.java.utils.DatabaseUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,7 +48,37 @@ public class NotificationPreferencesPanel extends JPanel {
         mainPanel.add(createSaveButtonPanel());
 
         add(new JScrollPane(mainPanel), BorderLayout.CENTER);
+
+        loadPreferences();
     }
+
+    private void loadPreferences() {
+        try {
+            String userId = resolveUserId();
+            NotificationPreference pref = DatabaseUtil.getNotificationPreference(userId);
+
+            // Map models to UI
+            emailEnabledCheckbox.setSelected(pref.isEmailEnabled());
+            smsEnabledCheckbox.setSelected(pref.isSmsEnabled());
+
+            switch (pref.getDigestFrequency()) {
+                case IMMEDIATE -> digestFrequencyCombo.setSelectedIndex(0);
+                case DAILY -> digestFrequencyCombo.setSelectedIndex(pref.getDigestHour() < 12 ? 2 : 3);
+                case WEEKLY -> digestFrequencyCombo.setSelectedIndex(4);
+                case NONE -> digestFrequencyCombo.setSelectedIndex(5);
+            }
+        } catch (Exception e) {
+            // Log error or show subtle warning
+        }
+    }
+
+    private String resolveUserId() {
+        // Simple resolution for UI demo
+        return currentUser.getUsername();
+    }
+
+    private JCheckBox emailEnabledCheckbox;
+    private JCheckBox smsEnabledCheckbox;
 
     private JPanel createCategoryPreferencesCard() {
         JCard card = new JCard(new BorderLayout(10, 10));
@@ -109,11 +142,15 @@ public class NotificationPreferencesPanel extends JPanel {
         digestFrequencyCombo.setSelectedIndex(2); // Default: Daily Morning
         settingsPanel.add(digestFrequencyCombo);
 
-        JCheckBox quietHoursCheckbox = new JCheckBox("Enable Quiet Hours (10 PM - 8 AM)");
-        quietHoursCheckbox.setFont(PastelTheme.BODY_FONT);
-        quietHoursCheckbox.setOpaque(false);
-        quietHoursCheckbox.setSelected(true);
-        settingsPanel.add(quietHoursCheckbox);
+        emailEnabledCheckbox = new JCheckBox("Enable Email Notifications");
+        emailEnabledCheckbox.setFont(PastelTheme.BODY_FONT);
+        emailEnabledCheckbox.setOpaque(false);
+        settingsPanel.add(emailEnabledCheckbox);
+
+        smsEnabledCheckbox = new JCheckBox("Enable SMS Notifications");
+        smsEnabledCheckbox.setFont(PastelTheme.BODY_FONT);
+        smsEnabledCheckbox.setOpaque(false);
+        settingsPanel.add(smsEnabledCheckbox);
 
         card.add(settingsPanel, BorderLayout.CENTER);
         return card;
@@ -137,11 +174,50 @@ public class NotificationPreferencesPanel extends JPanel {
     }
 
     private void savePreferences() {
-        // TODO: Save to database
-        JOptionPane.showMessageDialog(this,
-                "Notification preferences saved successfully!",
-                "Success",
-                JOptionPane.INFORMATION_MESSAGE);
+        try {
+            String userId = resolveUserId();
+            NotificationPreference.DigestFrequency freq = NotificationPreference.DigestFrequency.IMMEDIATE;
+            int hour = 8;
+
+            int selected = digestFrequencyCombo.getSelectedIndex();
+            switch (selected) {
+                case 0 -> freq = NotificationPreference.DigestFrequency.IMMEDIATE;
+                case 1 -> {
+                    freq = NotificationPreference.DigestFrequency.DAILY;
+                    hour = 12;
+                } // Hourly approx
+                case 2 -> {
+                    freq = NotificationPreference.DigestFrequency.DAILY;
+                    hour = 8;
+                }
+                case 3 -> {
+                    freq = NotificationPreference.DigestFrequency.DAILY;
+                    hour = 18;
+                }
+                case 4 -> freq = NotificationPreference.DigestFrequency.WEEKLY;
+                case 5 -> freq = NotificationPreference.DigestFrequency.NONE;
+            }
+
+            NotificationPreference pref = new NotificationPreference(
+                    userId,
+                    freq,
+                    hour,
+                    emailEnabledCheckbox.isSelected(),
+                    smsEnabledCheckbox.isSelected(),
+                    LocalDateTime.now());
+
+            DatabaseUtil.saveNotificationPreference(pref);
+
+            JOptionPane.showMessageDialog(this,
+                    "Notification preferences saved successfully!",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                    "Error saving preferences: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void resetToDefaults() {

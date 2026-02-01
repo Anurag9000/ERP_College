@@ -36,7 +36,8 @@ public final class DataSourceRegistry {
         String maxPool = ConfigLoader.get(base + "maximumPoolSize");
 
         if (jdbcUrl == null || username == null || password == null) {
-            LOGGER.warn("Incomplete datasource configuration for prefix '{}'. JDBC operations will be unavailable.", prefix);
+            LOGGER.warn("Incomplete datasource configuration for prefix '{}'. JDBC operations will be unavailable.",
+                    prefix);
             return null;
         }
 

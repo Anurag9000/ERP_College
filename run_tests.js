@@ -67,11 +67,17 @@ if (!fs.existsSync('target/test-classes')) fs.mkdirSync('target/test-classes', {
 
 // 2. Compile main classes
 const mainFiles = findJavaFiles('src/main/java');
-runCommand(`javac -d target/classes -cp "${classpath}" ${mainFiles.join(' ')}`);
+fs.writeFileSync('main_files.txt', mainFiles.join(' '));
+runCommand(`javac -d target/classes -cp "${classpath}" @main_files.txt`);
 
 // 3. Compile tests
 const testFiles = findJavaFiles('src/test/java');
-runCommand(`javac -d target/test-classes -cp "${classpath}" ${testFiles.join(' ')}`);
+fs.writeFileSync('test_files.txt', testFiles.join(' '));
+runCommand(`javac -d target/test-classes -cp "${classpath}" @test_files.txt`);
 
 // 4. Run tests using ManualTestRunner
 runCommand(`java -cp "${classpath}" main.java.utils.ManualTestRunner`);
+
+// Cleanup temp files
+if (fs.existsSync('main_files.txt')) fs.unlinkSync('main_files.txt');
+if (fs.existsSync('test_files.txt')) fs.unlinkSync('test_files.txt');

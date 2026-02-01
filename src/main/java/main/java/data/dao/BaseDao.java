@@ -18,7 +18,10 @@ public abstract class BaseDao {
         this.dataSource = dataSource;
     }
 
-    protected Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
+        if (dataSource == null) {
+            throw new SQLException("DataSource not configured for " + getClass().getSimpleName());
+        }
         Connection conn = dataSource.getConnection();
         if (conn == null || conn.isClosed()) {
             throw new SQLException("Failed to obtain a valid database connection.");
