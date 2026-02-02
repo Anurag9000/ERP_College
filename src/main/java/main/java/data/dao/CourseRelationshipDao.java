@@ -22,19 +22,61 @@ public class CourseRelationshipDao extends BaseDao {
         super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Finds all corequisites for a course.
+     * 
+     * @param courseCode the course code (must not be null or empty)
+     * @return list of corequisite course codes, never null
+     * @throws IllegalArgumentException if courseCode is null or empty
+     */
     public List<String> findCorequisites(String courseCode) {
+        if (courseCode == null || courseCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course code cannot be null or empty");
+        }
         return loadRelationships(SELECT_COREQS, courseCode);
     }
 
+    /**
+     * Finds all antirequisites for a course.
+     * 
+     * @param courseCode the course code (must not be null or empty)
+     * @return list of antirequisite course codes, never null
+     * @throws IllegalArgumentException if courseCode is null or empty
+     */
     public List<String> findAntirequisites(String courseCode) {
+        if (courseCode == null || courseCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course code cannot be null or empty");
+        }
         return loadRelationships(SELECT_ANTIREQS, courseCode);
     }
 
+    /**
+     * Replaces all corequisites for a course.
+     * 
+     * @param courseCode the course code (must not be null or empty)
+     * @param coreqs     the list of corequisite codes (can be null or empty)
+     * @throws IllegalArgumentException if courseCode is null or empty
+     * @throws IllegalStateException    if database operation fails
+     */
     public void replaceCorequisites(String courseCode, List<String> coreqs) {
+        if (courseCode == null || courseCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course code cannot be null or empty");
+        }
         replace(DELETE_COREQS, INSERT_COREQ, courseCode, coreqs);
     }
 
+    /**
+     * Replaces all antirequisites for a course.
+     * 
+     * @param courseCode the course code (must not be null or empty)
+     * @param antireqs   the list of antirequisite codes (can be null or empty)
+     * @throws IllegalArgumentException if courseCode is null or empty
+     * @throws IllegalStateException    if database operation fails
+     */
     public void replaceAntirequisites(String courseCode, List<String> antireqs) {
+        if (courseCode == null || courseCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course code cannot be null or empty");
+        }
         replace(DELETE_ANTIREQS, INSERT_ANTIREQ, courseCode, antireqs);
     }
 

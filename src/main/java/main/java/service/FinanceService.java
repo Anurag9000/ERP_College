@@ -28,12 +28,32 @@ public class FinanceService {
     private static final FeeInstallmentDao feeInstallmentDao = new FeeInstallmentDao();
     private static final main.java.data.dao.StudentDao studentDao = new main.java.data.dao.StudentDao();
 
+    /**
+     * Records a payment for a student with transaction management.
+     * 
+     * @param actorUsername the username of the actor recording the payment (can be
+     *                      null for system)
+     * @param studentId     the student ID (must not be null or empty)
+     * @param amount        the payment amount (must be greater than 0)
+     * @param method        the payment method (must not be null or empty)
+     * @param reference     the payment reference (can be null)
+     * @param notes         additional notes (can be null)
+     * @return the created payment transaction
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public static synchronized PaymentTransaction recordPayment(String actorUsername,
             String studentId,
             double amount,
             String method,
             String reference,
             String notes) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (method == null || method.trim().isEmpty()) {
+            throw new IllegalArgumentException("Payment method cannot be null or empty");
+        }
         if (amount <= 0) {
             throw new IllegalArgumentException("Payment amount must be positive.");
         }
@@ -110,15 +130,48 @@ public class FinanceService {
         return transaction;
     }
 
+    /**
+     * Retrieves payment history for a student.
+     * 
+     * @param studentId the student ID (must not be null or empty)
+     * @return list of payment transactions, never null
+     * @throws IllegalArgumentException if studentId is null or empty
+     */
     public static List<PaymentTransaction> getPaymentHistory(String studentId) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
         return paymentTransactionDao.findByStudent(studentId);
     }
 
+    /**
+     * Retrieves fee installments for a student.
+     * 
+     * @param studentId the student ID (must not be null or empty)
+     * @return list of fee installments, never null
+     * @throws IllegalArgumentException if studentId is null or empty
+     */
     public static List<FeeInstallment> getInstallments(String studentId) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
         return feeInstallmentDao.findByStudent(studentId);
     }
 
+    /**
+     * Adds a fee installment for a student.
+     * 
+     * @param studentId   the student ID (must not be null or empty)
+     * @param installment the installment to add (must not be null)
+     * @throws IllegalArgumentException if parameters are invalid
+     */
     public static void addInstallment(String studentId, FeeInstallment installment) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (installment == null) {
+            throw new IllegalArgumentException("Installment cannot be null");
+        }
         installment.setStudentId(studentId);
         if (installment.getInstallmentId() == null || installment.getInstallmentId().isBlank()) {
             installment.setInstallmentId(UUID.randomUUID().toString());

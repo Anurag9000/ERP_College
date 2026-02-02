@@ -99,7 +99,16 @@ public class FeeInstallment implements Serializable {
         return amount;
     }
 
+    /**
+     * Sets the installment amount.
+     * 
+     * @param amount the amount (must be greater than 0)
+     * @throws IllegalArgumentException if amount is not positive
+     */
     public void setAmount(double amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Fee installment amount must be positive, got: " + amount);
+        }
         this.amount = amount;
     }
 
@@ -107,7 +116,21 @@ public class FeeInstallment implements Serializable {
         return paidAmount;
     }
 
+    /**
+     * Sets the paid amount.
+     * 
+     * @param paidAmount the paid amount (must not be negative and not exceed total
+     *                   amount)
+     * @throws IllegalArgumentException if paidAmount is negative or exceeds amount
+     */
     public void setPaidAmount(double paidAmount) {
+        if (paidAmount < 0) {
+            throw new IllegalArgumentException("Paid amount cannot be negative, got: " + paidAmount);
+        }
+        if (paidAmount > amount) {
+            throw new IllegalArgumentException(
+                    "Paid amount (" + paidAmount + ") cannot exceed installment amount (" + amount + ")");
+        }
         this.paidAmount = paidAmount;
     }
 

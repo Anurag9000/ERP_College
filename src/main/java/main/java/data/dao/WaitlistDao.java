@@ -18,7 +18,17 @@ public class WaitlistDao extends BaseDao {
         super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Finds all students on the waitlist for a section.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @return list of student codes, never null
+     * @throws IllegalArgumentException if sectionCode is null or empty
+     */
     public List<String> findWaitlist(String sectionCode) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
         List<String> list = new LinkedList<>();
         for (WaitlistEntry entry : findEntries(sectionCode)) {
             list.add(entry.studentCode());
@@ -53,7 +63,26 @@ public class WaitlistDao extends BaseDao {
         return list;
     }
 
+    /**
+     * Inserts a student into the waitlist.
+     * 
+     * @param sectionCode     the section code (must not be null or empty)
+     * @param studentCode     the student code (must not be null or empty)
+     * @param position        the position in waitlist (must be non-negative)
+     * @param advisorApproved whether advisor has approved
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void insert(String sectionCode, String studentCode, int position, boolean advisorApproved) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
+        if (studentCode == null || studentCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
+        if (position < 0) {
+            throw new IllegalArgumentException("Position cannot be negative");
+        }
         try (Connection conn = getConnection()) {
             insert(conn, sectionCode, studentCode, position, advisorApproved);
         } catch (SQLException ex) {
@@ -73,7 +102,22 @@ public class WaitlistDao extends BaseDao {
         }
     }
 
+    /**
+     * Updates advisor approval status for a waitlist entry.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @param studentCode the student code (must not be null or empty)
+     * @param approved    the approval status
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void updateApproval(String sectionCode, String studentCode, boolean approved) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
+        if (studentCode == null || studentCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPDATE_APPROVAL)) {
             ps.setBoolean(1, approved);
@@ -103,7 +147,16 @@ public class WaitlistDao extends BaseDao {
         }
     }
 
+    /**
+     * Deletes all waitlist entries for a section.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @throws IllegalArgumentException if sectionCode is null or empty
+     */
     public void deleteAll(String sectionCode) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(DELETE_SECTION)) {
             ps.setString(1, sectionCode);

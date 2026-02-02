@@ -148,6 +148,18 @@ public class LoginFrame extends JFrame {
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
 
+        // Input validation
+        if (username.isEmpty()) {
+            statusLabel.setText("Username cannot be empty");
+            usernameField.requestFocus();
+            return;
+        }
+        if (password.isEmpty()) {
+            statusLabel.setText("Password cannot be empty");
+            passwordField.requestFocus();
+            return;
+        }
+
         if (username.isEmpty() || password.isEmpty()) {
             statusLabel.setText("Please enter username and password");
             return;

@@ -33,7 +33,21 @@ public class SettingsDao extends BaseDao {
         return map;
     }
 
+    /**
+     * Inserts or updates a setting.
+     * 
+     * @param key   the setting key (must not be null or empty)
+     * @param value the setting value (must not be null)
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void upsert(String key, String value) {
+        if (key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("Setting key cannot be null or empty");
+        }
+        if (value == null) {
+            throw new IllegalArgumentException("Setting value cannot be null");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPSERT_SQL)) {
             ps.setString(1, key);

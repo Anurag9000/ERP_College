@@ -24,7 +24,7 @@ public class PaymentTransaction implements Serializable {
     }
 
     public PaymentTransaction(String studentId, double amount, LocalDate paidOn,
-                              String method, String reference, String notes) {
+            String method, String reference, String notes) {
         this(UUID.randomUUID().toString());
         this.studentId = studentId;
         this.amount = amount;
@@ -35,7 +35,7 @@ public class PaymentTransaction implements Serializable {
     }
 
     public PaymentTransaction(String transactionId, String studentId, double amount,
-                              LocalDate paidOn, String method, String reference, String notes) {
+            LocalDate paidOn, String method, String reference, String notes) {
         this(transactionId);
         this.studentId = studentId;
         this.amount = amount;
@@ -70,7 +70,16 @@ public class PaymentTransaction implements Serializable {
         return amount;
     }
 
+    /**
+     * Sets the payment amount.
+     * 
+     * @param amount the amount (must be greater than 0)
+     * @throws IllegalArgumentException if amount is not positive
+     */
     public void setAmount(double amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Payment amount must be positive, got: " + amount);
+        }
         this.amount = amount;
     }
 
@@ -108,8 +117,10 @@ public class PaymentTransaction implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof PaymentTransaction)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof PaymentTransaction))
+            return false;
         PaymentTransaction that = (PaymentTransaction) o;
         return Objects.equals(transactionId, that.transactionId);
     }

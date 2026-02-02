@@ -55,7 +55,18 @@ public class CourseDao extends BaseDao {
         }
     }
 
+    /**
+     * Finds a course by its course code.
+     * Uses cache for performance, falls back to database if not cached.
+     * 
+     * @param courseCode the course code to search for (must not be null or empty)
+     * @return Optional containing the course if found, empty otherwise
+     * @throws IllegalArgumentException if courseCode is null or empty
+     */
     public Optional<Course> findByCode(String courseCode) {
+        if (courseCode == null || courseCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course code cannot be null or empty");
+        }
         if (!cacheInitialized) {
             findAll(); // Force cache initialization
         }
@@ -69,7 +80,17 @@ public class CourseDao extends BaseDao {
         return fetchFromDb(courseCode);
     }
 
+    /**
+     * Fetches a course from the database by code.
+     * Updates cache with the result.
+     * 
+     * @param courseCode the course code (must not be null or empty)
+     * @return Optional containing the course if found, empty otherwise
+     */
     private Optional<Course> fetchFromDb(String courseCode) {
+        if (courseCode == null || courseCode.trim().isEmpty()) {
+            return Optional.empty();
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_CODE)) {
             ps.setString(1, courseCode);
@@ -86,7 +107,32 @@ public class CourseDao extends BaseDao {
         return Optional.empty();
     }
 
+    /**
+     * Inserts a new course into the database and updates cache.
+     * 
+     * @param course the course to insert (must not be null with valid data)
+     * @throws IllegalArgumentException if course is null or has invalid data
+     * @throws RuntimeException         if database operation fails
+     */
     public void insert(Course course) {
+        if (course == null) {
+            throw new IllegalArgumentException("Course cannot be null");
+        }
+        if (course.getCourseId() == null || course.getCourseId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Course ID cannot be null or empty");
+        }
+        if (course.getCourseName() == null || course.getCourseName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Course name cannot be null or empty");
+        }
+        if (course.getTotalSeats() < 0) {
+            throw new IllegalArgumentException("Total seats cannot be negative");
+        }
+        if (course.getAvailableSeats() < 0) {
+            throw new IllegalArgumentException("Available seats cannot be negative");
+        }
+        if (course.getCreditHours() <= 0) {
+            throw new IllegalArgumentException("Credit hours must be greater than 0");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(INSERT)) {
             ps.setString(1, course.getCourseId());

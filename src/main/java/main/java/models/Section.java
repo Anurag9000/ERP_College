@@ -138,7 +138,16 @@ public class Section implements Serializable {
         return capacity;
     }
 
+    /**
+     * Sets the section capacity.
+     * 
+     * @param capacity the capacity (must be positive)
+     * @throws IllegalArgumentException if capacity is not positive
+     */
     public void setCapacity(int capacity) {
+        if (capacity <= 0) {
+            throw new IllegalArgumentException("Section capacity must be positive, got: " + capacity);
+        }
         this.capacity = capacity;
     }
 
@@ -202,7 +211,20 @@ public class Section implements Serializable {
         this.gradebookState = gradebookState == null ? GradebookState.DRAFT : gradebookState;
     }
 
+    /**
+     * Sets an assessment weight.
+     * 
+     * @param component the component name (must not be null or empty)
+     * @param weight    the weight (must be between 0 and 100)
+     * @throws IllegalArgumentException if parameters are invalid
+     */
     public void setAssessmentWeight(String component, double weight) {
+        if (component == null || component.trim().isEmpty()) {
+            throw new IllegalArgumentException("Assessment component cannot be null or empty");
+        }
+        if (weight < 0 || weight > 100) {
+            throw new IllegalArgumentException("Assessment weight must be between 0 and 100, got: " + weight);
+        }
         assessmentWeights.put(component, weight);
     }
 

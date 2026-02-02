@@ -23,7 +23,17 @@ public class AttendanceDao extends BaseDao {
         super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Retrieves all attendance records for a specific section.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @return list of attendance records, never null (empty if none found)
+     * @throws IllegalArgumentException if sectionCode is null or empty
+     */
     public List<AttendanceRecord> findBySection(String sectionCode) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
         List<AttendanceRecord> list = new ArrayList<>();
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_SECTION)) {
@@ -44,7 +54,23 @@ public class AttendanceDao extends BaseDao {
         return list;
     }
 
+    /**
+     * Inserts an attendance record into the database.
+     * 
+     * @param record the attendance record to insert (must not be null)
+     * @throws IllegalArgumentException if record is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void insert(AttendanceRecord record) {
+        if (record == null) {
+            throw new IllegalArgumentException("Attendance record cannot be null");
+        }
+        if (record.getSectionId() == null || record.getSectionId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (record.getDate() == null) {
+            throw new IllegalArgumentException("Attendance date cannot be null");
+        }
         var statusEntries = record.getStatusByStudent().entrySet();
         if (statusEntries.isEmpty()) {
             return;
@@ -79,7 +105,20 @@ public class AttendanceDao extends BaseDao {
         return presentFlag ? AttendanceStatus.PRESENT : AttendanceStatus.ABSENT;
     }
 
+    /**
+     * Deletes attendance records for a specific section and date.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @param date        the attendance date (must not be null)
+     * @throws IllegalArgumentException if parameters are invalid
+     */
     public void deleteBySectionAndDate(String sectionCode, LocalDate date) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
+        if (date == null) {
+            throw new IllegalArgumentException("Date cannot be null");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(DELETE_SECTION_DATE)) {
             ps.setString(1, sectionCode);
@@ -90,7 +129,16 @@ public class AttendanceDao extends BaseDao {
         }
     }
 
+    /**
+     * Deletes all attendance records for a specific section.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @throws IllegalArgumentException if sectionCode is null or empty
+     */
     public void deleteBySection(String sectionCode) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(DELETE_SECTION)) {
             ps.setString(1, sectionCode);

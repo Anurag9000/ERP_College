@@ -20,7 +20,25 @@ public class RegistrationRequestDao extends BaseDao {
         super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Inserts a new registration request.
+     * 
+     * @param studentCode the student code (must not be null or empty)
+     * @param sectionCode the section code (must not be null or empty)
+     * @param requestedBy who requested (must not be null or empty)
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void insert(String studentCode, String sectionCode, String requestedBy) {
+        if (studentCode == null || studentCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
+        if (requestedBy == null || requestedBy.trim().isEmpty()) {
+            throw new IllegalArgumentException("Requested by cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(INSERT)) {
             ps.setString(1, studentCode);
@@ -35,7 +53,26 @@ public class RegistrationRequestDao extends BaseDao {
         }
     }
 
+    /**
+     * Updates the status of a registration request.
+     * 
+     * @param id        the request ID (must be greater than 0)
+     * @param status    the new status (must not be null or empty)
+     * @param decidedBy who decided (must not be null or empty)
+     * @param notes     optional notes (can be null)
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void updateStatus(long id, String status, String decidedBy, String notes) {
+        if (id <= 0) {
+            throw new IllegalArgumentException("Request ID must be greater than 0");
+        }
+        if (status == null || status.trim().isEmpty()) {
+            throw new IllegalArgumentException("Status cannot be null or empty");
+        }
+        if (decidedBy == null || decidedBy.trim().isEmpty()) {
+            throw new IllegalArgumentException("Decided by cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
             ps.setString(1, status);
@@ -63,7 +100,21 @@ public class RegistrationRequestDao extends BaseDao {
         return list;
     }
 
+    /**
+     * Finds a registration request by student and section.
+     * 
+     * @param studentCode the student code (must not be null or empty)
+     * @param sectionCode the section code (must not be null or empty)
+     * @return Optional containing the request if found, empty otherwise
+     * @throws IllegalArgumentException if parameters are invalid
+     */
     public Optional<RequestRecord> findByStudentSection(String studentCode, String sectionCode) {
+        if (studentCode == null || studentCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_STUDENT_SECTION)) {
             ps.setString(1, studentCode);
@@ -80,7 +131,17 @@ public class RegistrationRequestDao extends BaseDao {
         return Optional.empty();
     }
 
+    /**
+     * Finds a registration request by ID.
+     * 
+     * @param id the request ID (must be greater than 0)
+     * @return Optional containing the request if found, empty otherwise
+     * @throws IllegalArgumentException if id is invalid
+     */
     public Optional<RequestRecord> findById(long id) {
+        if (id <= 0) {
+            throw new IllegalArgumentException("Request ID must be greater than 0");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_ID)) {
             ps.setLong(1, id);

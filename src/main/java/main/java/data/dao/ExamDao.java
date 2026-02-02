@@ -12,7 +12,26 @@ public class ExamDao extends BaseDao {
         super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Submits an exam form for a student.
+     * 
+     * @param form the exam form to submit (must not be null with valid data)
+     * @throws IllegalArgumentException if form is null or has invalid data
+     * @throws RuntimeException         if database operation fails
+     */
     public void submitExamForm(ExamForm form) {
+        if (form == null) {
+            throw new IllegalArgumentException("Exam form cannot be null");
+        }
+        if (form.getStudentCode() == null || form.getStudentCode().trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
+        if (form.getSemester() == null || form.getSemester().trim().isEmpty()) {
+            throw new IllegalArgumentException("Semester cannot be null or empty");
+        }
+        if (form.getStatus() == null) {
+            throw new IllegalArgumentException("Form status cannot be null");
+        }
         String sql = "INSERT INTO exam_forms (student_code, semester, year, status, exam_fee_paid) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
 
@@ -51,7 +70,22 @@ public class ExamDao extends BaseDao {
         }
     }
 
+    /**
+     * Retrieves an exam form for a student.
+     * 
+     * @param studentCode the student code (must not be null or empty)
+     * @param semester    the semester (must not be null or empty)
+     * @param year        the year
+     * @return the exam form if found, null otherwise
+     * @throws IllegalArgumentException if parameters are null or empty
+     */
     public ExamForm getExamForm(String studentCode, String semester, int year) {
+        if (studentCode == null || studentCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
+        if (semester == null || semester.trim().isEmpty()) {
+            throw new IllegalArgumentException("Semester cannot be null or empty");
+        }
         String sql = "SELECT * FROM exam_forms WHERE student_code = ? AND semester = ? AND year = ?";
         try (Connection conn = getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -89,7 +123,18 @@ public class ExamDao extends BaseDao {
         return sections;
     }
 
+    /**
+     * Updates the fee payment status for an exam form.
+     * 
+     * @param formId the form ID (must be greater than 0)
+     * @param paid   the payment status
+     * @throws IllegalArgumentException if formId is invalid
+     * @throws RuntimeException         if database operation fails
+     */
     public void updateFeePaymentStatus(long formId, boolean paid) {
+        if (formId <= 0) {
+            throw new IllegalArgumentException("Form ID must be greater than 0");
+        }
         String sql = "UPDATE exam_forms SET exam_fee_paid = ? WHERE form_id = ?";
         try (Connection conn = getConnection();
 
@@ -102,7 +147,21 @@ public class ExamDao extends BaseDao {
         }
     }
 
+    /**
+     * Generates an admit card for an exam form.
+     * 
+     * @param formId  the form ID (must be greater than 0)
+     * @param pdfPath the PDF path (must not be null or empty)
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws RuntimeException         if database operation fails
+     */
     public void generateAdmitCard(long formId, String pdfPath) {
+        if (formId <= 0) {
+            throw new IllegalArgumentException("Form ID must be greater than 0");
+        }
+        if (pdfPath == null || pdfPath.trim().isEmpty()) {
+            throw new IllegalArgumentException("PDF path cannot be null or empty");
+        }
         String sql = "INSERT INTO admit_cards (form_id, pdf_path) VALUES (?, ?)";
         try (Connection conn = getConnection();
 

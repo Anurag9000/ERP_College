@@ -43,7 +43,33 @@ public class FeeInstallmentDao extends BaseDao {
         super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Inserts a fee installment into the database.
+     * 
+     * @param installment the fee installment to insert (must not be null with valid
+     *                    data)
+     * @throws IllegalArgumentException if installment is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void insert(FeeInstallment installment) {
+        if (installment == null) {
+            throw new IllegalArgumentException("Fee installment cannot be null");
+        }
+        if (installment.getInstallmentId() == null || installment.getInstallmentId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Installment ID cannot be null or empty");
+        }
+        if (installment.getStudentId() == null || installment.getStudentId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (installment.getAmount() < 0) {
+            throw new IllegalArgumentException("Amount cannot be negative");
+        }
+        if (installment.getPaidAmount() < 0) {
+            throw new IllegalArgumentException("Paid amount cannot be negative");
+        }
+        if (installment.getStatus() == null) {
+            throw new IllegalArgumentException("Status cannot be null");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
             ps.setString(1, installment.getInstallmentId());
@@ -74,7 +100,22 @@ public class FeeInstallmentDao extends BaseDao {
         }
     }
 
+    /**
+     * Updates an existing fee installment.
+     * 
+     * @param installment the fee installment to update (must not be null with valid
+     *                    data)
+     * @return true if update was successful, false otherwise
+     * @throws IllegalArgumentException if installment is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public boolean update(FeeInstallment installment) {
+        if (installment == null) {
+            throw new IllegalArgumentException("Fee installment cannot be null");
+        }
+        if (installment.getInstallmentId() == null || installment.getInstallmentId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Installment ID cannot be null or empty");
+        }
         try (Connection conn = getConnection()) {
             return update(conn, installment);
         } catch (SQLException ex) {
@@ -110,7 +151,17 @@ public class FeeInstallmentDao extends BaseDao {
         }
     }
 
+    /**
+     * Deletes a fee installment by ID.
+     * 
+     * @param installmentId the installment ID (must not be null or empty)
+     * @throws IllegalArgumentException if installmentId is null or empty
+     * @throws IllegalStateException    if database operation fails
+     */
     public void delete(String installmentId) {
+        if (installmentId == null || installmentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Installment ID cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(DELETE_SQL)) {
             ps.setString(1, installmentId);
@@ -121,7 +172,18 @@ public class FeeInstallmentDao extends BaseDao {
         }
     }
 
+    /**
+     * Retrieves all fee installments for a specific student.
+     * 
+     * @param studentId the student ID (must not be null or empty)
+     * @return list of fee installments, never null
+     * @throws IllegalArgumentException if studentId is null or empty
+     * @throws IllegalStateException    if database operation fails
+     */
     public List<FeeInstallment> findByStudent(String studentId) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(FIND_BY_STUDENT_SQL)) {
             ps.setString(1, studentId);

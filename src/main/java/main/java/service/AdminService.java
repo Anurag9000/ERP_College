@@ -28,13 +28,50 @@ public final class AdminService {
         }
     }
 
+    /**
+     * Creates a new user account.
+     * 
+     * @param actor        the admin user (must not be null)
+     * @param username     the username (must not be null or empty)
+     * @param role         the role (must not be null or empty)
+     * @param fullName     the full name (can be null)
+     * @param email        the email (can be null)
+     * @param tempPassword the temporary password (must not be null or empty)
+     * @return the created user
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws SecurityException        if actor is not admin
+     */
     public static User createUser(User actor, String username, String role, String fullName, String email,
             String tempPassword) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
+        if (role == null || role.trim().isEmpty()) {
+            throw new IllegalArgumentException("Role cannot be null or empty");
+        }
+        if (tempPassword == null || tempPassword.isEmpty()) {
+            throw new IllegalArgumentException("Temporary password cannot be null or empty");
+        }
         ensureAdmin(actor);
         return DatabaseUtil.addUser(username, role, fullName, email, tempPassword);
     }
 
+    /**
+     * Links a student profile to a user account.
+     * 
+     * @param actor          the admin user (must not be null)
+     * @param username       the username (must not be null or empty)
+     * @param studentProfile the student profile (must not be null)
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws SecurityException        if actor is not admin
+     */
     public static void linkStudentProfile(User actor, String username, Student studentProfile) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
+        if (studentProfile == null) {
+            throw new IllegalArgumentException("Student profile cannot be null");
+        }
         ensureAdmin(actor);
         studentProfile.setUsername(username);
         if (studentProfile.getAdmissionDate() == null) {
@@ -47,7 +84,22 @@ public final class AdminService {
         }
     }
 
+    /**
+     * Links a faculty profile to a user account.
+     * 
+     * @param actor          the admin user (must not be null)
+     * @param username       the username (must not be null or empty)
+     * @param facultyProfile the faculty profile (must not be null)
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws SecurityException        if actor is not admin
+     */
     public static void linkFacultyProfile(User actor, String username, Faculty facultyProfile) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
+        if (facultyProfile == null) {
+            throw new IllegalArgumentException("Faculty profile cannot be null");
+        }
         ensureAdmin(actor);
         facultyProfile.setUsername(username);
         if (facultyProfile.getJoiningDate() == null) {
@@ -65,7 +117,20 @@ public final class AdminService {
         DatabaseUtil.setMaintenanceMode(actor, maintenanceOn);
     }
 
+    /**
+     * Updates a user's profile information.
+     * 
+     * @param actor    the admin user (must not be null)
+     * @param username the username (must not be null or empty)
+     * @param fullName the full name (can be null)
+     * @param email    the email (can be null)
+     * @throws IllegalArgumentException if username is null or empty
+     * @throws SecurityException        if actor is not admin
+     */
     public static void updateUserProfile(User actor, String username, String fullName, String email) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
         ensureAdmin(actor);
         DatabaseUtil.updateUserContact(username, fullName, email);
         AuditLogService.log(AuditLogService.EventType.USER_MANAGEMENT,
@@ -93,11 +158,25 @@ public final class AdminService {
         return AuditLogService.recentEventsForUser(username);
     }
 
+    /**
+     * Updates course relationships (prerequisites, corequisites, antirequisites).
+     * 
+     * @param actor          the admin user (must not be null)
+     * @param courseId       the course ID (must not be null or empty)
+     * @param prerequisites  list of prerequisite course IDs (can be null)
+     * @param corequisites   list of corequisite course IDs (can be null)
+     * @param antirequisites list of antirequisite course IDs (can be null)
+     * @throws IllegalArgumentException if courseId is null or empty
+     * @throws SecurityException        if actor is not admin
+     */
     public static void updateCourseRelationships(User actor,
             String courseId,
             List<String> prerequisites,
             List<String> corequisites,
             List<String> antirequisites) {
+        if (courseId == null || courseId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course ID cannot be null or empty");
+        }
         ensureAdmin(actor);
         DatabaseUtil.updateCoursePrerequisites(courseId, prerequisites);
         DatabaseUtil.updateCourseCorequisites(courseId, corequisites);

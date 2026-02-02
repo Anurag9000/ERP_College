@@ -25,7 +25,21 @@ public final class PasswordUtil {
         return Base64.getEncoder().encodeToString(salt);
     }
 
+    /**
+     * Hashes a password using PBKDF2.
+     * 
+     * @param password the password (must not be null)
+     * @param salt     the salt (must not be null or empty)
+     * @return the hashed password
+     * @throws IllegalArgumentException if parameters are null
+     */
     public static String hashPassword(char[] password, String salt) {
+        if (password == null) {
+            throw new IllegalArgumentException("Password cannot be null");
+        }
+        if (salt == null || salt.isEmpty()) {
+            throw new IllegalArgumentException("Salt cannot be null or empty");
+        }
         try {
             PBEKeySpec spec = new PBEKeySpec(password, Base64.getDecoder().decode(salt), ITERATIONS, KEY_LENGTH);
             SecretKeyFactory factory = SecretKeyFactory.getInstance(ALGORITHM);
@@ -36,7 +50,25 @@ public final class PasswordUtil {
         }
     }
 
+    /**
+     * Verifies a password against an expected hash.
+     * 
+     * @param candidate    the candidate password (must not be null)
+     * @param salt         the salt (must not be null or empty)
+     * @param expectedHash the expected hash (must not be null or empty)
+     * @return true if password matches
+     * @throws IllegalArgumentException if parameters are null
+     */
     public static boolean verifyPassword(char[] candidate, String salt, String expectedHash) {
+        if (candidate == null) {
+            throw new IllegalArgumentException("Candidate password cannot be null");
+        }
+        if (salt == null || salt.isEmpty()) {
+            throw new IllegalArgumentException("Salt cannot be null or empty");
+        }
+        if (expectedHash == null || expectedHash.isEmpty()) {
+            throw new IllegalArgumentException("Expected hash cannot be null or empty");
+        }
         String candidateHash = hashPassword(candidate, salt);
         return constantTimeEquals(candidateHash, expectedHash);
     }

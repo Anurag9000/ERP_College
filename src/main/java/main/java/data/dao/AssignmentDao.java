@@ -13,7 +13,32 @@ public class AssignmentDao extends BaseDao {
         super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Inserts a new assignment into the database.
+     * 
+     * @param assignment the assignment to insert (must not be null with valid data)
+     * @throws IllegalArgumentException if assignment is null or has invalid data
+     * @throws RuntimeException         if database operation fails
+     */
     public void insertAssignment(Assignment assignment) {
+        if (assignment == null) {
+            throw new IllegalArgumentException("Assignment cannot be null");
+        }
+        if (assignment.getSectionCode() == null || assignment.getSectionCode().trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
+        if (assignment.getTitle() == null || assignment.getTitle().trim().isEmpty()) {
+            throw new IllegalArgumentException("Assignment title cannot be null or empty");
+        }
+        if (assignment.getDueDate() == null) {
+            throw new IllegalArgumentException("Due date cannot be null");
+        }
+        if (assignment.getMaxMarks() <= 0) {
+            throw new IllegalArgumentException("Max marks must be greater than 0");
+        }
+        if (assignment.getAssignmentType() == null) {
+            throw new IllegalArgumentException("Assignment type cannot be null");
+        }
         String sql = "INSERT INTO assignments (section_code, title, description, due_date, max_marks, assignment_type) "
                 +
                 "VALUES (?, ?, ?, ?, ?, ?)";
@@ -38,7 +63,17 @@ public class AssignmentDao extends BaseDao {
         }
     }
 
+    /**
+     * Retrieves all assignments for a specific section.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @return list of assignments, never null (empty if none found)
+     * @throws IllegalArgumentException if sectionCode is null or empty
+     */
     public List<Assignment> getAssignmentsBySection(String sectionCode) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
         String sql = "SELECT * FROM assignments WHERE section_code = ? ORDER BY due_date";
         List<Assignment> list = new ArrayList<>();
         try (Connection conn = getConnection();
@@ -56,7 +91,17 @@ public class AssignmentDao extends BaseDao {
         return list;
     }
 
+    /**
+     * Retrieves upcoming assignments for a specific student.
+     * 
+     * @param studentCode the student code (must not be null or empty)
+     * @return list of upcoming assignments, never null (empty if none found)
+     * @throws IllegalArgumentException if studentCode is null or empty
+     */
     public List<Assignment> getUpcomingAssignments(String studentCode) {
+        if (studentCode == null || studentCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
         String sql = "SELECT a.* FROM assignments a " +
                 "JOIN enrollments e ON a.section_code = e.section_code " +
                 "WHERE e.student_code = ? AND a.due_date > NOW() " +
@@ -77,7 +122,30 @@ public class AssignmentDao extends BaseDao {
         return list;
     }
 
+    /**
+     * Submits an assignment for a student.
+     * 
+     * @param submission the assignment submission (must not be null with valid
+     *                   data)
+     * @throws IllegalArgumentException if submission is null or has invalid data
+     * @throws RuntimeException         if database operation fails
+     */
     public void submitAssignment(AssignmentSubmission submission) {
+        if (submission == null) {
+            throw new IllegalArgumentException("Submission cannot be null");
+        }
+        if (submission.getAssignmentId() <= 0) {
+            throw new IllegalArgumentException("Assignment ID must be greater than 0");
+        }
+        if (submission.getStudentCode() == null || submission.getStudentCode().trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
+        if (submission.getFilePath() == null || submission.getFilePath().trim().isEmpty()) {
+            throw new IllegalArgumentException("File path cannot be null or empty");
+        }
+        if (submission.getStatus() == null) {
+            throw new IllegalArgumentException("Submission status cannot be null");
+        }
         String sql = "INSERT INTO assignment_submissions (assignment_id, student_code, file_path, status) " +
                 "VALUES (?, ?, ?, ?) " +
                 "ON DUPLICATE KEY UPDATE file_path = ?, submitted_at = NOW(), status = ?";
@@ -102,7 +170,22 @@ public class AssignmentDao extends BaseDao {
         }
     }
 
+    /**
+     * Grades a student's assignment submission.
+     * 
+     * @param submissionId the submission ID (must be greater than 0)
+     * @param marks        the marks obtained (must be non-negative)
+     * @param feedback     optional feedback text
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws RuntimeException         if database operation fails
+     */
     public void gradeSubmission(long submissionId, double marks, String feedback) {
+        if (submissionId <= 0) {
+            throw new IllegalArgumentException("Submission ID must be greater than 0");
+        }
+        if (marks < 0) {
+            throw new IllegalArgumentException("Marks cannot be negative");
+        }
         String sql = "UPDATE assignment_submissions SET marks_obtained = ?, feedback = ?, status = 'GRADED' " +
                 "WHERE submission_id = ?";
         try (Connection conn = getConnection();

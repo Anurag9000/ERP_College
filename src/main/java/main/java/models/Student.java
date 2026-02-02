@@ -131,7 +131,16 @@ public class Student implements java.io.Serializable {
         return semester;
     }
 
+    /**
+     * Sets the semester number.
+     * 
+     * @param semester the semester (must be between 1 and 10)
+     * @throws IllegalArgumentException if semester is out of valid range
+     */
     public void setSemester(int semester) {
+        if (semester < 1 || semester > 10) {
+            throw new IllegalArgumentException("Semester must be between 1 and 10, got: " + semester);
+        }
         this.semester = semester;
     }
 
@@ -155,7 +164,16 @@ public class Student implements java.io.Serializable {
         return feesPaid;
     }
 
+    /**
+     * Sets the fees paid amount.
+     * 
+     * @param feesPaid the fees paid (must not be negative)
+     * @throws IllegalArgumentException if feesPaid is negative
+     */
     public void setFeesPaid(double feesPaid) {
+        if (feesPaid < 0) {
+            throw new IllegalArgumentException("Fees paid cannot be negative, got: " + feesPaid);
+        }
         this.feesPaid = feesPaid;
     }
 
@@ -163,7 +181,16 @@ public class Student implements java.io.Serializable {
         return totalFees;
     }
 
+    /**
+     * Sets the total fees amount.
+     * 
+     * @param totalFees the total fees (must not be negative)
+     * @throws IllegalArgumentException if totalFees is negative
+     */
     public void setTotalFees(double totalFees) {
+        if (totalFees < 0) {
+            throw new IllegalArgumentException("Total fees cannot be negative, got: " + totalFees);
+        }
         this.totalFees = totalFees;
     }
 
@@ -175,7 +202,16 @@ public class Student implements java.io.Serializable {
         return cgpa;
     }
 
+    /**
+     * Sets the CGPA.
+     * 
+     * @param cgpa the CGPA (must be between 0.0 and 10.0)
+     * @throws IllegalArgumentException if CGPA is out of valid range
+     */
     public void setCgpa(double cgpa) {
+        if (cgpa < 0.0 || cgpa > 10.0) {
+            throw new IllegalArgumentException("CGPA must be between 0.0 and 10.0, got: " + cgpa);
+        }
         this.cgpa = cgpa;
     }
 
@@ -183,7 +219,16 @@ public class Student implements java.io.Serializable {
         return creditsCompleted;
     }
 
+    /**
+     * Sets the credits completed.
+     * 
+     * @param creditsCompleted the credits completed (must not be negative)
+     * @throws IllegalArgumentException if creditsCompleted is negative
+     */
     public void setCreditsCompleted(int creditsCompleted) {
+        if (creditsCompleted < 0) {
+            throw new IllegalArgumentException("Credits completed cannot be negative, got: " + creditsCompleted);
+        }
         this.creditsCompleted = creditsCompleted;
     }
 
@@ -191,7 +236,16 @@ public class Student implements java.io.Serializable {
         return creditsInProgress;
     }
 
+    /**
+     * Sets the credits in progress.
+     * 
+     * @param creditsInProgress the credits in progress (must not be negative)
+     * @throws IllegalArgumentException if creditsInProgress is negative
+     */
     public void setCreditsInProgress(int creditsInProgress) {
+        if (creditsInProgress < 0) {
+            throw new IllegalArgumentException("Credits in progress cannot be negative, got: " + creditsInProgress);
+        }
         this.creditsInProgress = creditsInProgress;
     }
 

@@ -31,7 +31,17 @@ public class AuthUserDao extends BaseDao {
         super(main.java.config.DataSourceRegistry.authDataSource().orElse(null));
     }
 
+    /**
+     * Finds a user by username.
+     * 
+     * @param username the username to search for (must not be null or empty)
+     * @return Optional containing the user if found, empty otherwise
+     * @throws IllegalArgumentException if username is null or empty
+     */
     public Optional<User> findByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
         try (Connection conn = getConnection();
 
                 PreparedStatement ps = conn.prepareStatement(BASE_SELECT)) {
@@ -50,7 +60,30 @@ public class AuthUserDao extends BaseDao {
         return Optional.empty();
     }
 
+    /**
+     * Inserts a new user into the database.
+     * 
+     * @param user the user to insert (must not be null with valid data)
+     * @return the inserted user with generated ID
+     * @throws IllegalArgumentException if user is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public User insert(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+        if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
+        if (user.getPasswordHash() == null || user.getPasswordHash().trim().isEmpty()) {
+            throw new IllegalArgumentException("Password hash cannot be null or empty");
+        }
+        if (user.getSalt() == null || user.getSalt().trim().isEmpty()) {
+            throw new IllegalArgumentException("Salt cannot be null or empty");
+        }
+        if (user.getRole() == null || user.getRole().trim().isEmpty()) {
+            throw new IllegalArgumentException("Role cannot be null or empty");
+        }
         try (Connection conn = getConnection();
 
                 PreparedStatement ps = conn.prepareStatement(INSERT_USER, Statement.RETURN_GENERATED_KEYS)) {
@@ -77,7 +110,20 @@ public class AuthUserDao extends BaseDao {
         }
     }
 
+    /**
+     * Updates a user's profile information.
+     * 
+     * @param user the user with updated profile data (must not be null)
+     * @throws IllegalArgumentException if user is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void updateProfile(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+        if (user.getId() <= 0) {
+            throw new IllegalArgumentException("User ID must be greater than 0");
+        }
         try (Connection conn = getConnection();
 
                 PreparedStatement ps = conn.prepareStatement(UPDATE_PROFILE)) {
@@ -93,7 +139,19 @@ public class AuthUserDao extends BaseDao {
         }
     }
 
+    /**
+     * Records a successful login for a user.
+     * 
+     * @param user the user who logged in successfully (must not be null)
+     * @throws IllegalArgumentException if user is null or has invalid ID
+     */
     public void recordLoginSuccess(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+        if (user.getId() <= 0) {
+            throw new IllegalArgumentException("User ID must be greater than 0");
+        }
         try (Connection conn = getConnection();
 
                 PreparedStatement ps = conn.prepareStatement(UPDATE_LOGIN_SUCCESS)) {
@@ -107,7 +165,25 @@ public class AuthUserDao extends BaseDao {
         }
     }
 
+    /**
+     * Records a failed login attempt for a user.
+     * 
+     * @param user           the user who failed to log in (must not be null)
+     * @param failedAttempts the number of failed attempts (must be non-negative)
+     * @param lockedUntil    the time until which the account is locked (can be
+     *                       null)
+     * @throws IllegalArgumentException if parameters are invalid
+     */
     public void recordLoginFailure(User user, int failedAttempts, LocalDateTime lockedUntil) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+        if (user.getId() <= 0) {
+            throw new IllegalArgumentException("User ID must be greater than 0");
+        }
+        if (failedAttempts < 0) {
+            throw new IllegalArgumentException("Failed attempts cannot be negative");
+        }
         try (Connection conn = getConnection();
 
                 PreparedStatement ps = conn.prepareStatement(UPDATE_LOGIN_FAILURE)) {
@@ -125,7 +201,29 @@ public class AuthUserDao extends BaseDao {
         }
     }
 
+    /**
+     * Updates a user's password.
+     * 
+     * @param user       the user whose password is being updated (must not be null)
+     * @param salt       the new password salt (must not be null or empty)
+     * @param hash       the new password hash (must not be null or empty)
+     * @param mustChange whether the user must change password on next login
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void updatePassword(User user, String salt, String hash, boolean mustChange) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+        if (user.getId() <= 0) {
+            throw new IllegalArgumentException("User ID must be greater than 0");
+        }
+        if (salt == null || salt.trim().isEmpty()) {
+            throw new IllegalArgumentException("Salt cannot be null or empty");
+        }
+        if (hash == null || hash.trim().isEmpty()) {
+            throw new IllegalArgumentException("Hash cannot be null or empty");
+        }
         try (Connection conn = getConnection();
 
                 PreparedStatement ps = conn.prepareStatement(UPDATE_PASSWORD)) {

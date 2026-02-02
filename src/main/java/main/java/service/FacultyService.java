@@ -44,22 +44,61 @@ public class FacultyService {
         return DatabaseUtil.getAllFaculty(); // Returns List<Faculty>
     }
 
+    /**
+     * Gets office hours for a faculty member.
+     * 
+     * @param facultyId the faculty ID (must not be null or empty)
+     * @return list of office hours, never null
+     * @throws IllegalArgumentException if facultyId is null or empty
+     */
     public static List<OfficeHour> getOfficeHours(String facultyId) {
+        if (facultyId == null || facultyId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Faculty ID cannot be null or empty");
+        }
         return appointmentDao.getOfficeHours(facultyId);
     }
 
+    /**
+     * Books an appointment.
+     * 
+     * @param apt the appointment (must not be null)
+     * @throws IllegalArgumentException if apt is null
+     */
     public static void bookAppointment(Appointment apt) {
+        if (apt == null) {
+            throw new IllegalArgumentException("Appointment cannot be null");
+        }
         appointmentDao.insertAppointment(apt);
     }
 
+    /**
+     * Gets appointments for a student.
+     * 
+     * @param studentId the student ID (must not be null or empty)
+     * @return list of appointments, never null
+     * @throws IllegalArgumentException if studentId is null or empty
+     */
     public static List<Appointment> getStudentAppointments(String studentId) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
         return appointmentDao.getAppointmentsForStudent(studentId);
     }
 
     /**
      * Determines where a professor is right now.
      */
+    /**
+     * Determines where a professor is right now.
+     * 
+     * @param facultyId the faculty ID (must not be null or empty)
+     * @return the current status
+     * @throws IllegalArgumentException if facultyId is null or empty
+     */
     public static CurrentStatus FacultyCurrentStatus(String facultyId) {
+        if (facultyId == null || facultyId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Faculty ID cannot be null or empty");
+        }
         // Mock time for demo or use real
         LocalTime now = LocalTime.now();
         DayOfWeek today = LocalDate.now().getDayOfWeek();

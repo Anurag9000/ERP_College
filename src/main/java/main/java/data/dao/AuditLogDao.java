@@ -28,7 +28,22 @@ public class AuditLogDao extends BaseDao {
         super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Inserts an audit event into the database.
+     * 
+     * @param event the audit event to insert (must not be null)
+     * @throws IllegalArgumentException if event is null or has invalid data
+     */
     public void insert(AuditLogService.AuditEvent event) {
+        if (event == null) {
+            throw new IllegalArgumentException("Audit event cannot be null");
+        }
+        if (event.getType() == null) {
+            throw new IllegalArgumentException("Event type cannot be null");
+        }
+        if (event.getTimestamp() == null) {
+            throw new IllegalArgumentException("Event timestamp cannot be null");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
             ps.setString(1, event.getType().name());
@@ -41,7 +56,18 @@ public class AuditLogDao extends BaseDao {
         }
     }
 
+    /**
+     * Retrieves the most recent audit events.
+     * 
+     * @param limit the maximum number of events to retrieve (must be greater than
+     *              0)
+     * @return list of audit events, never null (empty if none found)
+     * @throws IllegalArgumentException if limit is invalid
+     */
     public List<AuditLogService.AuditEvent> findRecent(int limit) {
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit must be greater than 0");
+        }
         List<AuditLogService.AuditEvent> events = new ArrayList<>();
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_RECENT_SQL)) {

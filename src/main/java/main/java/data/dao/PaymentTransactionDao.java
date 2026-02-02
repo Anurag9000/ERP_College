@@ -43,7 +43,30 @@ public class PaymentTransactionDao extends BaseDao {
         super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Inserts a new payment transaction.
+     * 
+     * @param transaction the payment transaction to insert (must not be null with
+     *                    valid data)
+     * @throws IllegalArgumentException if transaction is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void insert(PaymentTransaction transaction) {
+        if (transaction == null) {
+            throw new IllegalArgumentException("Payment transaction cannot be null");
+        }
+        if (transaction.getTransactionId() == null || transaction.getTransactionId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Transaction ID cannot be null or empty");
+        }
+        if (transaction.getStudentId() == null || transaction.getStudentId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (transaction.getAmount() <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than 0");
+        }
+        if (transaction.getPaidOn() == null) {
+            throw new IllegalArgumentException("Payment date cannot be null");
+        }
         try (Connection conn = getConnection()) {
             insert(conn, transaction);
         } catch (SQLException ex) {
@@ -66,7 +89,24 @@ public class PaymentTransactionDao extends BaseDao {
         }
     }
 
+    /**
+     * Updates an existing payment transaction.
+     * 
+     * @param transaction the payment transaction to update (must not be null with
+     *                    valid data)
+     * @throws IllegalArgumentException if transaction is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void update(PaymentTransaction transaction) {
+        if (transaction == null) {
+            throw new IllegalArgumentException("Payment transaction cannot be null");
+        }
+        if (transaction.getTransactionId() == null || transaction.getTransactionId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Transaction ID cannot be null or empty");
+        }
+        if (transaction.getAmount() <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than 0");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPDATE_SQL)) {
             ps.setString(1, transaction.getStudentId());
@@ -84,7 +124,17 @@ public class PaymentTransactionDao extends BaseDao {
         }
     }
 
+    /**
+     * Deletes a payment transaction by ID.
+     * 
+     * @param transactionId the transaction ID (must not be null or empty)
+     * @throws IllegalArgumentException if transactionId is null or empty
+     * @throws IllegalStateException    if database operation fails
+     */
     public void delete(String transactionId) {
+        if (transactionId == null || transactionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Transaction ID cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(DELETE_SQL)) {
             ps.setString(1, transactionId);
@@ -95,7 +145,18 @@ public class PaymentTransactionDao extends BaseDao {
         }
     }
 
+    /**
+     * Finds all payment transactions for a specific student.
+     * 
+     * @param studentId the student ID (must not be null or empty)
+     * @return list of payment transactions, never null
+     * @throws IllegalArgumentException if studentId is null or empty
+     * @throws IllegalStateException    if database operation fails
+     */
     public List<PaymentTransaction> findByStudent(String studentId) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(FIND_BY_STUDENT_SQL)) {
             ps.setString(1, studentId);

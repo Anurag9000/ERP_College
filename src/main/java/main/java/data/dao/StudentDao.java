@@ -38,11 +38,31 @@ public class StudentDao extends BaseDao {
         return students;
     }
 
+    /**
+     * Finds a student by student code.
+     * 
+     * @param code the student code (must not be null or empty)
+     * @return Optional containing the student if found, empty otherwise
+     * @throws IllegalArgumentException if code is null or empty
+     */
     public Optional<Student> findByCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
         return fetchSingle(SELECT_BY_CODE, code);
     }
 
+    /**
+     * Finds a student by username.
+     * 
+     * @param username the username (must not be null or empty)
+     * @return Optional containing the student if found, empty otherwise
+     * @throws IllegalArgumentException if username is null or empty
+     */
     public Optional<Student> findByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
         return fetchSingle(SELECT_BY_USERNAME, username);
     }
 
@@ -61,7 +81,29 @@ public class StudentDao extends BaseDao {
         return Optional.empty();
     }
 
+    /**
+     * Inserts a new student into the database.
+     * 
+     * @param student the student to insert (must not be null with valid data)
+     * @throws IllegalArgumentException if student is null or has invalid data
+     * @throws RuntimeException         if database operation fails
+     */
     public void insert(Student student) {
+        if (student == null) {
+            throw new IllegalArgumentException("Student cannot be null");
+        }
+        if (student.getStudentId() == null || student.getStudentId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (student.getUsername() == null || student.getUsername().trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
+        if (student.getFirstName() == null || student.getFirstName().trim().isEmpty()) {
+            throw new IllegalArgumentException("First name cannot be null or empty");
+        }
+        if (student.getLastName() == null || student.getLastName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Last name cannot be null or empty");
+        }
         try (Connection conn = getConnection()) {
             insert(conn, student);
         } catch (SQLException ex) {

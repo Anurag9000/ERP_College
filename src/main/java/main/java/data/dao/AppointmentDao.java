@@ -14,7 +14,35 @@ public class AppointmentDao extends BaseDao {
         super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Inserts a new appointment into the database.
+     * 
+     * @param apt the appointment to insert (must not be null with valid data)
+     * @throws IllegalArgumentException if appointment is null or has invalid data
+     * @throws RuntimeException         if database operation fails
+     */
     public void insertAppointment(Appointment apt) {
+        if (apt == null) {
+            throw new IllegalArgumentException("Appointment cannot be null");
+        }
+        if (apt.getStudentId() == null || apt.getStudentId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (apt.getFacultyId() == null || apt.getFacultyId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Faculty ID cannot be null or empty");
+        }
+        if (apt.getAppointmentDate() == null) {
+            throw new IllegalArgumentException("Appointment date cannot be null");
+        }
+        if (apt.getStartTime() == null) {
+            throw new IllegalArgumentException("Start time cannot be null");
+        }
+        if (apt.getEndTime() == null) {
+            throw new IllegalArgumentException("End time cannot be null");
+        }
+        if (apt.getStatus() == null) {
+            throw new IllegalArgumentException("Appointment status cannot be null");
+        }
         String sql = "INSERT INTO appointments (student_code, instructor_code, office_hour_id, appointment_date, start_time, end_time, purpose, status) "
                 +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
@@ -45,7 +73,17 @@ public class AppointmentDao extends BaseDao {
         }
     }
 
+    /**
+     * Retrieves all appointments for a specific student.
+     * 
+     * @param studentId the student ID (must not be null or empty)
+     * @return list of appointments, never null (empty if none found)
+     * @throws IllegalArgumentException if studentId is null or empty
+     */
     public List<Appointment> getAppointmentsForStudent(String studentId) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
         String sql = "SELECT a.*, i.first_name, i.last_name FROM appointments a " +
                 "JOIN instructors i ON a.instructor_code = i.instructor_code " +
                 "WHERE a.student_code = ? ORDER BY a.appointment_date DESC, a.start_time DESC";
@@ -67,7 +105,17 @@ public class AppointmentDao extends BaseDao {
         return list;
     }
 
+    /**
+     * Retrieves all office hours for a specific faculty member.
+     * 
+     * @param facultyId the faculty ID (must not be null or empty)
+     * @return list of office hours, never null (empty if none found)
+     * @throws IllegalArgumentException if facultyId is null or empty
+     */
     public List<OfficeHour> getOfficeHours(String facultyId) {
+        if (facultyId == null || facultyId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Faculty ID cannot be null or empty");
+        }
         String sql = "SELECT * FROM instructor_office_hours WHERE instructor_code = ?";
         List<OfficeHour> list = new ArrayList<>();
         try (Connection conn = getConnection();

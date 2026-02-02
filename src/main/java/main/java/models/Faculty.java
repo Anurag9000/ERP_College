@@ -120,7 +120,16 @@ public class Faculty implements java.io.Serializable {
         return salary;
     }
 
+    /**
+     * Sets the salary.
+     * 
+     * @param salary the salary (must not be negative)
+     * @throws IllegalArgumentException if salary is negative
+     */
     public void setSalary(double salary) {
+        if (salary < 0) {
+            throw new IllegalArgumentException("Salary cannot be negative, got: " + salary);
+        }
         this.salary = salary;
     }
 

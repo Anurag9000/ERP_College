@@ -38,15 +38,54 @@ public class InstructorDao extends BaseDao {
         return list;
     }
 
+    /**
+     * Finds an instructor by instructor code.
+     * 
+     * @param code the instructor code (must not be null or empty)
+     * @return Optional containing the instructor if found, empty otherwise
+     * @throws IllegalArgumentException if code is null or empty
+     */
     public Optional<Faculty> findByCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new IllegalArgumentException("Instructor code cannot be null or empty");
+        }
         return fetchSingle(SELECT_BY_CODE, code);
     }
 
+    /**
+     * Finds an instructor by username.
+     * 
+     * @param username the username (must not be null or empty)
+     * @return Optional containing the instructor if found, empty otherwise
+     * @throws IllegalArgumentException if username is null or empty
+     */
     public Optional<Faculty> findByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
         return fetchSingle(SELECT_BY_USERNAME, username);
     }
 
+    /**
+     * Inserts a new instructor into the database.
+     * 
+     * @param faculty the instructor to insert (must not be null with valid data)
+     * @throws IllegalArgumentException if faculty is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void insert(Faculty faculty) {
+        if (faculty == null) {
+            throw new IllegalArgumentException("Faculty cannot be null");
+        }
+        if (faculty.getFacultyId() == null || faculty.getFacultyId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Faculty ID cannot be null or empty");
+        }
+        if (faculty.getFirstName() == null || faculty.getFirstName().trim().isEmpty()) {
+            throw new IllegalArgumentException("First name cannot be null or empty");
+        }
+        if (faculty.getLastName() == null || faculty.getLastName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Last name cannot be null or empty");
+        }
         try (Connection conn = getConnection()) {
             insert(conn, faculty);
         } catch (SQLException ex) {
@@ -62,7 +101,20 @@ public class InstructorDao extends BaseDao {
         }
     }
 
+    /**
+     * Updates an existing instructor.
+     * 
+     * @param faculty the instructor to update (must not be null with valid data)
+     * @throws IllegalArgumentException if faculty is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void update(Faculty faculty) {
+        if (faculty == null) {
+            throw new IllegalArgumentException("Faculty cannot be null");
+        }
+        if (faculty.getFacultyId() == null || faculty.getFacultyId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Faculty ID cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             bind(ps, faculty, false);
@@ -74,7 +126,17 @@ public class InstructorDao extends BaseDao {
         }
     }
 
+    /**
+     * Deletes an instructor by code.
+     * 
+     * @param code the instructor code (must not be null or empty)
+     * @throws IllegalArgumentException if code is null or empty
+     * @throws IllegalStateException    if database operation fails
+     */
     public void delete(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new IllegalArgumentException("Instructor code cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setString(1, code);

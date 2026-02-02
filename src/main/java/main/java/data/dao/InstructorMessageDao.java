@@ -30,7 +30,33 @@ public class InstructorMessageDao extends BaseDao {
         super(DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Inserts a new instructor message.
+     * 
+     * @param username     the instructor username (must not be null or empty)
+     * @param sectionId    the section ID (must not be null or empty)
+     * @param subject      the message subject (must not be null or empty)
+     * @param body         the message body (must not be null or empty)
+     * @param recipientIds the recipient IDs (must not be null)
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void insert(String username, String sectionId, String subject, String body, String recipientIds) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
+        if (sectionId == null || sectionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (subject == null || subject.trim().isEmpty()) {
+            throw new IllegalArgumentException("Subject cannot be null or empty");
+        }
+        if (body == null || body.trim().isEmpty()) {
+            throw new IllegalArgumentException("Body cannot be null or empty");
+        }
+        if (recipientIds == null) {
+            throw new IllegalArgumentException("Recipient IDs cannot be null");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
             ps.setString(1, username);
@@ -45,7 +71,17 @@ public class InstructorMessageDao extends BaseDao {
         }
     }
 
+    /**
+     * Finds all messages sent by an instructor.
+     * 
+     * @param username the instructor username (must not be null or empty)
+     * @return list of message logs, never null
+     * @throws IllegalArgumentException if username is null or empty
+     */
     public List<MessageLog> findByInstructor(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
         List<MessageLog> results = new ArrayList<>();
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_INSTRUCTOR)) {

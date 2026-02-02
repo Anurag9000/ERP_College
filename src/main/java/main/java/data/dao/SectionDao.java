@@ -50,7 +50,17 @@ public class SectionDao extends BaseDao {
         return sections;
     }
 
+    /**
+     * Finds all sections for a specific faculty member.
+     * 
+     * @param facultyId the faculty ID (must not be null or empty)
+     * @return list of sections, never null (empty if none found)
+     * @throws IllegalArgumentException if facultyId is null or empty
+     */
     public List<Section> findByFaculty(String facultyId) {
+        if (facultyId == null || facultyId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Faculty ID cannot be null or empty");
+        }
         List<Section> sections = new ArrayList<>();
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_INSTRUCTOR)) {
@@ -99,8 +109,33 @@ public class SectionDao extends BaseDao {
         }
     }
 
+    /**
+     * Finds sections by location and schedule to detect conflicts.
+     * 
+     * @param location the location (must not be null or empty)
+     * @param day      the day of week (must not be null)
+     * @param start    the start time (must not be null)
+     * @param end      the end time (must not be null)
+     * @return list of conflicting sections, never null
+     * @throws IllegalArgumentException if parameters are null or empty
+     */
     public List<Section> findByLocationAndSchedule(String location, DayOfWeek day, java.time.LocalTime start,
             java.time.LocalTime end) {
+        if (location == null || location.trim().isEmpty()) {
+            throw new IllegalArgumentException("Location cannot be null or empty");
+        }
+        if (day == null) {
+            throw new IllegalArgumentException("Day of week cannot be null");
+        }
+        if (start == null) {
+            throw new IllegalArgumentException("Start time cannot be null");
+        }
+        if (end == null) {
+            throw new IllegalArgumentException("End time cannot be null");
+        }
+        if (start.isAfter(end) || start.equals(end)) {
+            throw new IllegalArgumentException("Start time must be before end time");
+        }
         List<Section> list = new ArrayList<>();
         String sql = BASE_SELECT + " WHERE location = ? AND day_of_week = ? AND start_time < ? AND end_time > ?";
         try (Connection conn = getConnection();
@@ -120,7 +155,17 @@ public class SectionDao extends BaseDao {
         return list;
     }
 
+    /**
+     * Finds a section by section code.
+     * 
+     * @param code the section code (must not be null or empty)
+     * @return Optional containing the section if found, empty otherwise
+     * @throws IllegalArgumentException if code is null or empty
+     */
     public Optional<Section> findByCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_CODE)) {
             ps.setString(1, code);
@@ -137,7 +182,26 @@ public class SectionDao extends BaseDao {
         return Optional.empty();
     }
 
+    /**
+     * Inserts a new section into the database.
+     * 
+     * @param section the section to insert (must not be null with valid data)
+     * @throws IllegalArgumentException if section is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void insert(Section section) {
+        if (section == null) {
+            throw new IllegalArgumentException("Section cannot be null");
+        }
+        if (section.getSectionId() == null || section.getSectionId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (section.getCourseId() == null || section.getCourseId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Course ID cannot be null or empty");
+        }
+        if (section.getCapacity() <= 0) {
+            throw new IllegalArgumentException("Section capacity must be greater than 0");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(INSERT)) {
             bind(ps, section, true);
@@ -149,7 +213,23 @@ public class SectionDao extends BaseDao {
         }
     }
 
+    /**
+     * Updates an existing section.
+     * 
+     * @param section the section to update (must not be null with valid data)
+     * @throws IllegalArgumentException if section is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void update(Section section) {
+        if (section == null) {
+            throw new IllegalArgumentException("Section cannot be null");
+        }
+        if (section.getSectionId() == null || section.getSectionId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (section.getCapacity() <= 0) {
+            throw new IllegalArgumentException("Section capacity must be greater than 0");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPDATE)) {
             bind(ps, section, false);
@@ -162,7 +242,17 @@ public class SectionDao extends BaseDao {
         }
     }
 
+    /**
+     * Deletes a section and its assessments.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @throws IllegalArgumentException if sectionCode is null or empty
+     * @throws IllegalStateException    if database operation fails
+     */
     public void delete(String sectionCode) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             try {

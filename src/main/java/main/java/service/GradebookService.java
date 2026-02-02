@@ -92,7 +92,22 @@ public final class GradebookService {
         return builder.toString();
     }
 
+    /**
+     * Defines assessment weights for a section.
+     * 
+     * @param instructor the instructor (must not be null)
+     * @param sectionId  the section ID (must not be null or empty)
+     * @param weights    the assessment weights (must not be null)
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws SecurityException        if instructor doesn't have access
+     */
     public static void defineAssessments(User instructor, String sectionId, Map<String, Double> weights) {
+        if (sectionId == null || sectionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (weights == null) {
+            throw new IllegalArgumentException("Weights cannot be null");
+        }
         ensureInstructorAccess(instructor, sectionId);
         Section section = DatabaseUtil.getSection(sectionId);
         section.clearAssessmentWeights();
@@ -103,8 +118,28 @@ public final class GradebookService {
                 String.format("Defined assessments for %s (%d components)", sectionId, weights.size()));
     }
 
+    /**
+     * Records a component score for a student.
+     * 
+     * @param instructor the instructor (must not be null)
+     * @param sectionId  the section ID (must not be null or empty)
+     * @param studentId  the student ID (must not be null or empty)
+     * @param component  the component name (must not be null or empty)
+     * @param score      the score
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws SecurityException        if instructor doesn't have access
+     */
     public static void recordScore(User instructor, String sectionId, String studentId, String component,
             double score) {
+        if (sectionId == null || sectionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (component == null || component.trim().isEmpty()) {
+            throw new IllegalArgumentException("Component cannot be null or empty");
+        }
         ensureInstructorAccess(instructor, sectionId);
         // Use atomic method to prevent race conditions
         DatabaseUtil.recordComponentScore(sectionId, studentId, component, score);
@@ -113,7 +148,23 @@ public final class GradebookService {
                 String.format("Recorded %s=%.2f for %s in %s", component, score, studentId, sectionId));
     }
 
+    /**
+     * Computes and saves the final grade for a student.
+     * 
+     * @param instructor the instructor (must not be null)
+     * @param sectionId  the section ID (must not be null or empty)
+     * @param studentId  the student ID (must not be null or empty)
+     * @return the computed final grade
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws SecurityException        if instructor doesn't have access
+     */
     public static double computeFinal(User instructor, String sectionId, String studentId) {
+        if (sectionId == null || sectionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
         ensureInstructorAccess(instructor, sectionId);
         // Use atomic method to prevent race conditions
         double finalGrade = DatabaseUtil.computeAndSaveFinalGrade(sectionId, studentId);
@@ -200,17 +251,49 @@ public final class GradebookService {
         return new AttendanceAnalytics(average, snapshots.size(), snapshots);
     }
 
+    /**
+     * Lists assessment templates for a course.
+     * 
+     * @param instructor the instructor (must not be null)
+     * @param courseCode the course code (must not be null or empty)
+     * @return list of templates, never null
+     * @throws IllegalArgumentException if courseCode is null or empty
+     * @throws SecurityException        if instructor is null
+     */
     public static List<AssessmentTemplateDao.AssessmentTemplate> listTemplates(User instructor, String courseCode) {
+        if (courseCode == null || courseCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course code cannot be null or empty");
+        }
         if (instructor == null) {
             throw new SecurityException("Missing instructor session.");
         }
         return DatabaseUtil.getAssessmentTemplates(courseCode);
     }
 
+    /**
+     * Saves an assessment template.
+     * 
+     * @param instructor   the instructor (must not be null)
+     * @param courseCode   the course code (must not be null or empty)
+     * @param templateName the template name (must not be null or empty)
+     * @param weights      the weights (must not be null)
+     * @return the created template
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws SecurityException        if instructor is null
+     */
     public static AssessmentTemplateDao.AssessmentTemplate saveTemplate(User instructor,
             String courseCode,
             String templateName,
             Map<String, Double> weights) {
+        if (courseCode == null || courseCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course code cannot be null or empty");
+        }
+        if (templateName == null || templateName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Template name cannot be null or empty");
+        }
+        if (weights == null) {
+            throw new IllegalArgumentException("Weights cannot be null");
+        }
         if (instructor == null) {
             throw new SecurityException("Missing instructor session.");
         }

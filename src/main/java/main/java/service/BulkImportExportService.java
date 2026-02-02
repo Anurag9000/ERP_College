@@ -30,7 +30,21 @@ public class BulkImportExportService {
     /**
      * Import students from CSV
      */
+    /**
+     * Import students from CSV.
+     * 
+     * @param csvFile the CSV file (must not be null and must exist)
+     * @return list of error messages, empty if all successful
+     * @throws IOException              if file read fails
+     * @throws IllegalArgumentException if csvFile is null or doesn't exist
+     */
     public static List<String> importStudents(File csvFile) throws IOException {
+        if (csvFile == null) {
+            throw new IllegalArgumentException("CSV file cannot be null");
+        }
+        if (!csvFile.exists()) {
+            throw new FileNotFoundException("CSV file not found: " + csvFile.getAbsolutePath());
+        }
         List<String> errors = new ArrayList<>();
         List<Student> studentsToInsert = new ArrayList<>();
 
@@ -92,7 +106,17 @@ public class BulkImportExportService {
     /**
      * Export students to CSV
      */
+    /**
+     * Export students to CSV.
+     * 
+     * @param csvFile the CSV file (must not be null)
+     * @throws IOException              if file write fails
+     * @throws IllegalArgumentException if csvFile is null
+     */
     public static void exportStudents(File csvFile) throws IOException {
+        if (csvFile == null) {
+            throw new IllegalArgumentException("CSV file cannot be null");
+        }
         try (Writer writer = new FileWriter(csvFile, StandardCharsets.UTF_8);
                 CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.builder()
                         .setHeader("StudentID", "FirstName", "LastName", "Email", "Phone", "DOB", "Address", "Course",
@@ -119,7 +143,21 @@ public class BulkImportExportService {
     /**
      * Import faculty from CSV
      */
+    /**
+     * Import faculty from CSV.
+     * 
+     * @param csvFile the CSV file (must not be null and must exist)
+     * @return list of error messages, empty if all successful
+     * @throws IOException              if file read fails
+     * @throws IllegalArgumentException if csvFile is null or doesn't exist
+     */
     public static List<String> importFaculty(File csvFile) throws IOException {
+        if (csvFile == null) {
+            throw new IllegalArgumentException("CSV file cannot be null");
+        }
+        if (!csvFile.exists()) {
+            throw new FileNotFoundException("CSV file not found: " + csvFile.getAbsolutePath());
+        }
         List<String> errors = new ArrayList<>();
         List<Faculty> facultyToInsert = new ArrayList<>();
 
@@ -202,7 +240,22 @@ public class BulkImportExportService {
     /**
      * Export gradebook for a section to CSV
      */
+    /**
+     * Export gradebook for a section to CSV.
+     * 
+     * @param sectionId the section ID (must not be null or empty)
+     * @param csvFile   the CSV file (must not be null)
+     * @throws IOException              if file write fails
+     * @throws IllegalArgumentException if parameters are invalid or section not
+     *                                  found
+     */
     public static void exportGradebook(String sectionId, File csvFile) throws IOException {
+        if (sectionId == null || sectionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (csvFile == null) {
+            throw new IllegalArgumentException("CSV file cannot be null");
+        }
         Section section = DatabaseUtil.getSection(sectionId);
         if (section == null) {
             throw new IllegalArgumentException("Section not found: " + sectionId);

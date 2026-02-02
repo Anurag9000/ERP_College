@@ -48,11 +48,41 @@ public class MaintenanceWindowDao extends BaseDao {
         return result;
     }
 
+    /**
+     * Inserts a new maintenance window.
+     * 
+     * @param start     the start time (must not be null)
+     * @param end       the end time (must not be null and after start)
+     * @param message   the maintenance message (must not be null or empty)
+     * @param status    the status (must not be null)
+     * @param createdBy who created it (must not be null or empty)
+     * @return Optional containing the created window if successful
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public Optional<MaintenanceWindow> insert(LocalDateTime start,
             LocalDateTime end,
             String message,
             MaintenanceWindow.Status status,
             String createdBy) {
+        if (start == null) {
+            throw new IllegalArgumentException("Start time cannot be null");
+        }
+        if (end == null) {
+            throw new IllegalArgumentException("End time cannot be null");
+        }
+        if (start.isAfter(end) || start.equals(end)) {
+            throw new IllegalArgumentException("Start time must be before end time");
+        }
+        if (message == null || message.trim().isEmpty()) {
+            throw new IllegalArgumentException("Message cannot be null or empty");
+        }
+        if (status == null) {
+            throw new IllegalArgumentException("Status cannot be null");
+        }
+        if (createdBy == null || createdBy.trim().isEmpty()) {
+            throw new IllegalArgumentException("Created by cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setTimestamp(1, Timestamp.valueOf(start));
@@ -81,7 +111,21 @@ public class MaintenanceWindowDao extends BaseDao {
         return Optional.empty();
     }
 
+    /**
+     * Updates the status of a maintenance window.
+     * 
+     * @param id     the window ID (must be greater than 0)
+     * @param status the new status (must not be null)
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void updateStatus(long id, MaintenanceWindow.Status status) {
+        if (id <= 0) {
+            throw new IllegalArgumentException("Maintenance window ID must be greater than 0");
+        }
+        if (status == null) {
+            throw new IllegalArgumentException("Status cannot be null");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
             ps.setString(1, status.name());
@@ -93,7 +137,17 @@ public class MaintenanceWindowDao extends BaseDao {
         }
     }
 
+    /**
+     * Deletes a maintenance window.
+     * 
+     * @param id the window ID (must be greater than 0)
+     * @throws IllegalArgumentException if id is invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void delete(long id) {
+        if (id <= 0) {
+            throw new IllegalArgumentException("Maintenance window ID must be greater than 0");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setLong(1, id);

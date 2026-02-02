@@ -59,11 +59,32 @@ public final class StudentService {
         return "F";
     }
 
+    /**
+     * Calculates grade points for a score in a section.
+     * 
+     * @param score     the score
+     * @param sectionId the section ID (must not be null or empty)
+     * @return the calculated points
+     * @throws IllegalArgumentException if sectionId is null or empty
+     */
     public static double calculatePoints(double score, String sectionId) {
+        if (sectionId == null || sectionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
         return GradebookService.calculateRelativePoints(score, sectionId);
     }
 
+    /**
+     * Gets total credits for a student.
+     * 
+     * @param studentId the student ID (must not be null or empty)
+     * @return total credits
+     * @throws IllegalArgumentException if studentId is null or empty
+     */
     public static int getTotalCredits(String studentId) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
         return DatabaseUtil.getEnrollmentsForStudent(studentId).stream()
                 .filter(rec -> rec.getStatus() == EnrollmentRecord.Status.ENROLLED)
                 .mapToInt(rec -> {
@@ -72,11 +93,35 @@ public final class StudentService {
                 }).sum();
     }
 
+    /**
+     * Calculates semester GPA.
+     * 
+     * @param username the username (must not be null or empty)
+     * @param semester the semester (must not be null or empty)
+     * @return the SGPA
+     * @throws IllegalArgumentException if parameters are null or empty
+     */
     public static double calculateSGPA(String username, String semester) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
+        if (semester == null || semester.trim().isEmpty()) {
+            throw new IllegalArgumentException("Semester cannot be null or empty");
+        }
         return calculateGPA(username, semester);
     }
 
+    /**
+     * Calculates cumulative GPA.
+     * 
+     * @param username the username (must not be null or empty)
+     * @return the CGPA
+     * @throws IllegalArgumentException if username is null or empty
+     */
     public static double calculateCGPA(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
         return calculateGPA(username, null);
     }
 

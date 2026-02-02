@@ -30,7 +30,17 @@ public class EnrollmentDao extends BaseDao {
         super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Finds all enrollment records for a specific student.
+     * 
+     * @param studentCode the student code (must not be null or empty)
+     * @return list of enrollment records, never null (empty if none found)
+     * @throws IllegalArgumentException if studentCode is null or empty
+     */
     public List<EnrollmentRecord> findByStudent(String studentCode) {
+        if (studentCode == null || studentCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
         return fetchList(SELECT_BY_STUDENT, studentCode);
     }
 
@@ -38,7 +48,17 @@ public class EnrollmentDao extends BaseDao {
         return fetchList(conn, SELECT_BY_STUDENT, studentCode);
     }
 
+    /**
+     * Finds all enrollment records for a specific section.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @return list of enrollment records, never null (empty if none found)
+     * @throws IllegalArgumentException if sectionCode is null or empty
+     */
     public List<EnrollmentRecord> findBySection(String sectionCode) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
         return fetchList(SELECT_BY_SECTION, sectionCode);
     }
 
@@ -46,7 +66,21 @@ public class EnrollmentDao extends BaseDao {
         return fetchList(conn, SELECT_BY_SECTION, sectionCode);
     }
 
+    /**
+     * Finds an enrollment record for a specific section and student.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @param studentCode the student code (must not be null or empty)
+     * @return the enrollment record if found, null otherwise
+     * @throws IllegalArgumentException if parameters are null or empty
+     */
     public EnrollmentRecord findBySectionAndStudent(String sectionCode, String studentCode) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
+        if (studentCode == null || studentCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student code cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_SECTION_AND_STUDENT)) {
             ps.setString(1, sectionCode);
@@ -65,7 +99,25 @@ public class EnrollmentDao extends BaseDao {
         return null;
     }
 
+    /**
+     * Locks an enrollment record for update within a transaction.
+     * 
+     * @param conn      the database connection (must not be null)
+     * @param sectionId the section ID (must not be null or empty)
+     * @param studentId the student ID (must not be null or empty)
+     * @throws IllegalArgumentException if parameters are null or empty
+     * @throws SQLException             if database operation fails
+     */
     public void lockEnrollment(Connection conn, String sectionId, String studentId) throws SQLException {
+        if (conn == null) {
+            throw new IllegalArgumentException("Connection cannot be null");
+        }
+        if (sectionId == null || sectionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
         String sql = "SELECT 1 FROM enrollments WHERE section_code = ? AND student_code = ? FOR UPDATE";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, sectionId);
@@ -74,7 +126,27 @@ public class EnrollmentDao extends BaseDao {
         }
     }
 
+    /**
+     * Inserts a new enrollment record.
+     * 
+     * @param record the enrollment record to insert (must not be null with valid
+     *               data)
+     * @throws IllegalArgumentException if record is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void insert(EnrollmentRecord record) {
+        if (record == null) {
+            throw new IllegalArgumentException("Enrollment record cannot be null");
+        }
+        if (record.getStudentId() == null || record.getStudentId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (record.getSectionId() == null || record.getSectionId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (record.getStatus() == null) {
+            throw new IllegalArgumentException("Enrollment status cannot be null");
+        }
         try (Connection conn = getConnection()) {
             insert(conn, record);
         } catch (SQLException ex) {
@@ -119,7 +191,27 @@ public class EnrollmentDao extends BaseDao {
         }
     }
 
+    /**
+     * Updates an enrollment record with transaction support.
+     * 
+     * @param record the enrollment record to update (must not be null with valid
+     *               data)
+     * @throws IllegalArgumentException if record is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public void update(EnrollmentRecord record) {
+        if (record == null) {
+            throw new IllegalArgumentException("Enrollment record cannot be null");
+        }
+        if (record.getStudentId() == null || record.getStudentId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (record.getSectionId() == null || record.getSectionId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
+        if (record.getStatus() == null) {
+            throw new IllegalArgumentException("Enrollment status cannot be null");
+        }
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -155,7 +247,16 @@ public class EnrollmentDao extends BaseDao {
         update(record);
     }
 
+    /**
+     * Deletes all enrollment records for a specific section.
+     * 
+     * @param sectionCode the section code (must not be null or empty)
+     * @throws IllegalArgumentException if sectionCode is null or empty
+     */
     public void deleteBySection(String sectionCode) {
+        if (sectionCode == null || sectionCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section code cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(DELETE_BY_SECTION)) {
             ps.setString(1, sectionCode);

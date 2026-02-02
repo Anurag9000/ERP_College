@@ -31,7 +31,25 @@ public class NotificationDao extends BaseDao {
         super(main.java.config.DataSourceRegistry.erpDataSource().orElse(null));
     }
 
+    /**
+     * Inserts a new notification.
+     * 
+     * @param notification the notification to insert (must not be null with valid
+     *                     data)
+     * @return the inserted notification with generated ID
+     * @throws IllegalArgumentException if notification is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public NotificationMessage insert(NotificationMessage notification) {
+        if (notification == null) {
+            throw new IllegalArgumentException("Notification cannot be null");
+        }
+        if (notification.getAudience() == null) {
+            throw new IllegalArgumentException("Notification audience cannot be null");
+        }
+        if (notification.getMessage() == null || notification.getMessage().trim().isEmpty()) {
+            throw new IllegalArgumentException("Notification message cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, notification.getAudience().name());
@@ -94,7 +112,18 @@ public class NotificationDao extends BaseDao {
         return list;
     }
 
+    /**
+     * Finds visible notifications for a specific audience and target.
+     * 
+     * @param audience the audience type (must not be null)
+     * @param targetId the target ID (can be null)
+     * @return list of visible notifications, never null
+     * @throws IllegalArgumentException if audience is null
+     */
     public List<NotificationMessage> findVisible(NotificationMessage.Audience audience, String targetId) {
+        if (audience == null) {
+            throw new IllegalArgumentException("Audience cannot be null");
+        }
         List<NotificationMessage> list = new ArrayList<>();
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_VISIBLE_SQL)) {
@@ -115,7 +144,18 @@ public class NotificationDao extends BaseDao {
         return list;
     }
 
+    /**
+     * Marks a notification as read or unread.
+     * 
+     * @param id   the notification ID (must be greater than 0)
+     * @param read the read status
+     * @throws IllegalArgumentException if id is invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void markRead(long id, boolean read) {
+        if (id <= 0) {
+            throw new IllegalArgumentException("Notification ID must be greater than 0");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPDATE_READ_SQL)) {
             ps.setBoolean(1, read);

@@ -34,7 +34,17 @@ public class AssessmentTemplateDao extends BaseDao {
                 .orElseThrow(() -> new IllegalStateException("ERP datasource not configured.")));
     }
 
+    /**
+     * Finds all assessment templates for a course.
+     * 
+     * @param courseCode the course code (must not be null or empty)
+     * @return list of assessment templates, never null
+     * @throws IllegalArgumentException if courseCode is null or empty
+     */
     public List<AssessmentTemplate> findByCourse(String courseCode) {
+        if (courseCode == null || courseCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course code cannot be null or empty");
+        }
         List<AssessmentTemplate> results = new ArrayList<>();
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_COURSE)) {
@@ -50,7 +60,30 @@ public class AssessmentTemplateDao extends BaseDao {
         return results;
     }
 
+    /**
+     * Inserts a new assessment template.
+     * 
+     * @param courseCode   the course code (must not be null or empty)
+     * @param templateName the template name (must not be null or empty)
+     * @param weightsJson  the weights JSON (must not be null)
+     * @param createdBy    who created it (must not be null or empty)
+     * @return the created template
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public AssessmentTemplate insert(String courseCode, String templateName, String weightsJson, String createdBy) {
+        if (courseCode == null || courseCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Course code cannot be null or empty");
+        }
+        if (templateName == null || templateName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Template name cannot be null or empty");
+        }
+        if (weightsJson == null) {
+            throw new IllegalArgumentException("Weights JSON cannot be null");
+        }
+        if (createdBy == null || createdBy.trim().isEmpty()) {
+            throw new IllegalArgumentException("Created by cannot be null or empty");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, courseCode);
@@ -73,7 +106,17 @@ public class AssessmentTemplateDao extends BaseDao {
         throw new IllegalStateException("Unable to save assessment template");
     }
 
+    /**
+     * Deletes an assessment template.
+     * 
+     * @param templateId the template ID (must be greater than 0)
+     * @throws IllegalArgumentException if templateId is invalid
+     * @throws IllegalStateException    if database operation fails
+     */
     public void delete(long templateId) {
+        if (templateId <= 0) {
+            throw new IllegalArgumentException("Template ID must be greater than 0");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(DELETE)) {
             ps.setLong(1, templateId);
@@ -84,7 +127,17 @@ public class AssessmentTemplateDao extends BaseDao {
         }
     }
 
+    /**
+     * Finds an assessment template by ID.
+     * 
+     * @param id the template ID (must be greater than 0)
+     * @return the template if found, null otherwise
+     * @throws IllegalArgumentException if id is invalid
+     */
     public AssessmentTemplate findById(long id) {
+        if (id <= 0) {
+            throw new IllegalArgumentException("Template ID must be greater than 0");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(SELECT_BY_ID)) {
             ps.setLong(1, id);

@@ -17,13 +17,30 @@ public final class EnrollmentService {
     private EnrollmentService() {
     }
 
+    /**
+     * Registers a student to a section with prerequisite and deadline validation.
+     * 
+     * @param actor     the user performing the action (must not be null)
+     * @param studentId the student ID (must not be null or empty)
+     * @param sectionId the section ID (must not be null or empty)
+     * @return the enrollment record
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if enrollment rules are violated
+     * @throws SecurityException        if student tries to register another student
+     */
     public static EnrollmentRecord registerSection(User actor, String studentId, String sectionId) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (sectionId == null || sectionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
         ensureCanMutate(actor);
 
         Section section = requireSection(sectionId);
         Student student = requireStudent(studentId);
 
-        if (LocalDate.now().isAfter(section.getEnrollmentDeadline())) {
+        if (section.getEnrollmentDeadline() != null && LocalDate.now().isAfter(section.getEnrollmentDeadline())) {
             throw new IllegalStateException("Enrollment deadline has passed for this section.");
         }
 
@@ -43,13 +60,29 @@ public final class EnrollmentService {
         return DatabaseUtil.registerStudentToSection(actor, studentId, sectionId);
     }
 
+    /**
+     * Drops a student from a section with deadline validation.
+     * 
+     * @param actor     the user performing the action (must not be null)
+     * @param studentId the student ID (must not be null or empty)
+     * @param sectionId the section ID (must not be null or empty)
+     * @throws IllegalArgumentException if parameters are invalid
+     * @throws IllegalStateException    if drop deadline has passed
+     * @throws SecurityException        if student tries to drop another student
+     */
     public static void dropSection(User actor, String studentId, String sectionId) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Student ID cannot be null or empty");
+        }
+        if (sectionId == null || sectionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section ID cannot be null or empty");
+        }
         ensureCanMutate(actor);
 
         Section section = requireSection(sectionId);
         Student student = requireStudent(studentId);
 
-        if (LocalDate.now().isAfter(section.getDropDeadline())) {
+        if (section.getDropDeadline() != null && LocalDate.now().isAfter(section.getDropDeadline())) {
             throw new IllegalStateException("Drop deadline has passed for this section.");
         }
 

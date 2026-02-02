@@ -43,7 +43,27 @@ public class NotificationPreferenceDao extends BaseDao {
         return Optional.empty();
     }
 
+    /**
+     * Inserts or updates a notification preference.
+     * 
+     * @param preference the preference to save (must not be null with valid data)
+     * @return the saved preference
+     * @throws IllegalArgumentException if preference is null or has invalid data
+     * @throws IllegalStateException    if database operation fails
+     */
     public NotificationPreference upsert(NotificationPreference preference) {
+        if (preference == null) {
+            throw new IllegalArgumentException("Notification preference cannot be null");
+        }
+        if (preference.getUserId() == null || preference.getUserId().trim().isEmpty()) {
+            throw new IllegalArgumentException("User ID cannot be null or empty");
+        }
+        if (preference.getDigestFrequency() == null) {
+            throw new IllegalArgumentException("Digest frequency cannot be null");
+        }
+        if (preference.getDigestHour() < 0 || preference.getDigestHour() > 23) {
+            throw new IllegalArgumentException("Digest hour must be between 0 and 23");
+        }
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(UPSERT_SQL)) {
             ps.setString(1, preference.getUserId());
