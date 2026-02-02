@@ -42,7 +42,7 @@ public final class DatabaseProperties {
         private String jdbcUrl;
         private String username;
         private String password;
-        private int maximumPoolSize = 5;
+        private int maximumPoolSize = 10;
 
         private Builder() {
         }
@@ -68,6 +68,23 @@ public final class DatabaseProperties {
         }
 
         public DatabaseProperties build() {
+            // Validate not null
+            if (jdbcUrl == null || username == null || password == null) {
+                throw new IllegalArgumentException("jdbcUrl, username, and password must not be null");
+            }
+            // Validate not empty/blank
+            if (jdbcUrl.trim().isEmpty()) {
+                throw new IllegalArgumentException("jdbcUrl must not be empty or blank");
+            }
+            if (username.trim().isEmpty()) {
+                throw new IllegalArgumentException("username must not be empty or blank");
+            }
+            if (password.trim().isEmpty()) {
+                throw new IllegalArgumentException("password must not be empty or blank");
+            }
+            if (maximumPoolSize <= 0) {
+                throw new IllegalArgumentException("maximumPoolSize must be greater than 0");
+            }
             return new DatabaseProperties(this);
         }
     }

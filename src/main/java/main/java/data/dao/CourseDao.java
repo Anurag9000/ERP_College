@@ -135,11 +135,9 @@ public class CourseDao extends BaseDao {
             ps.setString(9, course.getCourseId());
             ps.executeUpdate();
 
-            // We blindly update cache here. If transaction rolls back, cache might be
-            // dirty.
-            // Ideally we invalidate.
-            courseCache.remove(course.getCourseId());
-            cacheInitialized = false; // Simple strategy: invalidate cache on transactional update
+            // Note: Cache invalidation should be handled by the caller after transaction
+            // commits
+            // to avoid cache inconsistency if transaction rolls back
         }
     }
 

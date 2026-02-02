@@ -12,12 +12,12 @@ import java.util.List;
 import java.util.Optional;
 
 public class StudentDao extends BaseDao {
-    private static final String BASE_SELECT = "SELECT id, student_code, auth_username, first_name, last_name, email, phone, date_of_birth, address, course_code, semester, status, fees_paid, total_fees, cgpa, credits_completed, credits_in_progress, next_fee_due, advisor_id, academic_standing FROM students";
+    private static final String BASE_SELECT = "SELECT id, student_code, auth_username, first_name, last_name, email, phone, date_of_birth, admission_date, address, course_code, semester, status, fees_paid, total_fees, cgpa, credits_completed, credits_in_progress, next_fee_due, advisor_id, academic_standing FROM students";
     private static final String SELECT_ALL = BASE_SELECT + " ORDER BY student_code";
     private static final String SELECT_BY_CODE = BASE_SELECT + " WHERE student_code = ?";
     private static final String SELECT_BY_USERNAME = BASE_SELECT + " WHERE auth_username = ?";
-    private static final String INSERT = "INSERT INTO students (student_code, auth_username, first_name, last_name, email, phone, date_of_birth, address, course_code, semester, status, fees_paid, total_fees, cgpa, credits_completed, credits_in_progress, next_fee_due, advisor_id, academic_standing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    private static final String UPDATE = "UPDATE students SET auth_username = ?, first_name = ?, last_name = ?, email = ?, phone = ?, date_of_birth = ?, address = ?, course_code = ?, semester = ?, status = ?, fees_paid = ?, total_fees = ?, cgpa = ?, credits_completed = ?, credits_in_progress = ?, next_fee_due = ?, advisor_id = ?, academic_standing = ? WHERE student_code = ?";
+    private static final String INSERT = "INSERT INTO students (student_code, auth_username, first_name, last_name, email, phone, date_of_birth, admission_date, address, course_code, semester, status, fees_paid, total_fees, cgpa, credits_completed, credits_in_progress, next_fee_due, advisor_id, academic_standing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String UPDATE = "UPDATE students SET auth_username = ?, first_name = ?, last_name = ?, email = ?, phone = ?, date_of_birth = ?, admission_date = ?, address = ?, course_code = ?, semester = ?, status = ?, fees_paid = ?, total_fees = ?, cgpa = ?, credits_completed = ?, credits_in_progress = ?, next_fee_due = ?, advisor_id = ?, academic_standing = ? WHERE student_code = ?";
     private static final String DELETE = "DELETE FROM students WHERE student_code = ?";
 
     public StudentDao() {
@@ -83,22 +83,27 @@ public class StudentDao extends BaseDao {
             } else {
                 ps.setNull(7, java.sql.Types.DATE);
             }
-            ps.setString(8, student.getAddress());
-            ps.setString(9, student.getCourse());
-            ps.setInt(10, student.getSemester());
-            ps.setString(11, student.getStatus());
-            ps.setDouble(12, student.getFeesPaid());
-            ps.setDouble(13, student.getTotalFees());
-            ps.setDouble(14, student.getCgpa());
-            ps.setInt(15, student.getCreditsCompleted());
-            ps.setInt(16, student.getCreditsInProgress());
-            if (student.getNextFeeDueDate() != null) {
-                ps.setDate(17, Date.valueOf(student.getNextFeeDueDate()));
+            if (student.getAdmissionDate() != null) {
+                ps.setDate(8, Date.valueOf(student.getAdmissionDate()));
             } else {
-                ps.setNull(17, java.sql.Types.DATE);
+                ps.setNull(8, java.sql.Types.DATE);
             }
-            ps.setString(18, student.getAdvisorId());
-            ps.setString(19, student.getAcademicStanding());
+            ps.setString(9, student.getAddress());
+            ps.setString(10, student.getCourse());
+            ps.setInt(11, student.getSemester());
+            ps.setString(12, student.getStatus());
+            ps.setDouble(13, student.getFeesPaid());
+            ps.setDouble(14, student.getTotalFees());
+            ps.setDouble(15, student.getCgpa());
+            ps.setInt(16, student.getCreditsCompleted());
+            ps.setInt(17, student.getCreditsInProgress());
+            if (student.getNextFeeDueDate() != null) {
+                ps.setDate(18, Date.valueOf(student.getNextFeeDueDate()));
+            } else {
+                ps.setNull(18, java.sql.Types.DATE);
+            }
+            ps.setString(19, student.getAdvisorId());
+            ps.setString(20, student.getAcademicStanding());
             ps.executeUpdate();
         }
     }
@@ -124,23 +129,28 @@ public class StudentDao extends BaseDao {
             } else {
                 ps.setNull(6, java.sql.Types.DATE);
             }
-            ps.setString(7, student.getAddress());
-            ps.setString(8, student.getCourse());
-            ps.setInt(9, student.getSemester());
-            ps.setString(10, student.getStatus());
-            ps.setDouble(11, student.getFeesPaid());
-            ps.setDouble(12, student.getTotalFees());
-            ps.setDouble(13, student.getCgpa());
-            ps.setInt(14, student.getCreditsCompleted());
-            ps.setInt(15, student.getCreditsInProgress());
-            if (student.getNextFeeDueDate() != null) {
-                ps.setDate(16, Date.valueOf(student.getNextFeeDueDate()));
+            if (student.getAdmissionDate() != null) {
+                ps.setDate(7, Date.valueOf(student.getAdmissionDate()));
             } else {
-                ps.setNull(16, java.sql.Types.DATE);
+                ps.setNull(7, java.sql.Types.DATE);
             }
-            ps.setString(17, student.getAdvisorId());
-            ps.setString(18, student.getAcademicStanding());
-            ps.setString(19, student.getStudentId());
+            ps.setString(8, student.getAddress());
+            ps.setString(9, student.getCourse());
+            ps.setInt(10, student.getSemester());
+            ps.setString(11, student.getStatus());
+            ps.setDouble(12, student.getFeesPaid());
+            ps.setDouble(13, student.getTotalFees());
+            ps.setDouble(14, student.getCgpa());
+            ps.setInt(15, student.getCreditsCompleted());
+            ps.setInt(16, student.getCreditsInProgress());
+            if (student.getNextFeeDueDate() != null) {
+                ps.setDate(17, Date.valueOf(student.getNextFeeDueDate()));
+            } else {
+                ps.setNull(17, java.sql.Types.DATE);
+            }
+            ps.setString(18, student.getAdvisorId());
+            ps.setString(19, student.getAcademicStanding());
+            ps.setString(20, student.getStudentId());
             ps.executeUpdate();
         }
     }
@@ -175,6 +185,10 @@ public class StudentDao extends BaseDao {
         Date dob = rs.getDate("date_of_birth");
         if (dob != null) {
             student.setDateOfBirth(dob.toLocalDate());
+        }
+        Date admissionDate = rs.getDate("admission_date");
+        if (admissionDate != null) {
+            student.setAdmissionDate(admissionDate.toLocalDate());
         }
         student.setAddress(rs.getString("address"));
         student.setCourse(rs.getString("course_code"));

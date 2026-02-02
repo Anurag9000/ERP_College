@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS fee_installments (
     student_code VARCHAR(32) NOT NULL,
     due_date DATE NULL,
     amount DECIMAL(12,2) NOT NULL,
+    paid_amount DECIMAL(12,2) DEFAULT 0 NOT NULL,
     status VARCHAR(16) NOT NULL,
     description VARCHAR(255) NULL,
     paid_on DATE NULL,

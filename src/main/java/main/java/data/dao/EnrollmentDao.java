@@ -123,9 +123,7 @@ public class EnrollmentDao extends BaseDao {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             try {
-                try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS)) {
-                    update(conn, record);
-                }
+                update(conn, record);
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();
@@ -198,19 +196,30 @@ public class EnrollmentDao extends BaseDao {
         if (records == null || records.isEmpty())
             return;
 
+        // Filter out records with null or zero IDs to prevent SQL errors
+        List<EnrollmentRecord> validRecords = records.stream()
+                .filter(r -> {
+                    Long id = r.getId();
+                    return id != null && id > 0;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        if (validRecords.isEmpty())
+            return;
+
         StringBuilder sql = new StringBuilder(
                 "SELECT enrollment_id, component, score, feedback FROM grades WHERE enrollment_id IN (");
-        for (int i = 0; i < records.size(); i++) {
+        for (int i = 0; i < validRecords.size(); i++) {
             sql.append(i == 0 ? "?" : ", ?");
         }
         sql.append(")");
 
-        Map<Long, EnrollmentRecord> recordMap = records.stream()
+        Map<Long, EnrollmentRecord> recordMap = validRecords.stream()
                 .collect(Collectors.toMap(EnrollmentRecord::getId, r -> r));
 
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < records.size(); i++) {
-                ps.setLong(i + 1, records.get(i).getId());
+            for (int i = 0; i < validRecords.size(); i++) {
+                ps.setLong(i + 1, validRecords.get(i).getId());
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

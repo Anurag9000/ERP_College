@@ -25,8 +25,17 @@ public abstract class BaseDao {
                     ". Verify your application.properties settings (jdbcUrl, username, password).");
         }
         Connection conn = dataSource.getConnection();
-        if (conn == null || conn.isClosed()) {
-            throw new SQLException("Failed to obtain a valid database connection.");
+        if (conn == null) {
+            throw new SQLException("Failed to obtain a database connection (connection is null).");
+        }
+        // Validate connection is not closed
+        try {
+            if (conn.isClosed()) {
+                throw new SQLException("Obtained connection is already closed.");
+            }
+        } catch (SQLException e) {
+            // If checking isClosed() itself throws exception, wrap it with context
+            throw new SQLException("Failed to validate database connection: " + e.getMessage(), e);
         }
         return conn;
     }

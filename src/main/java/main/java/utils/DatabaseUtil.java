@@ -59,9 +59,6 @@ public class DatabaseUtil {
     private static final Map<String, String> settings = new ConcurrentHashMap<>();
     private static Map<String, Student> students = new ConcurrentHashMap<>();
 
-    // Removed redundant courses cache to rely on CourseDao's caching
-    // private static Map<String, Course> courses = new ConcurrentHashMap<>();
-
     public static void evictStudent(String studentId) {
         students.remove(studentId);
     }
@@ -622,6 +619,9 @@ public class DatabaseUtil {
     }
 
     public static Student getStudent(String studentId) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("studentId must not be null or empty");
+        }
         Student cached = students.get(studentId);
         if (cached != null)
             return cached;
@@ -636,10 +636,16 @@ public class DatabaseUtil {
     }
 
     public static Student findStudentByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("username must not be null or empty");
+        }
         return getStudentDao().findByUsername(username).orElse(null);
     }
 
     public static List<Section> getSectionsForFaculty(String facultyId) {
+        if (facultyId == null || facultyId.trim().isEmpty()) {
+            throw new IllegalArgumentException("facultyId must not be null or empty");
+        }
         return getSectionDao().findByFaculty(facultyId);
     }
 
@@ -1020,27 +1026,20 @@ public class DatabaseUtil {
     // Course operations
     public static void addCourse(Course course) {
         getCourseDao().insert(course);
-        // courses.put(course.getCourseId(), course);
         clearCourseRelationshipCaches(course.getCourseId());
     }
 
     public static void updateCourse(Course course) {
         getCourseDao().update(course);
-        // courses.put(course.getCourseId(), course);
         clearCourseRelationshipCaches(course.getCourseId());
     }
 
     public static void deleteCourse(String courseId) {
         getCourseDao().delete(courseId);
-        // courses.remove(courseId);
         coursePrerequisiteCache.remove(courseId);
     }
 
     public static Course getCourse(String courseId) {
-        // Redundant cache removed
-        // Course cached = courses.get(courseId);
-        // if (cached != null)
-        // return cached;
         return getCourseDao().findByCode(courseId).orElse(null);
     }
 
@@ -1419,7 +1418,8 @@ public class DatabaseUtil {
                 addNotification(new NotificationMessage(
                         NotificationMessage.Audience.STUDENT,
                         studentId,
-                        "Section " + section.getTitle() + " is full. You are on the waitlist. " + approvalText,
+                        "Section " + section.getTitle() + " is full. You are on the waitlist (position ~" + position
+                                + "). " + approvalText,
                         "Registration"));
             }
         }

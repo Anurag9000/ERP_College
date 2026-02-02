@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS students (
     email VARCHAR(128) NOT NULL,
     phone VARCHAR(32),
     date_of_birth DATE,
+    admission_date DATE,
     address VARCHAR(255),
     course_code VARCHAR(32),
     semester INT,
@@ -53,6 +54,7 @@ CREATE TABLE IF NOT EXISTS courses (
     description TEXT,
     total_seats INT,
     available_seats INT,
+    credit_hours INT DEFAULT 3,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -97,8 +99,10 @@ CREATE TABLE IF NOT EXISTS grades (
     enrollment_id BIGINT NOT NULL,
     component VARCHAR(64) NOT NULL,
     score DECIMAL(5,2),
+    feedback TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_grade_enrollment FOREIGN KEY (enrollment_id) REFERENCES enrollments (id) ON DELETE CASCADE
+    CONSTRAINT fk_grade_enrollment FOREIGN KEY (enrollment_id) REFERENCES enrollments (id) ON DELETE CASCADE,
+    INDEX idx_grades_enrollment (enrollment_id)
 );
 
 CREATE TABLE IF NOT EXISTS attendance_records (
@@ -170,3 +174,8 @@ CREATE TABLE IF NOT EXISTS maintenance_schedule (
     message VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Additional indexes for foreign keys to improve JOIN performance
+CREATE INDEX IF NOT EXISTS idx_enrollments_student ON enrollments(student_code);
+CREATE INDEX IF NOT EXISTS idx_enrollments_section ON enrollments(section_code);
+CREATE INDEX IF NOT EXISTS idx_attendance_student ON attendance_records(student_code);
