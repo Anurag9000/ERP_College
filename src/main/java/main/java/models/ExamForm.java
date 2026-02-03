@@ -52,7 +52,16 @@ public class ExamForm implements java.io.Serializable {
         return year;
     }
 
+    /**
+     * Sets the year.
+     * 
+     * @param year the year (must be between 2000 and 2100)
+     * @throws IllegalArgumentException if year is out of range
+     */
     public void setYear(int year) {
+        if (year < 2000 || year > 2100) {
+            throw new IllegalArgumentException("Year must be between 2000 and 2100, got: " + year);
+        }
         this.year = year;
     }
 

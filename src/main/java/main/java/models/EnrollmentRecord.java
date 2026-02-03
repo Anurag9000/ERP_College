@@ -96,7 +96,20 @@ public class EnrollmentRecord implements Serializable {
         this.updatedAt = LocalDateTime.now();
     }
 
+    /**
+     * Puts a component score.
+     * 
+     * @param component the component name (must not be null or empty)
+     * @param value     the score value (must be between 0 and 100)
+     * @throws IllegalArgumentException if parameters are invalid
+     */
     public void putScore(String component, double value) {
+        if (component == null || component.trim().isEmpty()) {
+            throw new IllegalArgumentException("Component cannot be null or empty");
+        }
+        if (value < 0 || value > 100) {
+            throw new IllegalArgumentException("Score must be between 0 and 100, got: " + value);
+        }
         this.componentScores.put(component, value);
         this.updatedAt = LocalDateTime.now();
     }
@@ -105,7 +118,18 @@ public class EnrollmentRecord implements Serializable {
         return finalGrade;
     }
 
+    /**
+     * Sets the final grade.
+     * 
+     * @param finalGrade the final grade (must be between 0 and 100, or -1 for
+     *                   unset)
+     * @throws IllegalArgumentException if finalGrade is invalid
+     */
     public void setFinalGrade(double finalGrade) {
+        if (finalGrade != -1.0 && (finalGrade < 0 || finalGrade > 100)) {
+            throw new IllegalArgumentException(
+                    "Final grade must be between 0 and 100 (or -1 for unset), got: " + finalGrade);
+        }
         this.finalGrade = finalGrade;
         this.updatedAt = LocalDateTime.now();
     }

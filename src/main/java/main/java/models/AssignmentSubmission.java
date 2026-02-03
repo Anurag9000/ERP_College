@@ -65,7 +65,16 @@ public class AssignmentSubmission implements java.io.Serializable {
         return marksObtained;
     }
 
+    /**
+     * Sets the marks obtained.
+     * 
+     * @param marksObtained the marks obtained (must not be negative if not null)
+     * @throws IllegalArgumentException if marksObtained is negative
+     */
     public void setMarksObtained(Double marksObtained) {
+        if (marksObtained != null && marksObtained < 0) {
+            throw new IllegalArgumentException("Marks obtained cannot be negative, got: " + marksObtained);
+        }
         this.marksObtained = marksObtained;
     }
 

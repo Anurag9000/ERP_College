@@ -59,7 +59,16 @@ public class NotificationPreference implements java.io.Serializable {
         return digestHour;
     }
 
+    /**
+     * Sets the digest hour.
+     * 
+     * @param digestHour the digest hour (must be between 0 and 23)
+     * @throws IllegalArgumentException if digestHour is out of range
+     */
     public void setDigestHour(int digestHour) {
+        if (digestHour < 0 || digestHour > 23) {
+            throw new IllegalArgumentException("Digest hour must be between 0 and 23, got: " + digestHour);
+        }
         this.digestHour = digestHour;
     }
 

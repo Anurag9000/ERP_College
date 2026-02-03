@@ -69,7 +69,16 @@ public class Course implements java.io.Serializable {
         return duration;
     }
 
+    /**
+     * Sets the course duration in semesters.
+     * 
+     * @param duration the duration (must be between 1 and 12)
+     * @throws IllegalArgumentException if duration is out of range
+     */
     public void setDuration(int duration) {
+        if (duration < 1 || duration > 12) {
+            throw new IllegalArgumentException("Duration must be between 1 and 12 semesters, got: " + duration);
+        }
         this.duration = duration;
     }
 
@@ -77,7 +86,16 @@ public class Course implements java.io.Serializable {
         return fees;
     }
 
+    /**
+     * Sets the course fees.
+     * 
+     * @param fees the fees (must not be negative)
+     * @throws IllegalArgumentException if fees is negative
+     */
     public void setFees(double fees) {
+        if (fees < 0) {
+            throw new IllegalArgumentException("Fees cannot be negative, got: " + fees);
+        }
         this.fees = fees;
     }
 
@@ -101,7 +119,16 @@ public class Course implements java.io.Serializable {
         return totalSeats;
     }
 
+    /**
+     * Sets the total seats.
+     * 
+     * @param totalSeats the total seats (must be positive)
+     * @throws IllegalArgumentException if totalSeats is not positive
+     */
     public void setTotalSeats(int totalSeats) {
+        if (totalSeats <= 0) {
+            throw new IllegalArgumentException("Total seats must be positive, got: " + totalSeats);
+        }
         this.totalSeats = totalSeats;
         if (this.availableSeats > totalSeats) {
             this.availableSeats = totalSeats;
@@ -112,7 +139,16 @@ public class Course implements java.io.Serializable {
         return availableSeats;
     }
 
+    /**
+     * Sets the available seats.
+     * 
+     * @param availableSeats the available seats (must not be negative)
+     * @throws IllegalArgumentException if availableSeats is negative
+     */
     public void setAvailableSeats(int availableSeats) {
+        if (availableSeats < 0) {
+            throw new IllegalArgumentException("Available seats cannot be negative, got: " + availableSeats);
+        }
         this.availableSeats = availableSeats;
     }
 
@@ -132,7 +168,16 @@ public class Course implements java.io.Serializable {
         return creditHours;
     }
 
+    /**
+     * Sets the credit hours.
+     * 
+     * @param creditHours the credit hours (must be between 1 and 6)
+     * @throws IllegalArgumentException if creditHours is out of range
+     */
     public void setCreditHours(int creditHours) {
+        if (creditHours < 1 || creditHours > 6) {
+            throw new IllegalArgumentException("Credit hours must be between 1 and 6, got: " + creditHours);
+        }
         this.creditHours = creditHours;
     }
 

@@ -69,7 +69,16 @@ public class Assignment implements java.io.Serializable {
         return maxMarks;
     }
 
+    /**
+     * Sets the maximum marks.
+     * 
+     * @param maxMarks the maximum marks (must be positive)
+     * @throws IllegalArgumentException if maxMarks is not positive
+     */
     public void setMaxMarks(double maxMarks) {
+        if (maxMarks <= 0) {
+            throw new IllegalArgumentException("Max marks must be positive, got: " + maxMarks);
+        }
         this.maxMarks = maxMarks;
     }
 

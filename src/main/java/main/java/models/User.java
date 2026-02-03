@@ -40,7 +40,16 @@ public class User implements java.io.Serializable {
         return username;
     }
 
+    /**
+     * Sets the username.
+     * 
+     * @param username the username (must not be null or empty)
+     * @throws IllegalArgumentException if username is null or empty
+     */
     public void setUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
         this.username = username;
     }
 
@@ -72,7 +81,21 @@ public class User implements java.io.Serializable {
         return role;
     }
 
+    /**
+     * Sets the user role.
+     * 
+     * @param role the role (must be Admin, Instructor, or Student)
+     * @throws IllegalArgumentException if role is invalid
+     */
     public void setRole(String role) {
+        if (role == null || role.trim().isEmpty()) {
+            throw new IllegalArgumentException("Role cannot be null or empty");
+        }
+        String normalizedRole = role.toLowerCase();
+        if (!normalizedRole.equals("admin") && !normalizedRole.equals("instructor")
+                && !normalizedRole.equals("student")) {
+            throw new IllegalArgumentException("Role must be Admin, Instructor, or Student, got: " + role);
+        }
         this.role = role;
     }
 
@@ -120,7 +143,16 @@ public class User implements java.io.Serializable {
         return failedAttempts;
     }
 
+    /**
+     * Sets the failed login attempts count.
+     * 
+     * @param failedAttempts the failed attempts (must not be negative)
+     * @throws IllegalArgumentException if failedAttempts is negative
+     */
     public void setFailedAttempts(int failedAttempts) {
+        if (failedAttempts < 0) {
+            throw new IllegalArgumentException("Failed attempts cannot be negative, got: " + failedAttempts);
+        }
         this.failedAttempts = failedAttempts;
     }
 
@@ -151,7 +183,24 @@ public class User implements java.io.Serializable {
         this.passwordHistory = history;
     }
 
+    /**
+     * Adds a password to the history.
+     * 
+     * @param salt       the salt (must not be null or empty)
+     * @param hash       the hash (must not be null or empty)
+     * @param maxHistory the maximum history size (must be positive)
+     * @throws IllegalArgumentException if parameters are invalid
+     */
     public void addPasswordHistory(String salt, String hash, int maxHistory) {
+        if (salt == null || salt.isEmpty()) {
+            throw new IllegalArgumentException("Salt cannot be null or empty");
+        }
+        if (hash == null || hash.isEmpty()) {
+            throw new IllegalArgumentException("Hash cannot be null or empty");
+        }
+        if (maxHistory <= 0) {
+            throw new IllegalArgumentException("Max history must be positive, got: " + maxHistory);
+        }
         String entry = salt + ":" + hash;
         getPasswordHistory().addFirst(entry);
         while (passwordHistory.size() > maxHistory) {

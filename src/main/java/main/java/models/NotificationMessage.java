@@ -80,7 +80,16 @@ public class NotificationMessage implements Serializable {
         return message;
     }
 
+    /**
+     * Sets the notification message.
+     * 
+     * @param message the message (must not be null or empty)
+     * @throws IllegalArgumentException if message is null or empty
+     */
     public void setMessage(String message) {
+        if (message == null || message.trim().isEmpty()) {
+            throw new IllegalArgumentException("Message cannot be null or empty");
+        }
         this.message = message;
     }
 

@@ -54,7 +54,16 @@ public class Announcement implements java.io.Serializable {
         return title;
     }
 
+    /**
+     * Sets the announcement title.
+     * 
+     * @param title the title (must not be null or empty)
+     * @throws IllegalArgumentException if title is null or empty
+     */
     public void setTitle(String title) {
+        if (title == null || title.trim().isEmpty()) {
+            throw new IllegalArgumentException("Title cannot be null or empty");
+        }
         this.title = title;
     }
 
@@ -62,7 +71,16 @@ public class Announcement implements java.io.Serializable {
         return content;
     }
 
+    /**
+     * Sets the announcement content.
+     * 
+     * @param content the content (must not be null or empty)
+     * @throws IllegalArgumentException if content is null or empty
+     */
     public void setContent(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("Content cannot be null or empty");
+        }
         this.content = content;
     }
 
