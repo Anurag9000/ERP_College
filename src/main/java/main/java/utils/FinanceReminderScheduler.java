@@ -60,10 +60,28 @@ public final class FinanceReminderScheduler {
         }
     }
 
+    /**
+     * Processes installment reminders for a student.
+     * 
+     * @param student   the student (must not be null)
+     * @param today     today's date (must not be null)
+     * @param threshold the reminder threshold date (must not be null)
+     */
     private static void processInstallmentReminders(Student student, LocalDate today, LocalDate threshold) {
+        if (student == null || student.getStudentId() == null) {
+            LOGGER.warn("Cannot process installment reminders: student or studentId is null");
+            return;
+        }
+        if (today == null || threshold == null) {
+            LOGGER.warn("Cannot process installment reminders: today or threshold is null");
+            return;
+        }
         List<FeeInstallment> installments = DatabaseUtil.getInstallmentsForStudent(student.getStudentId());
+        if (installments == null) {
+            return;
+        }
         for (FeeInstallment installment : installments) {
-            if (installment.getStatus() == FeeInstallment.Status.PAID) {
+            if (installment == null || installment.getStatus() == FeeInstallment.Status.PAID) {
                 continue;
             }
             LocalDate due = installment.getDueDate();
@@ -95,7 +113,21 @@ public final class FinanceReminderScheduler {
         }
     }
 
+    /**
+     * Processes daily digest for a student.
+     * 
+     * @param student the student (must not be null)
+     * @param today   today's date (must not be null)
+     */
     private static void processDailyDigest(Student student, LocalDate today) {
+        if (student == null || student.getStudentId() == null) {
+            LOGGER.warn("Cannot process daily digest: student or studentId is null");
+            return;
+        }
+        if (today == null) {
+            LOGGER.warn("Cannot process daily digest: today is null");
+            return;
+        }
         double outstanding = Math.max(0.0, student.getTotalFees() - student.getFeesPaid());
         if (outstanding <= 0.0) {
             return;
